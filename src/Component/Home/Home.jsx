@@ -1,11 +1,21 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 function Home() {
   const [showModal, setShowModal] = useState(false); // State to control modal visibility
   const navigate = useNavigate();
+  const [userData, setUserData] = useState(null);
 
+  useEffect(() => {
+    // Retrieve user data from localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUserData(JSON.parse(storedUser));
+    }
+  }, []);
+
+  if (!userData) return null;
   // Function to handle logout
   const handleLogout = () => {
     // Clear local storage
@@ -14,7 +24,7 @@ function Home() {
 
     // Redirect to login page
     navigate("/login");
-    toast.success("Logout Successfull")
+    toast.success("Logout Successfull");
   };
   return (
     <div className=" ">
@@ -71,17 +81,28 @@ function Home() {
         {/* User Info */}
         <div className="flex items-center gap-5 px-6 mb-6">
           <img
-            src="https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3383.jpg?w=740"
+            src={
+              userData.profileimage ||
+              "https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3383.jpg?w=740"
+            }
             alt="User"
-            className="w-20 h-20 rounded-lg "
+            className="w-20 h-20 rounded-lg"
           />
           <div>
             <p className="text-lg font-medium text-gray-700">
-              Hello Murughesbabu
+              Hello {userData.firstname} {userData.lastname}
             </p>
-            <p className="text-sm text-gray-500">Skanray Service Engineer</p>
-            <p className="text-sm text-gray-500">Date: Aug 16 2024</p>
-            {/* <p className="text-sm text-gray-500">Time: 04:15 PM</p> */}
+            <p className="text-sm text-gray-500">{userData.department}</p>
+            <p className="text-sm text-gray-500">
+              Date:{" "}
+              {new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "2-digit",
+                year: "numeric",
+              })}
+            </p>
+            {/* Uncomment if you want to include the time */}
+            {/* <p className="text-sm text-gray-500">Time: {new Date().toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}</p> */}
           </div>
         </div>
 

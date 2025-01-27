@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast"; // 1) Import from react-hot-toast
 
 function AddNewCustomer() {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     customercodeid: "",
     customername: "",
@@ -21,6 +22,9 @@ function AddNewCustomer() {
     status: "",
     customertype: "",
   });
+
+  // NEW STATE: Controls visibility of success modal
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -58,6 +62,9 @@ function AddNewCustomer() {
 
       if (response.ok) {
         toast.success("Customer added successfully!");
+        // Show success modal
+        setShowSuccessModal(true);
+
         // Reset form
         setFormData({
           customercodeid: "",
@@ -104,8 +111,9 @@ function AddNewCustomer() {
           >
             <path
               fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 
-                0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
+              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 
+              0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 
+              0 0 1 .5.5"
             />
           </svg>
         </button>
@@ -230,7 +238,7 @@ function AddNewCustomer() {
           onChange={handleInputChange}
         />
 
-        {/* TaxNumber1 (Previously GST or PAN) */}
+        {/* TaxNumber1 */}
         <input
           type="text"
           name="taxnumber1"
@@ -240,7 +248,7 @@ function AddNewCustomer() {
           onChange={handleInputChange}
         />
 
-        {/* TaxNumber2 (If you have a second tax ID) */}
+        {/* TaxNumber2 */}
         <input
           type="text"
           name="taxnumber2"
@@ -279,6 +287,28 @@ function AddNewCustomer() {
           Add Customer
         </button>
       </form>
+
+      {/* SUCCESS MODAL (shown after we get a successful response) */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 px-5 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Success!</h2>
+            <p className="mb-4">Customer has been added successfully.</p>
+            <div className="flex justify-end">
+              <button
+                className="bg-primary text-white px-4 py-2 rounded-md"
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // Optionally navigate somewhere else if desired
+                  // navigate('/customer');
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

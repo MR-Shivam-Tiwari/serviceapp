@@ -20,6 +20,8 @@ import CustomerDetails from './Component/Customer/CustomerAction/CustomerDetails
 import { Toaster } from 'react-hot-toast';
 import PrivateRoute from './PrivateRoute'; // Import the PrivateRoute
 import PublicRoute from './PublicRoute'; // Import PublicRoute
+import SelectCustomer from './Component/Installation/SelectCustomer';
+import InstallationSummary from './Component/Installation/InstallationSummary';
 
 function App() {
   return (
@@ -49,7 +51,7 @@ function App() {
           />
           <Route
             path="/installation"
-            element={<PrivateRoute element={Installation} />} 
+            element={<PrivateRoute element={Installation} />}
           />
           <Route
             path="/complaints"
@@ -95,6 +97,15 @@ function App() {
             path="/pendingcomplaints/:complaintId"
             element={<PrivateRoute element={ComplaintDetailsPage} />}
           />
+          <Route
+            path="/search-customer"
+            element={<PrivateRoute element={SelectCustomer} />}
+          />
+          <Route
+            path="/installation-summary"
+            element={<PrivateRoute element={InstallationSummary} />}
+          />
+
           <Route
             path="/customer-details/:id"
             element={<PrivateRoute element={CustomerDetails} />}

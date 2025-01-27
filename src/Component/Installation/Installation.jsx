@@ -17,7 +17,15 @@ function Installation() {
   const [equipmentData, setEquipmentData] = useState(null);
   const [pendingInstallationData, setPendingInstallationData] = useState(null);
 
-  // Fetch all serial numbers
+  // NEW STATES for abnormal site condition & voltage
+  const [abnormalCondition, setAbnormalCondition] = useState("");
+  const [voltageData, setVoltageData] = useState({
+    lnry: "", // L-N / R-Y
+    lgyb: "", // L-G / Y-B
+    ngbr: "", // N-G / B-R
+  });
+
+  // Fetch all serial numbers (unchanged)
   const fetchSerialNumbers = async () => {
     try {
       const response = await axios.get(
@@ -31,11 +39,10 @@ function Installation() {
     }
   };
 
-  // Fetch detailed data whenever a new serial number is selected
+  // Fetch equipment details when serial changes
   useEffect(() => {
     const fetchEquipmentDetails = async (serial) => {
       try {
-        // Adjust this URL if needed to match your backend route
         const response = await axios.get(
           `http://localhost:5000/collections/getbyserialno/${serial}`
         );
@@ -58,6 +65,21 @@ function Installation() {
   useEffect(() => {
     fetchSerialNumbers();
   }, []);
+
+  // Handle the Install button
+  const handleProceedForInstallation = () => {
+    // Navigate to "SearchCustomer" page, passing the relevant data
+    navigate("/search-customer", {
+      state: {
+        // You can pass anything you need in here
+        selectedSerialNumber,
+        equipmentData,
+        pendingInstallationData,
+        abnormalCondition,
+        voltageData,
+      },
+    });
+  };
 
   return (
     <div className="">
@@ -85,69 +107,53 @@ function Installation() {
         <div className="mb-4 px-4">
           {/* Search Section */}
           <div className="mb-4">
-            <div className="mb-4">
-              <label
-                htmlFor="serialNumber"
-                className="block text-sm font-medium"
-              >
-                Search & Select Serial Number
-              </label>
-              {loadingSerialNumbers ? (
-                <p>Loading serial numbers...</p>
-              ) : (
-                <Autocomplete
-                  id="serialNumber"
-                  options={serialNumbers}
-                  getOptionLabel={(option) => option}
-                  onChange={(event, newValue) =>
-                    setSelectedSerialNumber(newValue)
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      variant="outlined"
-                      className="mt-1 block w-full"
-                      label="Serial Number"
-                    />
-                  )}
-                />
-              )}
-            </div>
-            <button className="w-full px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <label htmlFor="serialNumber" className="block text-sm font-medium">
+              Search & Select Serial Number
+            </label>
+            {loadingSerialNumbers ? (
+              <p>Loading serial numbers...</p>
+            ) : (
+              <Autocomplete
+                id="serialNumber"
+                options={serialNumbers}
+                getOptionLabel={(option) => option}
+                onChange={(event, newValue) => setSelectedSerialNumber(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    className="mt-1 block w-full"
+                    label="Serial Number"
+                  />
+                )}
+              />
+            )}
+            <button className="w-full px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2">
               Scan Barcode
             </button>
           </div>
 
           {/* Equipment & Pending Installation Details */}
-          <div className="mb-4 space-y-2">
-            {/* Show either equipmentData or pendingInstallationData fields (or both) */}
+          <div className="mb-4 space-y-2 border border-gray-200 p-3 rounded">
             <p>
               <strong>Serial Number:</strong>{" "}
               {equipmentData?.serialnumber ||
                 pendingInstallationData?.serialnumber ||
-                "serialnumber"}
+                "N/A"}
             </p>
-
-            {/* Fields from equipmentData */}
             <p>
               <strong>Equipment Name:</strong> {equipmentData?.name || "N/A"}
             </p>
-
             <p>
-              <strong>Equipment ID:</strong>{" "}
-              {equipmentData?.equipmentid || "N/A"}
+              <strong>Equipment ID:</strong> {equipmentData?.equipmentid || "N/A"}
             </p>
-
             <p>
-              <strong>PAL Number (Equipment):</strong>{" "}
-              {equipmentData?.palnumber || "N/A"}
+              <strong>PAL Number (Equip.):</strong> {equipmentData?.palnumber || "N/A"}
             </p>
-
             <p>
               <strong>Material Description:</strong>{" "}
               {equipmentData?.materialdescription || "N/A"}
             </p>
-            {/* Fields from pendingInstallationData */}
             <p>
               <strong>Invoice No:</strong>{" "}
               {pendingInstallationData?.invoiceno || "N/A"}
@@ -160,39 +166,72 @@ function Installation() {
               <strong>Description (Install):</strong>{" "}
               {pendingInstallationData?.description || "N/A"}
             </p>
-
-             
             <p>
               <strong>Status (Pending):</strong>{" "}
               {pendingInstallationData?.status || "N/A"}
             </p>
           </div>
 
+          {/* Abnormal Site Condition */}
+          <div className="mb-4">
+            <label className="block font-medium">Abnormal Site Condition:</label>
+            <input
+              type="text"
+              placeholder="Enter abnormal condition details..."
+              value={abnormalCondition}
+              onChange={(e) => setAbnormalCondition(e.target.value)}
+              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
+                border border-gray-300 rounded-lg 
+                focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
           {/* Voltage Section */}
           <div className="mb-4">
-            <p>Abnormal Site Condition:</p>
-            <p>Enter Voltage:</p>
+            <p className="font-medium">Enter Voltage:</p>
             <input
               type="text"
-              placeholder="L-N/R-Y"
-              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="L-N / R-Y"
+              value={voltageData.lnry}
+              onChange={(e) =>
+                setVoltageData({ ...voltageData, lnry: e.target.value })
+              }
+              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
+                border border-gray-300 rounded-lg 
+                focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
-              placeholder="L-G/Y-B"
-              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="L-G / Y-B"
+              value={voltageData.lgyb}
+              onChange={(e) =>
+                setVoltageData({ ...voltageData, lgyb: e.target.value })
+              }
+              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
+                border border-gray-300 rounded-lg 
+                focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
-              placeholder="N-G/B-R"
-              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="N-G / B-R"
+              value={voltageData.ngbr}
+              onChange={(e) =>
+                setVoltageData({ ...voltageData, ngbr: e.target.value })
+              }
+              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
+                border border-gray-300 rounded-lg 
+                focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Action Buttons */}
           <div className="flex space-x-4">
-            <button className="flex-1 px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              Proceed for Installation
+            <button
+              className="flex-1 px-4 py-2 text-white bg-primary rounded-lg 
+                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={handleProceedForInstallation}
+            >
+              Install
             </button>
           </div>
         </div>

@@ -10,6 +10,7 @@ const PendingComplaintsPage = () => {
     fetch("http://localhost:5000/collections/pendingcomplaints")
       .then((response) => response.json())
       .then((data) => {
+        // Directly set the fetched data to the complaints state
         setComplaints(data.pendingComplaints);
       })
       .catch((error) => console.error("Error fetching complaints:", error));
