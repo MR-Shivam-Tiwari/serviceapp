@@ -3,39 +3,75 @@ import { useNavigate } from "react-router-dom";
 
 const OwnStocks = () => {
   const navigate = useNavigate();
+
+  // Store user info from localStorage
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    employeeId: "",
+    userid: "",
+  });
+
+  // State for the DealerStock data we get back
   const [stockData, setStockData] = useState([]);
+  // Loader state
   const [loading, setLoading] = useState(true);
 
+  // 1) Load user info from localStorage on mount
   useEffect(() => {
-    // Fetch data from the API
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    console.log("Stored User Data:", storedUser);
+    if (storedUser) {
+      setUserInfo({
+        firstName: storedUser.firstname,
+        lastName: storedUser.lastname,
+        employeeId: storedUser.employeeid, // We'll use this as 'dealercodeid'
+        userid: storedUser.id,
+      });
+    }
+  }, []);
+
+  // 2) Fetch DealerStock data using employeeId as dealercodeid
+  useEffect(() => {
     const fetchStockData = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/collections/hubstocks");
-        const data = await response.json();
-        setStockData(data.hubStocks || []);
+      // If we have no employeeId, skip
+      if (!userInfo.employeeId) {
         setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/collections/dealerstocks/materials/${userInfo.employeeId}`
+        );
+        const data = await response.json();
+        // data should be an array of objects like:
+        // [ { materialcode, materialdescription, unrestrictedquantity }, ... ]
+        setStockData(data || []);
       } catch (error) {
         console.error("Error fetching stock data:", error);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchStockData();
-  }, []);
+  }, [userInfo.employeeId]);
 
-  // Function to determine status text color
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Active":
-        return "text-green-600";
-      case "Inactive":
-        return "text-red-600";
-      case "Pending":
-        return "text-yellow-600";
-      default:
-        return "text-gray-600";
-    }
-  };
+  // (Optional) Function to determine any status text color if needed
+  // const getStatusClass = (status) => {
+  //   switch (status) {
+  //     case "Active":
+  //       return "text-green-600";
+  //     case "Inactive":
+  //       return "text-red-600";
+  //     case "Pending":
+  //       return "text-yellow-600";
+  //     default:
+  //       return "text-gray-600";
+  //   }
+  // };
 
   return (
     <div className="w-full">
@@ -52,16 +88,24 @@ const OwnStocks = () => {
           >
             <path
               fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
+              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
+              0 0 1-.708.708l-3-3a.5.5 
+              0 0 1 0-.708l3-3a.5.5 
+              0 1 1 .708.708L5.707 7.5H11.5a.5.5 
+              0 0 1 .5.5"
             />
           </svg>
         </button>
         <h2 className="text-xl font-bold">Own Stocks</h2>
       </div>
+
       <div className="px-4">
         {/* Loading Spinner */}
         {loading ? (
-          <p className="text-center text-gray-600">Loading...</p>
+          <div className="flex mt-20 items-center justify-center">
+            {/* Example spinner (replace with your own if needed) */}
+            <span className="loader"></span>
+          </div>
         ) : (
           <>
             {/* Stock Table */}
@@ -69,28 +113,32 @@ const OwnStocks = () => {
               <table className="w-full border rounded border-gray-300">
                 <thead>
                   <tr>
-                    <th className="px-4 py-2 text-left border-b border-gray-300">Material Code</th>
-                    <th className="px-4 py-2 text-left border-b border-gray-300">Description</th>
-                    <th className="px-4 py-2 text-left border-b border-gray-300">Quantity</th>
-                    {/* <th className="px-4 py-2 text-left border-b border-gray-300">Status</th> */}
+                    <th className="px-4 py-2 text-left border-b border-gray-300">
+                      Material Code
+                    </th>
+                    <th className="px-4 py-2 text-left border-b border-gray-300">
+                      Description
+                    </th>
+                    <th className="px-4 py-2 text-left border-b border-gray-300">
+                      Unrestricted Quantity
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {stockData.length > 0 ? (
-                    stockData.map((item) => (
-                      <tr key={item._id} className="border-b">
+                    stockData.map((item, index) => (
+                      <tr key={index} className="border-b">
                         <td className="px-4 py-2">{item.materialcode}</td>
                         <td className="px-4 py-2">{item.materialdescription}</td>
-                        <td className="px-4 py-2">{item.quantity}</td>
-                        {/* <td className={`px-4 py-2 ${getStatusClass(item.status)}`}>
-                          {item.status}
-                        </td> */}
+                        <td className="px-4 py-2">
+                          {item.unrestrictedquantity}
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan="4"
+                        colSpan="3"
                         className="px-4 py-2 text-center text-red-600 border-b border-gray-300"
                       >
                         No Details Found
@@ -100,6 +148,7 @@ const OwnStocks = () => {
                 </tbody>
               </table>
             </div>
+
             {/* Footer Button */}
             <button
               onClick={() => navigate("/")}

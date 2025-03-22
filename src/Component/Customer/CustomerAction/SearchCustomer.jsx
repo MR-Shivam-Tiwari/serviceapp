@@ -5,13 +5,20 @@ const SearchCustomer = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true); // Loading state added
 
   // Fetch customers from API
   useEffect(() => {
-    fetch("http://localhost:5000/collections/customer")
+    fetch(`${process.env.REACT_APP_BASE_URL}/collections/customer`)
       .then((response) => response.json())
-      .then((data) => setCustomers(data.customers))
-      .catch((error) => console.error("Error fetching customers:", error));
+      .then((data) => {
+        setCustomers(data.customers);
+        setLoading(false); // Stop loader after data fetch
+      })
+      .catch((error) => {
+        console.error("Error fetching customers:", error);
+        setLoading(false); // Stop loader even if there is an error
+      });
   }, []);
 
   // Filtered customers based on search query
@@ -26,7 +33,10 @@ const SearchCustomer = () => {
     <div>
       <div className="w-full">
         <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
-          <button className="mr-2 text-white" onClick={() => navigate("/customer")}>
+          <button
+            className="mr-2 text-white"
+            onClick={() => navigate("/customer")}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="36"
@@ -44,7 +54,7 @@ const SearchCustomer = () => {
           <h2 className="text-xl font-bold">Search Customer</h2>
         </div>
 
-        <div className="px-4">
+        <div className="px-2">
           <div className="relative mb-4">
             <input
               type="text"
@@ -67,33 +77,57 @@ const SearchCustomer = () => {
             </button>
           </div>
 
-          <div>
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer._id}
-                className="flex items-center justify-between p-4 mb-2 bg-gray-100 rounded-lg shadow hover:bg-gray-200"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-gray-700">
-                    {customer.customername}
-                  </p>
-                  <p className="text-sm text-gray-500">{customer.telephone}</p>
-                  <p className="text-sm text-gray-500">{customer.email}</p>
-                  <p className="text-sm text-gray-500">City: {customer.city}</p>
-                </div>
-                <button
-                  className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={() => navigate(`/customer-details/${customer._id}`)}
-                >
-                  SELECT
-                </button>
+          {/* Loader */}
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <div className="flex mt-20 items-center justify-center">
+                <span class="loader"></span>
               </div>
-            ))}
+            </div>
+          ) : (
+            <div>
+              {filteredCustomers.map((customer) => (
+                <div
+                  key={customer._id}
+                  className="flex items-center gap-2 justify-between p-4 mb-2 bg-gray-100 rounded-lg shadow hover:bg-gray-200"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">
+                      {customer.hospitalname.length > 20
+                        ? customer.hospitalname.slice(0, 20) + "..."
+                        : customer.hospitalname}
+                    </p>
 
-            {filteredCustomers.length === 0 && (
-              <p className="text-center text-gray-500">No customers found.</p>
-            )}
-          </div>
+                    <p className="text-sm text-gray-500">
+                      Phone: {customer.telephone}
+                    </p>
+                    <p className="text-sm text-gray-500 text-nowrap">
+                      Email:{" "}
+                      {customer.email.length > 20
+                        ? customer.email.slice(0, 20) + "..."
+                        : customer.email}
+                    </p>
+
+                    <p className="text-sm text-gray-500">
+                      City: {customer.city}
+                    </p>
+                  </div>
+                  <button
+                    className="px-4 py-2 text-sm text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={() =>
+                      navigate(`/customer-details/${customer._id}`)
+                    }
+                  >
+                    SELECT
+                  </button>
+                </div>
+              ))}
+
+              {filteredCustomers.length === 0 && (
+                <p className="text-center text-gray-500">No customers found.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

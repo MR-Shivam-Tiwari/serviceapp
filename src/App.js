@@ -22,6 +22,7 @@ import PrivateRoute from './PrivateRoute'; // Import the PrivateRoute
 import PublicRoute from './PublicRoute'; // Import PublicRoute
 import SelectCustomer from './Component/Installation/SelectCustomer';
 import InstallationSummary from './Component/Installation/InstallationSummary';
+import PreventiveMaintenance from './Component/PreventiveMaintenance/PreventiveMaintenance';
 
 function App() {
   return (
@@ -56,6 +57,10 @@ function App() {
           <Route
             path="/complaints"
             element={<PrivateRoute element={Complaints} />}
+          />
+          <Route
+            path="/preventive-maintenance"
+            element={<PrivateRoute element={PreventiveMaintenance} />}
           />
           <Route
             path="/equipmentdetail"

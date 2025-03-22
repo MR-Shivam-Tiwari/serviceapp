@@ -14,7 +14,6 @@ function Installation() {
   const [selectedSerialNumber, setSelectedSerialNumber] = useState("");
 
   // States to store the fetched data
-  const [equipmentData, setEquipmentData] = useState(null);
   const [pendingInstallationData, setPendingInstallationData] = useState(null);
 
   // NEW STATES for abnormal site condition & voltage
@@ -24,12 +23,12 @@ function Installation() {
     lgyb: "", // L-G / Y-B
     ngbr: "", // N-G / B-R
   });
-
+  const [palNumber, setPalNumber] = useState("");
   // Fetch all serial numbers (unchanged)
   const fetchSerialNumbers = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/collections/allequipment/serialnumbers"
+        `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/serialnumbers`
       );
       setSerialNumbers(response.data);
     } catch (error) {
@@ -44,14 +43,17 @@ function Installation() {
     const fetchEquipmentDetails = async (serial) => {
       try {
         const response = await axios.get(
-          `http://localhost:5000/collections/getbyserialno/${serial}`
+          `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/serial/${serial}`
         );
-        const { equipmentData, pendingInstallationData } = response.data;
-        setEquipmentData(equipmentData);
-        setPendingInstallationData(pendingInstallationData);
+        // API se milne wala data directly pending installation record hai.
+        setPendingInstallationData(response.data);
+        if (response.data?.palnumber) {
+          setPalNumber(response.data.palnumber);
+        } else {
+          setPalNumber("");
+        }
       } catch (error) {
         console.error("Error fetching details:", error);
-        setEquipmentData(null);
         setPendingInstallationData(null);
       }
     };
@@ -68,15 +70,14 @@ function Installation() {
 
   // Handle the Install button
   const handleProceedForInstallation = () => {
-    // Navigate to "SearchCustomer" page, passing the relevant data
     navigate("/search-customer", {
       state: {
-        // You can pass anything you need in here
         selectedSerialNumber,
-        equipmentData,
         pendingInstallationData,
+        equipmentData: pendingInstallationData, // use same data for equipment details
         abnormalCondition,
         voltageData,
+        palNumber,
       },
     });
   };
@@ -117,7 +118,9 @@ function Installation() {
                 id="serialNumber"
                 options={serialNumbers}
                 getOptionLabel={(option) => option}
-                onChange={(event, newValue) => setSelectedSerialNumber(newValue)}
+                onChange={(event, newValue) =>
+                  setSelectedSerialNumber(newValue)
+                }
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -137,23 +140,48 @@ function Installation() {
           <div className="mb-4 space-y-2 border border-gray-200 p-3 rounded">
             <p>
               <strong>Serial Number:</strong>{" "}
-              {equipmentData?.serialnumber ||
-                pendingInstallationData?.serialnumber ||
-                "N/A"}
+              {pendingInstallationData?.serialnumber}
             </p>
             <p>
-              <strong>Equipment Name:</strong> {equipmentData?.name || "N/A"}
+              <strong>Part No :</strong> {pendingInstallationData?.material}
             </p>
             <p>
-              <strong>Equipment ID:</strong> {equipmentData?.equipmentid || "N/A"}
+              <strong>Name:</strong>{" "}
+              {pendingInstallationData?.customername1 || "N/A"}&nbsp;
+              {pendingInstallationData?.customername2 || "N/A"}
             </p>
-            <p>
-              <strong>PAL Number (Equip.):</strong> {equipmentData?.palnumber || "N/A"}
-            </p>
+           
             <p>
               <strong>Material Description:</strong>{" "}
-              {equipmentData?.materialdescription || "N/A"}
+              {pendingInstallationData?.description || "N/A"}
             </p>
+            <p>
+              <strong>City:</strong>{" "}
+              {pendingInstallationData?.customercity || "N/A"}
+            </p>
+            {pendingInstallationData?.palnumber ===
+            undefined ? null : pendingInstallationData.palnumber === "" ? (
+              <div>
+                <label htmlFor="palnumber">Add Pal Number:</label>
+                <input
+                className="h-10 w-full p-2 bg-gray-100 rounded"
+                  type="text"
+                  id="palnumber"
+                  placeholder="Enter Pal Number"
+                  value={palNumber}
+                onChange={(e) => setPalNumber(e.target.value)}
+                />
+              </div>
+            ) : (
+              <p>
+                <strong>Pal Number:</strong> {pendingInstallationData.palnumber}
+              </p>
+            )}
+            <p>
+              <strong>Pin Code:</strong>{" "}
+              {pendingInstallationData?.customerpostalcode || "N/A"}
+            </p>
+
             <p>
               <strong>Invoice No:</strong>{" "}
               {pendingInstallationData?.invoiceno || "N/A"}
@@ -163,18 +191,45 @@ function Installation() {
               {pendingInstallationData?.invoicedate || "N/A"}
             </p>
             <p>
-              <strong>Description (Install):</strong>{" "}
-              {pendingInstallationData?.description || "N/A"}
+              <strong>Current Customer Name:</strong>{" "}
+              {pendingInstallationData?.currentcustomername1 || "N/A"}&nbsp;
+              {pendingInstallationData?.currentcustomername2 || "N/A"}
             </p>
             <p>
-              <strong>Status (Pending):</strong>{" "}
-              {pendingInstallationData?.status || "N/A"}
+              <strong>Warranty Description:</strong>{" "}
+              {pendingInstallationData?.mtl_grp4 || "N/A"}
+            </p>
+            <p>
+              <strong>Warranty Start:</strong>{" "}
+              {pendingInstallationData?.warrantyStartDate
+                ? new Date(
+                    pendingInstallationData.warrantyStartDate
+                  ).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "N/A"}
+            </p>
+            <p>
+              <strong>Warranty End:</strong>{" "}
+              {pendingInstallationData?.warrantyEndDate
+                ? new Date(
+                    pendingInstallationData.warrantyEndDate
+                  ).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "N/A"}
             </p>
           </div>
 
           {/* Abnormal Site Condition */}
           <div className="mb-4">
-            <label className="block font-medium">Abnormal Site Condition:</label>
+            <label className="block font-medium">
+              Abnormal Site Condition:
+            </label>
             <input
               type="text"
               placeholder="Enter abnormal condition details..."

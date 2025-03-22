@@ -20,6 +20,7 @@ const CreateComplaint = () => {
   const [selectedProblemType, setSelectedProblemType] = useState("");
   const [selectedProblemName, setSelectedProblemName] = useState("");
   const [breakDown, setBreakDown] = useState(false);
+  const [sparesrequested, setSparesrequested] = useState("");
   const [remarks, setRemarks] = useState("");
 
   // Loading states
@@ -28,7 +29,7 @@ const CreateComplaint = () => {
   const [loadingProductGroups, setLoadingProductGroups] = useState(true);
   const [loadingProblemTypes, setLoadingProblemTypes] = useState(true);
   const [loadingProblemNames, setLoadingProblemNames] = useState(true);
-  const [loadingSubmit, setLoadingSubmit] = useState(false);  
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   // Modal state
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
@@ -37,7 +38,7 @@ const CreateComplaint = () => {
   const fetchSerialNumbers = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/collections/allequipment/serialnumbers"
+        `${process.env.REACT_APP_BASE_URL}/collections/allequipment/serialnumbers`
       );
       setSerialNumbers(response.data);
     } catch (error) {
@@ -45,12 +46,12 @@ const CreateComplaint = () => {
     } finally {
       setLoadingSerialNumbers(false);
     }
-  }; 
+  };
 
   const fetchComplaintTypes = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/complaints/complaint"
+        `${process.env.REACT_APP_BASE_URL}/complaints/complaint`
       );
       if (Array.isArray(response.data.complaints)) {
         setComplaintTypes(response.data.complaints);
@@ -67,7 +68,7 @@ const CreateComplaint = () => {
   const fetchProductGroups = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/collections/productgroup"
+        `${process.env.REACT_APP_BASE_URL}/collections/productgroup`
       );
       if (Array.isArray(response.data.productGroups)) {
         setProductGroups(response.data.productGroups);
@@ -84,7 +85,7 @@ const CreateComplaint = () => {
   const fetchProblemTypes = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/complaints/problemtype"
+        `${process.env.REACT_APP_BASE_URL}/complaints/problemtype`
       );
       if (Array.isArray(response.data.problemtype)) {
         setProblemTypes(response.data.problemtype);
@@ -103,7 +104,7 @@ const CreateComplaint = () => {
   const fetchProblemNames = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/complaints/problemname"
+        `${process.env.REACT_APP_BASE_URL}/complaints/problemname`
       );
       if (Array.isArray(response.data.problemname)) {
         setProblemNames(response.data.problemname);
@@ -127,24 +128,57 @@ const CreateComplaint = () => {
     fetchProblemTypes();
     fetchProblemNames();
   }, []);
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    mobilenumber: "",
+    branch: "",
+  });
+
+  // Load user info from localStorage on mount
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    console.log("Stored User Data:", storedUser); // Logging the data
+    if (storedUser) {
+      setUserInfo({
+        firstName: storedUser.firstname,
+        lastName: storedUser.lastname,
+        email: storedUser.email,
+        mobilenumber: storedUser.mobilenumber,
+        branch: storedUser.branch,
+        
+      });
+    }
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoadingSubmit(true); // Show loader on submit button
-
+  
     const complaintData = {
       serialnumber: selectedSerialNumber,
       notificationtype: selectedComplaintType,
       productgroup: selectedProductGroup,
       problemtype: selectedProblemType,
       problemname: selectedProblemName,
+      sparesrequested: sparesrequested,
       breakdown: breakDown,
       remark: remarks,
+      
+      // User Information Included
+      user: {
+        firstName: userInfo.firstName,
+        lastName: userInfo.lastName,
+        email: userInfo.email,
+        mobilenumber: userInfo.mobilenumber,
+        branch: userInfo.branch,
+      }
     };
-
+  
     axios
       .post(
-        "http://localhost:5000/collections/pendingcomplaints",
+        `${process.env.REACT_APP_BASE_URL}/collections/sendComplaintEmail`,
         complaintData
       )
       .then((response) => {
@@ -157,6 +191,7 @@ const CreateComplaint = () => {
         setLoadingSubmit(false); // Hide loader if error occurs
       });
   };
+  
 
   const handleCloseModal = () => {
     setOpenSuccessModal(false);
@@ -166,6 +201,7 @@ const CreateComplaint = () => {
     setSelectedProductGroup("");
     setSelectedProblemType("");
     setSelectedProblemName("");
+    setSparesrequested("");
     setBreakDown(false);
     setRemarks("");
   };
@@ -334,6 +370,19 @@ const CreateComplaint = () => {
 
             {/* Additional Fields */}
             <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Spares Requested
+              </label>
+              <input
+                type="text"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                value={sparesrequested}
+                onChange={(e) => setSparesrequested(e.target.value)}
+                placeholder="Enter spares requested..."
+              />
+            </div>
+
+            <div className="mb-4">
               <label className="block text-sm font-medium">
                 Breakdown:{" "}
                 <Checkbox
@@ -350,10 +399,21 @@ const CreateComplaint = () => {
               <textarea
                 id="remarks"
                 value={remarks}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    // Prevent any manual line breaks (e.g., Enter or Shift+Enter)
+                    e.preventDefault();
+                  }
+                }}
                 onChange={(e) => setRemarks(e.target.value)}
+                maxLength={400} // Prevent typing more than 400 characters
                 className="mt-1 block w-full rounded-md border border-gray-300 p-2"
                 rows="4"
+                wrap="soft" // Allows automatic wrapping without inserting newline characters
               ></textarea>
+              <p className="mt-2 text-red-600 text-sm">
+                400 character limit. Typed {remarks.length} out of 400.
+              </p>
             </div>
 
             <button
@@ -380,8 +440,12 @@ const CreateComplaint = () => {
       {openSuccessModal && (
         <div className="fixed inset-0 px-5 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Complaint Created Successfully!</h2>
-            <p className="mb-4">Your complaint has been created successfully. Thank you!</p>
+            <h2 className="text-xl font-bold mb-4">
+              Complaint Created Successfully!
+            </h2>
+            <p className="mb-4">
+              Your complaint has been created successfully. Thank you!
+            </p>
             <div className="flex justify-end">
               <button
                 className="bg-primary text-white px-4 py-2 rounded-md"

@@ -6,6 +6,7 @@ const ComplaintDetailsPage = () => {
   const navigate = useNavigate();
 
   const [complaint, setComplaint] = useState(null);
+  const [customer, setCustomer] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
 
@@ -14,13 +15,45 @@ const ComplaintDetailsPage = () => {
   const [sparesRequired, setSparesRequired] = useState("");
   const [remarks, setRemarks] = useState("");
 
+  // State for spare parts options from the backend API
+  const [spareOptions, setSpareOptions] = useState([]);
+
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    mobilenumber: "",
+    branch: "",
+    email: "",
+  });
+
+  // NEW: Track loading state when sending email
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load user info from localStorage on mount
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    console.log("Stored User Data:", storedUser); // Logging the data
+    if (storedUser) {
+      setUserInfo({
+        firstName: storedUser.firstname,
+        lastName: storedUser.lastname,
+        email: storedUser.email,
+        mobilenumber: storedUser.mobilenumber,
+        branch: storedUser.branch,
+        email: storedUser.email,
+      });
+    }
+  }, []);
+
   useEffect(() => {
     // Fetch the existing complaint details
-    fetch(`http://localhost:5000/collections/pendingcomplaints/${complaintId}`)
+    fetch(
+      `${process.env.REACT_APP_BASE_URL}/collections/pendingcomplaints/${complaintId}`
+    )
       .then((response) => response.json())
       .then((data) => {
         setComplaint(data);
-
         // Optionally populate the form fields with existing data from the server
         setProblemDetails(data.reportedproblem || "");
         setSparesRequired(data.sparerequest || "");
@@ -30,6 +63,32 @@ const ComplaintDetailsPage = () => {
         console.error("Error fetching complaint details:", error)
       );
   }, [complaintId]);
+
+  // Once the complaint is fetched, use the customer code to get customer details
+  useEffect(() => {
+    if (complaint && complaint.customercode) {
+      fetch(
+        `${process.env.REACT_APP_BASE_URL}/collections/customer/by-code/${complaint.customercode}`
+      )
+        .then((response) => response.json())
+        .then((data) => setCustomer(data))
+        .catch((error) =>
+          console.error("Error fetching customer details:", error)
+        );
+    }
+  }, [complaint]);
+
+  // Fetch spare parts based on complaint number (acting as part number)
+  useEffect(() => {
+    if (complaint && complaint.materialcode) {
+      fetch(
+        `http://localhost:5000/collections/search/${complaint.materialcode}`
+      )
+        .then((response) => response.json())
+        .then((data) => setSpareOptions(data))
+        .catch((error) => console.error("Error fetching spare parts:", error));
+    }
+  }, [complaint]);
 
   // Navigate back to the main complaints list
   const handleBackClick = () => {
@@ -41,35 +100,64 @@ const ComplaintDetailsPage = () => {
     setShowUpdateForm(true);
   };
 
-  // Send the updated data via PUT request
+  // Send the updated data via POST request (for sending email)
   const handleUpdateComplaint = () => {
-    fetch(`http://localhost:5000/collections/pendingcomplaints/${complaintId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        requesteupdate: true,          // If you want to set requesteupdate true
-        reportedproblem: problemDetails,
-        sparerequest: sparesRequired,
-        remark: remarks,
-      }),
-    })
+    setIsLoading(true); // Start loader
+    fetch(
+      `${process.env.REACT_APP_BASE_URL}/collections/sendUpdatedComplaintEmail`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          notification_no: complaint.notification_complaintid,
+          serial_no: complaint.serialnumber,
+          description: complaint.materialdescription,
+          part_no: complaint.materialcode,
+          // 'customer' is the code we use to look up hospital & city in the DB
+          customer: complaint.customercode,
+
+          // If you have a "name" field in the UI, pass it here or just leave it blank:
+          name: "",
+
+          // If you have a city from the UI, pass it, or leave it blank:
+          city: "",
+
+          serviceEngineer: userInfo.firstName + " " + userInfo.lastName,
+          spareRequested: sparesRequired,
+          remarks: remarks,
+          serviceEngineerMobile: userInfo.mobilenumber,
+          serviceEngineerEmail: userInfo.email,
+          branchName: userInfo.branch,
+        }),
+      }
+    )
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Failed to update the complaint");
+          throw new Error("Failed to send updated complaint email");
         }
         return response.json();
       })
       .then(() => {
+        setIsLoading(false); // Stop loader
         setShowSuccessModal(true);
       })
-      .catch((error) => console.error("Error updating complaint:", error));
+      .catch((error) => {
+        console.error("Error:", error);
+        setIsLoading(false); // Stop loader if error
+      });
   };
 
   // If complaint data is not loaded yet, show a loading indicator
   if (!complaint) {
-    return <div>Loading...</div>;
+    return (
+      <div>
+        <div className="flex mt-20 items-center justify-center">
+          <span className="loader"></span>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -102,7 +190,7 @@ const ComplaintDetailsPage = () => {
             <div className="grid grid-cols-1 gap-4">
               <div className="flex justify-between">
                 <span className="font-medium">Complaint Number:</span>
-                <span>{complaint._id}</span>
+                <span>{complaint?.notification_complaintid}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Serial Number:</span>
@@ -110,35 +198,51 @@ const ComplaintDetailsPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Part Number:</span>
-                <span>{complaint.partnumber || "[Text Widget]"}</span>
+                <span>{complaint?.materialcode || "[Text Widget]"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Description:</span>
-                <span>{complaint.description || "[Text Widget]"}</span>
+                <span>{complaint?.materialdescription || "[Text Widget]"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-medium">Customer Name:</span>
-                <span>{complaint.customername || "[Text Widget]"}</span>
+                <span className="font-medium">Customer Code:</span>
+                <span>{complaint?.customercode || "[Text Widget]"}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="font-medium">City:</span>
-                <span>{complaint.city || "[Text Widget]"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Customer No:</span>
-                <span>{complaint.customerno || "[Text Widget]"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Email:</span>
-                <span>{complaint.email || "[Text Widget]"}</span>
-              </div>
+              {customer ? (
+                <div className="bg-gray-200 p-2 rounded">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Customer Name:</span>
+                    <span>{customer?.hospitalname || "[Text Widget]"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">City:</span>
+                    <span>{customer.city || "[Text Widget]"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Customer No:</span>
+                    <span>{customer.telephone || "[Text Widget]"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Email:</span>
+                    <span>{customer.email || "[Text Widget]"}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <span className="loader"></span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="font-medium">Complaint Type:</span>
                 <span>{complaint.notificationtype || "[Text Widget]"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Complaint Status:</span>
-                <span>{complaint.status || "[Text Widget]"}</span>
+                <span>{complaint?.userstatus || "[Text Widget]"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Problem Reported:</span>
+                <span>{complaint?.reportedproblem || "[Text Widget]"}</span>
               </div>
             </div>
 
@@ -188,8 +292,12 @@ const ComplaintDetailsPage = () => {
           <div className="px-3">
             {/* Display existing complaint info */}
             <div className="mb-4">
-              <label className="block font-medium mb-1">Complaint Number:</label>
-              <div className="border p-2 rounded">{complaint._id}</div>
+              <label className="block font-medium mb-1">
+                Complaint Number:
+              </label>
+              <div className="border p-2 rounded">
+                {complaint.notification_complaintid}
+              </div>
             </div>
 
             <div className="mb-4">
@@ -202,24 +310,33 @@ const ComplaintDetailsPage = () => {
             {/* Problem Details field */}
             <div className="mb-4">
               <label className="block font-medium mb-1">Problem Details:</label>
-              <input
-                type="text"
-                className="border p-2 rounded w-full"
-                placeholder="unit not working"
-                value={problemDetails}
-                onChange={(e) => setProblemDetails(e.target.value)}
-              />
+              <div className="border p-2 rounded">
+                {complaint.reportedproblem}
+              </div>
             </div>
 
-            {/* Spares Required field */}
+            {/* Spares Required field replaced with a select dropdown */}
             <div className="mb-4">
               <label className="block font-medium mb-1">Spares Required:</label>
-              <input
-                type="text"
-                className="border p-2 rounded w-full"
-                value={sparesRequired}
-                onChange={(e) => setSparesRequired(e.target.value)}
-              />
+
+              {Array.isArray(spareOptions) && spareOptions.length > 0 ? (
+                <select
+                  className="border p-2 rounded w-full"
+                  value={sparesRequired}
+                  onChange={(e) => setSparesRequired(e.target.value)}
+                >
+                  <option value="">Select a Spare</option>
+                  {spareOptions.map((option) => (
+                    <option key={option.PartNumber} value={option.PartNumber}>
+                      {option.PartNumber} - {option.Description}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-red-500">
+                  Spare not found with given part number
+                </p>
+              )}
             </div>
 
             {/* Remarks field */}
@@ -234,12 +351,13 @@ const ComplaintDetailsPage = () => {
               />
             </div>
 
-            {/* Submit button */}
+            {/* Submit button with loader */}
             <button
-              className="bg-primary w-full text-white py-2 px-4 rounded-md hover:bg-blue-700"
+              className="bg-primary w-full text-white py-2 px-4 rounded-md hover:bg-blue-700 flex justify-center items-center"
               onClick={handleUpdateComplaint}
+              disabled={isLoading}
             >
-              UPDATE COMPLAINT
+              {isLoading ? <>Sending Email...</> : "UPDATE COMPLAINT"}
             </button>
           </div>
         </div>
@@ -250,7 +368,7 @@ const ComplaintDetailsPage = () => {
         <div className="fixed inset-0 px-3 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-md shadow-md text-center">
             <h3 className="text-lg font-bold mb-4">Success!</h3>
-            <p>Your complaint has been updated successfully.</p>
+            <p>Complaint update email sent to CIC successfully.</p>
             <button
               className="mt-4 bg-primary text-white py-2 px-4 rounded-md hover:bg-green-700"
               onClick={() => {

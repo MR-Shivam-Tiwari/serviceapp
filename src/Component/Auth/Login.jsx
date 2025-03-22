@@ -23,7 +23,7 @@ const Login = () => {
     try {
       // Make API request to login (replace with your backend API endpoint)
       const response = await axios.post(
-        "http://localhost:5000/collections/login", // Your login API
+        `${process.env.REACT_APP_BASE_URL}/collections/login`, // Your login API
         {
           employeeid: employeeId, // Use employeeId instead of email
           password: password,

@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-hot-toast"; // 1) Import from react-hot-toast
+import { toast } from "react-hot-toast";
 
 function AddNewCustomer() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    customercodeid: "",
     customername: "",
     hospitalname: "",
     street: "",
@@ -19,12 +18,14 @@ function AddNewCustomer() {
     taxnumber1: "",
     taxnumber2: "",
     email: "",
-    status: "",
+    status: true,
     customertype: "",
   });
 
-  // NEW STATE: Controls visibility of success modal
+  // State to control visibility of success modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // State to control loader on the submit button
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -47,9 +48,10 @@ function AddNewCustomer() {
       return;
     }
 
+    setIsLoading(true); // Start loader
     try {
       const response = await fetch(
-        "http://localhost:5000/collections/customer",
+        `${process.env.REACT_APP_BASE_URL}/collections/customer/send-email`,
         {
           method: "POST",
           headers: {
@@ -61,13 +63,12 @@ function AddNewCustomer() {
       );
 
       if (response.ok) {
-        toast.success("Customer added successfully!");
+        toast.success("Email to CIC has been sent successfully!");
         // Show success modal
         setShowSuccessModal(true);
 
         // Reset form
         setFormData({
-          customercodeid: "",
           customername: "",
           hospitalname: "",
           street: "",
@@ -80,16 +81,18 @@ function AddNewCustomer() {
           taxnumber1: "",
           taxnumber2: "",
           email: "",
-          status: "",
+          status: true,
           customertype: "",
         });
       } else {
         // Server responded with an error status
         const errorData = await response.json();
-        toast.error(errorData.message || "Failed to add customer.");
+        toast.error(errorData.message || "Failed to send email to CIC.");
       }
     } catch (err) {
       toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false); // Stop loader
     }
   };
 
@@ -111,8 +114,9 @@ function AddNewCustomer() {
           >
             <path
               fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 
-              0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 
+              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
+              0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 
+              0 1 1 .708.708L5.707 7.5H11.5a.5.5 
               0 0 1 .5.5"
             />
           </svg>
@@ -121,20 +125,7 @@ function AddNewCustomer() {
       </div>
 
       {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white px-4 py-4 shadow rounded"
-      >
-        {/* Customer Code */}
-        <input
-          type="text"
-          name="customercodeid"
-          placeholder="Enter Customer Code ID"
-          value={formData.customercodeid}
-          onChange={handleInputChange}
-          className="w-full px-4 py-2 mb-4 border rounded focus:outline-none"
-        />
-
+      <form onSubmit={handleSubmit} className="px-3 rounded">
         {/* Customer Type */}
         <select
           name="customertype"
@@ -143,9 +134,8 @@ function AddNewCustomer() {
           onChange={handleInputChange}
         >
           <option value="">Select Customer Type*</option>
-          <option value="Retail">Retail</option>
-          <option value="Wholesale">Wholesale</option>
-          <option value="Corporate">Corporate</option>
+          <option value="Government">Government</option>
+          <option value="Private">Private</option>
         </select>
 
         {/* Customer Name */}
@@ -268,23 +258,36 @@ function AddNewCustomer() {
           onChange={handleInputChange}
         />
 
-        {/* Status */}
-        <select
-          name="status"
-          className="w-full px-4 py-2 mb-4 border rounded focus:outline-none"
-          value={formData.status}
-          onChange={handleInputChange}
-        >
-          <option value="">Select Status</option>
-          <option value="active">Active</option>
-          <option value="deactive">Deactive</option>
-        </select>
-
+        {/* Submit Button with Loader */}
         <button
           type="submit"
-          className="w-full px-4 py-2 mb-4 text-white bg-primary rounded hover:bg-blue-700 focus:outline-none"
+          className="w-full px-4 py-2 mb-4 text-white bg-primary rounded hover:bg-blue-700 focus:outline-none flex items-center justify-center"
+          disabled={isLoading}
         >
-          Add Customer
+          {isLoading && (
+            // Simple Spinner (Tailwind CSS based)
+            <svg
+              className="animate-spin mr-2 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8z"
+              />
+            </svg>
+          )}
+          {isLoading ? "Sending..." : "Add Customer"}
         </button>
       </form>
 
@@ -293,7 +296,7 @@ function AddNewCustomer() {
         <div className="fixed inset-0 px-5 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h2 className="text-xl font-bold mb-4">Success!</h2>
-            <p className="mb-4">Customer has been added successfully.</p>
+            <p className="mb-4">Email has been sent to CIC successfully.</p>
             <div className="flex justify-end">
               <button
                 className="bg-primary text-white px-4 py-2 rounded-md"
