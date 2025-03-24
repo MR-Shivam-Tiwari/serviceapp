@@ -23,6 +23,9 @@ import PublicRoute from './PublicRoute'; // Import PublicRoute
 import SelectCustomer from './Component/Installation/SelectCustomer';
 import InstallationSummary from './Component/Installation/InstallationSummary';
 import PreventiveMaintenance from './Component/PreventiveMaintenance/PreventiveMaintenance';
+import PmDetails from './Component/PreventiveMaintenance/PmDetails';
+import CloseComplaintPage from './Component/Complaints/CloseComplaintPage';
+import ComplaintSummaryPage from './Component/Complaints/ComplaintSummaryPage';
 
 function App() {
   return (
@@ -59,8 +62,21 @@ function App() {
             element={<PrivateRoute element={Complaints} />}
           />
           <Route
+            path="/closecomplaint"
+            element={<PrivateRoute element={CloseComplaintPage} />}
+          />
+          <Route
+            path="/complaintsummary"
+            element={<PrivateRoute element={ComplaintSummaryPage} />}
+          />
+
+          <Route
             path="/preventive-maintenance"
             element={<PrivateRoute element={PreventiveMaintenance} />}
+          />
+          <Route
+            path="/pm-details"
+            element={<PrivateRoute element={PmDetails} />}
           />
           <Route
             path="/equipmentdetail"

@@ -160,6 +160,11 @@ const ComplaintDetailsPage = () => {
     );
   }
 
+  const handleCloseComplaint = () => {
+    // Navigate to CloseComplaintPage and pass both complaint and customer data as "state"
+    navigate("/closecomplaint", { state: { complaint, customer } });
+  };
+
   return (
     <div>
       {/* ===================
@@ -255,7 +260,7 @@ const ComplaintDetailsPage = () => {
               </button>
               <button
                 className="bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700"
-                onClick={() => alert("Close Complaint functionality")}
+                onClick={handleCloseComplaint}
               >
                 Close Complaint
               </button>
