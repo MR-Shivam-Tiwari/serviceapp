@@ -444,7 +444,7 @@ const CreateComplaint = () => {
               Complaint Created Successfully!
             </h2>
             <p className="mb-4">
-              Your complaint has been created successfully. Thank you!
+            Your complaint has been created successfully, and an email has been sent to CIC. Thank you!
             </p>
             <div className="flex justify-end">
               <button

@@ -9,7 +9,7 @@ function PreventiveMaintenance() {
   const [regionFilter, setRegionFilter] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/upload/pms")
+    fetch(`${process.env.REACT_APP_BASE_URL}/upload/pms`)
       .then((res) => res.json())
       .then((data) => {
         setPms(data.pms);

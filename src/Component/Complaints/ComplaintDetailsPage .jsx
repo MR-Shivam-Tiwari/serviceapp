@@ -82,7 +82,7 @@ const ComplaintDetailsPage = () => {
   useEffect(() => {
     if (complaint && complaint.materialcode) {
       fetch(
-        `http://localhost:5000/collections/search/${complaint.materialcode}`
+        `${process.env.REACT_APP_BASE_URL}/collections/search/${complaint.materialcode}`
       )
         .then((response) => response.json())
         .then((data) => setSpareOptions(data))

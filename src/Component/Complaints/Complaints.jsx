@@ -61,7 +61,7 @@ const Complaints = () => {
             </div>
           </button>
 
-          <button onClick={()=> navigate('/createclosecomplaint')} className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100">
+          {/* <button onClick={()=> navigate('/createclosecomplaint')} className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100">
             <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
               <div className="flex items-center justify-center">
                 <svg
@@ -90,7 +90,7 @@ const Complaints = () => {
               </div>
               Create & Close
             </div>
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

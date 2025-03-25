@@ -130,7 +130,7 @@ const ComplaintSummaryPage = () => {
 
       // Call your backend API to send the OTP
       const response = await fetch(
-        "http://localhost:5000/collections/sendOtpEmail",
+        `${process.env.REACT_APP_BASE_URL}/collections/sendOtpEmail`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -209,7 +209,7 @@ const ComplaintSummaryPage = () => {
       };
 
       const response = await fetch(
-        "http://localhost:5000/collections/verifyOtpAndSendFinalEmail",
+        `${process.env.REACT_APP_BASE_URL}/collections/verifyOtpAndSendFinalEmail`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

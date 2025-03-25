@@ -26,7 +26,7 @@ function PmDetails() {
   useEffect(() => {
     if (showChecklist && pm && pm.partNumber) {
       setLoadingChecklist(true);
-      fetch(`http://localhost:5000/upload/checklist/by-part/${pm.partNumber}`)
+      fetch(`${process.env.REACT_APP_BASE_URL}/upload/checklist/by-part/${pm.partNumber}`)
         .then((res) => res.json())
         .then((data) => {
           // Assuming API returns { checklists: [...] }
@@ -99,7 +99,7 @@ function PmDetails() {
       alert("Customer code is missing");
       return;
     }
-    fetch("http://localhost:5000/upload/otp/send", {
+    fetch(`${process.env.REACT_APP_BASE_URL}/upload/otp/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ customerCode: pm.customerCode }),
@@ -121,7 +121,7 @@ function PmDetails() {
     }
     setLoadingOtp(true);
     // First, verify the OTP.
-    fetch("http://localhost:5000/upload/otp/verify", {
+    fetch(`${process.env.REACT_APP_BASE_URL}/upload/otp/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ customerCode: pm.customerCode, otp }),
@@ -137,7 +137,7 @@ function PmDetails() {
           };
 
           // Call the report endpoint to generate PDF and email it.
-          fetch("http://localhost:5000/upload/report", {
+          fetch(`${process.env.REACT_APP_BASE_URL}/upload/report`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
