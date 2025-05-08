@@ -6,87 +6,193 @@ import { Autocomplete, TextField } from "@mui/joy";
 function Installation() {
   const navigate = useNavigate();
 
-  // State for all serial numbers
+  // Single Abnormal & Voltage for all machines
+  const [abnormalCondition, setAbnormalCondition] = useState("");
+  const [voltageData, setVoltageData] = useState({
+    lnry: "",
+    lgyb: "",
+    ngbr: "",
+  });
+
+  // ----------- Autocomplete + Serial Data -----------
   const [serialNumbers, setSerialNumbers] = useState([]);
   const [loadingSerialNumbers, setLoadingSerialNumbers] = useState(true);
 
-  // Selected serial number
-  const [selectedSerialNumber, setSelectedSerialNumber] = useState("");
+  // The user's current selection in Autocomplete
+  const [selectedSerial, setSelectedSerial] = useState("");
 
-  // States to store the fetched data
-  const [pendingInstallationData, setPendingInstallationData] = useState(null);
-
-  // NEW STATES for abnormal site condition & voltage
-  const [abnormalCondition, setAbnormalCondition] = useState("");
-  const [voltageData, setVoltageData] = useState({
-    lnry: "", // L-N / R-Y
-    lgyb: "", // L-G / Y-B
-    ngbr: "", // N-G / B-R
-  });
+  // The fetched data for the *currently selected* serial
+  const [currentSerialData, setCurrentSerialData] = useState(null);
+  // If palnumber === "", user can type a new one here:
   const [palNumber, setPalNumber] = useState("");
-  // Fetch all serial numbers (unchanged)
-  const fetchSerialNumbers = async () => {
+
+  // The final “cards”
+  const [installItems, setInstallItems] = useState([]);
+
+  // ----------- Fetch Serial Number List on Mount -----------
+  useEffect(() => {
+    const fetchSerialList = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/serialnumbers`
+        );
+        setSerialNumbers(res.data || []);
+      } catch (err) {
+        console.error("Error fetching serial numbers:", err);
+      } finally {
+        setLoadingSerialNumbers(false);
+      }
+    };
+    fetchSerialList();
+  }, []);
+
+  // ----------- Handle Selecting Serial -----------
+  // As soon as the user picks a serial, we remove it from `serialNumbers` so they can’t pick it again
+  const handleSerialChange = async (newVal) => {
+    // user cleared Autocomplete
+    if (!newVal) {
+      setSelectedSerial("");
+      setCurrentSerialData(null);
+      setPalNumber("");
+      return;
+    }
+
+    setSelectedSerial(newVal);
+    // Remove this serial from the Autocomplete options immediately
+    setSerialNumbers((prev) => prev.filter((sn) => sn !== newVal));
+
+    // Reset
+    setCurrentSerialData(null);
+    setPalNumber("");
+
+    // Fetch data from the server
     try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/serialnumbers`
+      const res = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/serial/${newVal}`
       );
-      setSerialNumbers(response.data);
+      const data = res.data || {};
+      setCurrentSerialData(data);
+
+      // Pal number logic
+      if (typeof data.palnumber === "string") {
+        if (data.palnumber === "") {
+          // user can type
+          setPalNumber("");
+        } else {
+          // data has a non-empty palnumber
+          setPalNumber(""); // We won't let user override existing
+        }
+      }
     } catch (error) {
-      console.error("Error fetching serial numbers:", error);
-    } finally {
-      setLoadingSerialNumbers(false);
+      console.error("Error fetching details:", error);
+      setCurrentSerialData(null);
+      setPalNumber("");
     }
   };
 
-  // Fetch equipment details when serial changes
-  useEffect(() => {
-    const fetchEquipmentDetails = async (serial) => {
-      try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/serial/${serial}`
-        );
-        // API se milne wala data directly pending installation record hai.
-        setPendingInstallationData(response.data);
-        if (response.data?.palnumber) {
-          setPalNumber(response.data.palnumber);
-        } else {
-          setPalNumber("");
-        }
-      } catch (error) {
-        console.error("Error fetching details:", error);
-        setPendingInstallationData(null);
-      }
+  // If user is typing new palNumber
+  const handlePalNumberChange = (val) => {
+    setPalNumber(val);
+  };
+
+  // ----------- Add More => Move currentSerialData into final array -----------
+  const handleAddMore = () => {
+    // limit to 5
+    if (installItems.length >= 5) {
+      alert("You can only add up to 5 machines.");
+      return;
+    }
+    if (!selectedSerial || !currentSerialData) {
+      alert("No valid serial data to add!");
+      return;
+    }
+    // Check if already in the list
+    if (installItems.some((it) => it.serialNumber === selectedSerial)) {
+      alert("This serial is already in the list!");
+      return;
+    }
+
+    // Build the new item
+    const newItem = {
+      serialNumber: selectedSerial,
+      pendingInstallationData: currentSerialData,
+      palNumber:
+        typeof currentSerialData.palnumber === "string"
+          ? currentSerialData.palnumber === ""
+            ? palNumber // user typed
+            : currentSerialData.palnumber // from API
+          : undefined, // not defined => skip
     };
 
-    if (selectedSerialNumber) {
-      fetchEquipmentDetails(selectedSerialNumber);
+    setInstallItems((prev) => [...prev, newItem]);
+
+    // Clear the "current"
+    setSelectedSerial("");
+    setCurrentSerialData(null);
+    setPalNumber("");
+  };
+
+  // Remove a card
+  const handleRemoveCard = (index) => {
+    setInstallItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Validate up to 3 digits for voltage
+  const handleVoltageInput = (field, val) => {
+    if (/^[1-9][0-9]{0,2}$/.test(val) || val === "") {
+      setVoltageData((prev) => ({
+        ...prev,
+        [field]: val,
+      }));
     }
-  }, [selectedSerialNumber]);
+  };
 
-  // Fetch serial numbers on component mount
-  useEffect(() => {
-    fetchSerialNumbers();
-  }, []);
+  // ------------- On "Install" => user might not have clicked "Add More" -----------
+  // We also want to include the currentSerialData if the user hasn't added it yet
+  const handleInstall = () => {
+    let finalItems = [...installItems];
 
-  // Handle the Install button
-  const handleProceedForInstallation = () => {
+    // If there's a currently selected item that is not in the list, add it
+    if (currentSerialData && selectedSerial) {
+      const alreadyInList = finalItems.some(
+        (it) => it.serialNumber === selectedSerial
+      );
+      if (!alreadyInList) {
+        // Build a new item with the same logic as Add More
+        const newItem = {
+          serialNumber: selectedSerial,
+          pendingInstallationData: currentSerialData,
+          palNumber:
+            typeof currentSerialData.palnumber === "string"
+              ? currentSerialData.palnumber === ""
+                ? palNumber
+                : currentSerialData.palnumber
+              : undefined,
+        };
+        // If finalItems is already at 5, we do a quick check
+        if (finalItems.length >= 5) {
+          alert("You can only install up to 5 machines.");
+          return;
+        }
+        finalItems.push(newItem);
+      }
+    }
+
+    // Now navigate
     navigate("/search-customer", {
       state: {
-        selectedSerialNumber,
-        pendingInstallationData,
-        equipmentData: pendingInstallationData, // use same data for equipment details
+        installItems: finalItems,
         abnormalCondition,
         voltageData,
-        palNumber,
       },
     });
   };
 
   return (
-    <div className="">
-      <div className="w-full">
-        {/* Header Section */}
-        <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
+    <div className="flex flex-col h-screen">
+      {/* HEADER */}
+      <header className="bg-primary p-3 py-5 text-white fixed top-0 w-full z-10">
+        <div className="flex items-center">
           <button className="mr-2 text-white" onClick={() => navigate("/")}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -104,118 +210,88 @@ function Installation() {
           </button>
           <h2 className="text-xl font-bold">Equipment Details</h2>
         </div>
+      </header>
 
-        <div className="mb-4 px-4">
-          {/* Search Section */}
-          <div className="mb-4">
-            <label htmlFor="serialNumber" className="block text-sm font-medium">
-              Search & Select Serial Number
-            </label>
-            {loadingSerialNumbers ? (
-              <p>Loading serial numbers...</p>
-            ) : (
-              <Autocomplete
-                id="serialNumber"
-                options={serialNumbers}
-                getOptionLabel={(option) => option}
-                onChange={(event, newValue) =>
-                  setSelectedSerialNumber(newValue)
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    variant="outlined"
-                    className="mt-1 block w-full"
-                    label="Serial Number"
-                  />
-                )}
-              />
-            )}
-            <button className="w-full px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2">
-              Scan Barcode
-            </button>
-          </div>
+      {/* MAIN CONTENT */}
+      <main className="pt-20 pb-24 flex-1 overflow-y-auto px-4">
+        {/* Autocomplete */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">
+            Search & Select Serial Number
+          </label>
+          {loadingSerialNumbers ? (
+            <p>Loading serial numbers...</p>
+          ) : (
+            <Autocomplete
+              placeholder="Search by Serial Number..."
+              options={serialNumbers}
+              getOptionLabel={(option) => option}
+              value={selectedSerial}
+              onChange={(event, newValue) => handleSerialChange(newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  label="Search by Serial Number..."
+                />
+              )}
+            />
+          )}
+          <button
+            className="mt-2 w-full px-4 py-2 text-white bg-primary rounded 
+              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={() => alert("Scan barcode not implemented!")}
+          >
+            Scan Barcode
+          </button>
+        </div>
 
-          {/* Equipment & Pending Installation Details */}
-          <div className="mb-4 space-y-2 border border-gray-200 p-3 rounded">
+        {/* Immediately showing currentSerialData if selected */}
+        {currentSerialData && (
+          <div className="border border-gray-200 p-3 rounded mb-4">
             <p>
               <strong>Serial Number:</strong>{" "}
-              {pendingInstallationData?.serialnumber}
+              {currentSerialData.serialnumber || selectedSerial}
             </p>
             <p>
-              <strong>Part No :</strong> {pendingInstallationData?.material}
+              <strong>Part No:</strong> {currentSerialData.material || "N/A"}
             </p>
-            <p>
-              <strong>Name:</strong>{" "}
-              {pendingInstallationData?.customername1 || "N/A"}&nbsp;
-              {pendingInstallationData?.customername2 || "N/A"}
-            </p>
-           
             <p>
               <strong>Material Description:</strong>{" "}
-              {pendingInstallationData?.description || "N/A"}
+              {currentSerialData.description || "N/A"}
             </p>
             <p>
-              <strong>City:</strong>{" "}
-              {pendingInstallationData?.customercity || "N/A"}
+              <strong>Current Customer:</strong>{" "}
+              {currentSerialData.currentcustomername1 || "N/A"}{" "}
+              {currentSerialData.currentcustomername2 || ""}
             </p>
-            {pendingInstallationData?.palnumber ===
-            undefined ? null : pendingInstallationData.palnumber === "" ? (
-              <div>
-                <label htmlFor="palnumber">Add Pal Number:</label>
-                <input
-                className="h-10 w-full p-2 bg-gray-100 rounded"
-                  type="text"
-                  id="palnumber"
-                  placeholder="Enter Pal Number"
-                  value={palNumber}
-                onChange={(e) => setPalNumber(e.target.value)}
-                />
-              </div>
-            ) : (
-              <p>
-                <strong>Pal Number:</strong> {pendingInstallationData.palnumber}
-              </p>
-            )}
+            <p>
+              <strong>City:</strong> {currentSerialData.customercity || "N/A"}
+            </p>
             <p>
               <strong>Pin Code:</strong>{" "}
-              {pendingInstallationData?.customerpostalcode || "N/A"}
-            </p>
-
-            <p>
-              <strong>Invoice No:</strong>{" "}
-              {pendingInstallationData?.invoiceno || "N/A"}
-            </p>
-            <p>
-              <strong>Invoice Date:</strong>{" "}
-              {pendingInstallationData?.invoicedate || "N/A"}
-            </p>
-            <p>
-              <strong>Current Customer Name:</strong>{" "}
-              {pendingInstallationData?.currentcustomername1 || "N/A"}&nbsp;
-              {pendingInstallationData?.currentcustomername2 || "N/A"}
+              {currentSerialData.customerpostalcode || "N/A"}
             </p>
             <p>
               <strong>Warranty Description:</strong>{" "}
-              {pendingInstallationData?.mtl_grp4 || "N/A"}
+              {currentSerialData.mtl_grp4 || "N/A"}
             </p>
             <p>
               <strong>Warranty Start:</strong>{" "}
-              {pendingInstallationData?.warrantyStartDate
-                ? new Date(
-                    pendingInstallationData.warrantyStartDate
-                  ).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })
-                : "N/A"}
+              {new Date().toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
             </p>
             <p>
               <strong>Warranty End:</strong>{" "}
-              {pendingInstallationData?.warrantyEndDate
+              {currentSerialData?.warrantyMonths
                 ? new Date(
-                    pendingInstallationData.warrantyEndDate
+                    new Date().setMonth(
+                      new Date().getMonth() +
+                        currentSerialData.warrantyMonths
+                    )
                   ).toLocaleDateString("en-US", {
                     month: "long",
                     day: "numeric",
@@ -223,74 +299,175 @@ function Installation() {
                   })
                 : "N/A"}
             </p>
+            {/* Pal Number logic */}
+            {typeof currentSerialData.palnumber === "string" ? (
+              currentSerialData.palnumber === "" ? (
+                <div className="mt-2">
+                  <label className="font-medium">Add Pal Number:</label>
+                  <input
+                    type="text"
+                    className="h-10 w-full p-2 bg-gray-100 rounded"
+                    value={palNumber}
+                    onChange={(e) => handlePalNumberChange(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <p>
+                  <strong>Pal Number:</strong> {currentSerialData.palnumber}
+                </p>
+              )
+            ) : null}
           </div>
+        )}
 
-          {/* Abnormal Site Condition */}
-          <div className="mb-4">
-            <label className="block font-medium">
-              Abnormal Site Condition:
-            </label>
-            <input
-              type="text"
-              placeholder="Enter abnormal condition details..."
-              value={abnormalCondition}
-              onChange={(e) => setAbnormalCondition(e.target.value)}
-              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
-                border border-gray-300 rounded-lg 
-                focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        {/* Cards */}
+        {installItems.length > 0 && (
+          <div className="space-y-4 mb-4">
+            {installItems.map((item, idx) => {
+              const data = item.pendingInstallationData;
+              return (
+                <div
+                  key={idx}
+                  className="border border-gray-200 p-3 rounded relative"
+                >
+                  <button
+                    className="absolute top-2 right-2 text-red-600 text-sm"
+                    onClick={() => handleRemoveCard(idx)}
+                  >
+                    Remove
+                  </button>
+                  <p>
+                    <strong>Serial No:</strong>{" "}
+                    {data?.serialnumber || item.serialNumber}
+                  </p>
+                  <p>
+                    <strong>Part No:</strong> {data?.material || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Material Description:</strong>{" "}
+                    {data?.description || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Current Customer:</strong>{" "}
+                    {data?.currentcustomername1 || "N/A"}{" "}
+                    {data?.currentcustomername2 || ""}
+                  </p>
+                  <p>
+                    <strong>City:</strong> {data?.customercity || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Pin Code:</strong>{" "}
+                    {data?.customerpostalcode || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Warranty Description:</strong>{" "}
+                    {data?.mtl_grp4 || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Warranty Start:</strong>{" "}
+                    {new Date().toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <p>
+                    <strong>Warranty End:</strong>{" "}
+                    {data?.warrantyMonths
+                      ? new Date(
+                          new Date().setMonth(
+                            new Date().getMonth() + data.warrantyMonths
+                          )
+                        ).toLocaleDateString("en-US", {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                  </p>
+                  {/* Pal Number for the card */}
+                  {typeof item.palNumber === "string" ? (
+                    item.palNumber === "" ? (
+                      <p>
+                        <strong>Pal Number:</strong> N/A
+                      </p>
+                    ) : (
+                      <p>
+                        <strong>Pal Number:</strong> {item.palNumber}
+                      </p>
+                    )
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
+        )}
 
-          {/* Voltage Section */}
-          <div className="mb-4">
-            <p className="font-medium">Enter Voltage:</p>
-            <input
-              type="text"
-              placeholder="L-N / R-Y"
-              value={voltageData.lnry}
-              onChange={(e) =>
-                setVoltageData({ ...voltageData, lnry: e.target.value })
-              }
-              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
-                border border-gray-300 rounded-lg 
-                focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="L-G / Y-B"
-              value={voltageData.lgyb}
-              onChange={(e) =>
-                setVoltageData({ ...voltageData, lgyb: e.target.value })
-              }
-              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
-                border border-gray-300 rounded-lg 
-                focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="N-G / B-R"
-              value={voltageData.ngbr}
-              onChange={(e) =>
-                setVoltageData({ ...voltageData, ngbr: e.target.value })
-              }
-              className="w-full px-4 py-2 mb-2 text-gray-700 bg-gray-100 
-                border border-gray-300 rounded-lg 
-                focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex space-x-4">
-            <button
-              className="flex-1 px-4 py-2 text-white bg-primary rounded-lg 
-                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={handleProceedForInstallation}
-            >
-              Install
-            </button>
-          </div>
+        {/* Abnormal Site Condition (one for all) */}
+        <div className="mb-4">
+          <label className="block font-medium">Abnormal Site Condition</label>
+          <input
+            type="text"
+            placeholder="Enter abnormal condition..."
+            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+            value={abnormalCondition}
+            onChange={(e) => setAbnormalCondition(e.target.value)}
+          />
         </div>
-      </div>
+
+        {/* Voltage (one for all) */}
+        <div className="mb-10">
+          <p className="font-medium mb-1">Voltage</p>
+          <input
+            type="text"
+            placeholder="L-N / R-Y"
+            value={voltageData.lnry}
+            onChange={(e) => handleVoltageInput("lnry", e.target.value)}
+            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+          />
+          <input
+            type="text"
+            placeholder="L-G / Y-B"
+            value={voltageData.lgyb}
+            onChange={(e) => handleVoltageInput("lgyb", e.target.value)}
+            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+          />
+          <input
+            type="text"
+            placeholder="N-G / B-R"
+            value={voltageData.ngbr}
+            onChange={(e) => handleVoltageInput("ngbr", e.target.value)}
+            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+          />
+        </div>
+      </main>
+
+      {/* FOOTER */}
+      <footer className="bg-white fixed bottom-0 w-full z-10 p-4 border-t shadow-sm">
+        <div className="flex flex-col space-y-2">
+          <button
+            className="w-full px-4 py-2 text-white bg-primary rounded-lg 
+              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={handleAddMore}
+            disabled={!currentSerialData}
+          >
+            Add More
+          </button>
+          <button
+            className="w-full px-4 py-2 text-white bg-primary rounded-lg 
+              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={handleInstall}
+            // We allow “Install” even if we haven’t done “Add More” – user can do a single machine
+            disabled={
+              !currentSerialData && installItems.length === 0
+                ? true
+                : false
+            }
+          >
+            Install
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

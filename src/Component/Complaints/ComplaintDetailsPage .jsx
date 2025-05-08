@@ -102,7 +102,7 @@ const ComplaintDetailsPage = () => {
 
   // Send the updated data via POST request (for sending email)
   const handleUpdateComplaint = () => {
-    setIsLoading(true); // Start loader
+    setIsLoading(true); 
     fetch(
       `${process.env.REACT_APP_BASE_URL}/collections/sendUpdatedComplaintEmail`,
       {
@@ -164,7 +164,7 @@ const ComplaintDetailsPage = () => {
     // Navigate to CloseComplaintPage and pass both complaint and customer data as "state"
     navigate("/closecomplaint", { state: { complaint, customer } });
   };
-
+console.log(complaint , "he;lo")
   return (
     <div>
       {/* ===================
@@ -338,7 +338,7 @@ const ComplaintDetailsPage = () => {
                   ))}
                 </select>
               ) : (
-                <p className="text-red-500">
+                <p className="text-red-500"> 
                   Spare not found with given part number
                 </p>
               )}

@@ -153,85 +153,92 @@ const ComplaintSummaryPage = () => {
   };
 
   // 3) Verify OTP & Send Final Email
-  const handleVerifyOtp = async (enteredOtp) => {
-    try {
-      setLoading(true);
-      setOtpError("");
+  // 3) Verify OTP & Send Final Email
+const handleVerifyOtp = async (enteredOtp) => {
+  try {
+    setLoading(true);
+    setOtpError("");
 
-      // Prepare a comprehensive payload with ALL details:
-      const payload = {
-        // The OTP data:
-        customerEmail,  // The same email used to send OTP
-        otp: enteredOtp, // The OTP user typed
+    // Create a new variable for the current date (date attended)
+    const dateAttended = new Date().toISOString();
 
-        // Complaint fields
-        complaintNumber: complaint?.notification_complaintid,
-        partNumber: complaint?.materialcode,
-        serialNumber: complaint?.serialnumber,
-        productCode: complaint?.productCode,
-        description: complaint?.materialdescription,
-        productGroup: complaint?.productgroup,
-        productType: complaint?.problemtype,
-        problemName: complaint?.problemname,
-        reportedProblem: complaint?.reportedproblem,
-        notificationDate: complaint?.notificationdate,
+    // Prepare a comprehensive payload with ALL details, including new fields:
+    const payload = {
+      // OTP data
+      customerEmail, // Same email used to send OTP
+      otp: enteredOtp,
 
-        // Action / Instruction / Voltage
-        actionTaken,
-        instructionToCustomer: instruction,
-        voltageLN_RY,
-        voltageLG_YB,
-        voltageNG_BR,
+      // Complaint Fields
+      complaintNumber: complaint?.notification_complaintid,
+      partNumber: complaint?.materialcode,
+      notificationType: complaint?.notificationtype, // New field
+      customerCode: complaint?.customercode,         // New field
+      dateAttended,                                  // New field with today's date
+      serialNumber: complaint?.serialnumber,
+      productCode: complaint?.productCode,
+      description: complaint?.materialdescription,
+      productGroup: complaint?.productgroup,
+      productType: complaint?.problemtype,
+      problemName: complaint?.problemname,
+      reportedProblem: complaint?.reportedproblem,
+      notificationDate: complaint?.notificationdate,
 
-        // Spares (send the entire array)
-        sparesReplaced: selectedSpares,
+      // User Inputs (Action, Instruction, Voltage Readings)
+      actionTaken,
+      instructionToCustomer: instruction,
+      voltageLN_RY,
+      voltageLG_YB,
+      voltageNG_BR,
 
-        // Injury details (send the entire object)
-        injuryDetails,
+      // Spare Parts (send the entire array)
+      sparesReplaced: selectedSpares,
 
-        // Customer details
-        customerDetails: {
-          hospitalName: customer?.hospitalname,
-          email: customer?.email,
-          phone: customer?.telephone,
-          street: customer?.street,
-          city: customer?.city,
-          postalCode: customer?.postalcode,
-        },
+      // Injury Details (send the complete object)
+      injuryDetails, // This includes device users, exposureProtocol, outcomeAttributed, description, etc.
 
-        // Service Engineer (user) details
-        serviceEngineer: {
-          firstName: userInfo.firstName,
-          lastName: userInfo.lastName,
-          email: userInfo.email,
-          mobileNumber: userInfo.mobilenumber,
-        },
-      };
+      // Customer Details
+      customerDetails: {
+        hospitalName: customer?.hospitalname,
+        email: customer?.email,
+        phone: customer?.telephone,
+        street: customer?.street,
+        city: customer?.city,
+        postalCode: customer?.postalcode,
+      },
 
-      const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/collections/verifyOtpAndSendFinalEmail`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      // Service Engineer (user) Details
+      serviceEngineer: {
+        firstName: userInfo.firstName,
+        lastName: userInfo.lastName,
+        email: userInfo.email,
+        mobileNumber: userInfo.mobilenumber,
+      },
+    };
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to verify OTP");
+    const response = await fetch(
+      `${process.env.REACT_APP_BASE_URL}/collections/verifyOtpAndSendFinalEmail`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       }
+    );
 
-      // If successful, you might close the modal or navigate away
-      alert("OTP verified and final email sent successfully!");
-      setShowOtpModal(false);
-    } catch (error) {
-      console.error("Error verifying OTP:", error);
-      setOtpError(error.message);
-    } finally {
-      setLoading(false);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to verify OTP");
     }
-  };
+
+    alert("OTP verified and final email sent successfully!");
+    setShowOtpModal(false);
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    setOtpError(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="">
@@ -391,20 +398,19 @@ const ComplaintSummaryPage = () => {
             <div className="mb-2">
               <strong>Exposure Protocol:</strong>
               <ul className="list-disc list-inside ml-4">
-                {Object.entries(injuryDetails.exposureProtocol)
-                  .filter(([_, value]) => value)
-                  .map(([key]) => (
-                    <li key={key}>
-                      {key
-                        .replace(/([A-Z])/g, " $1")
-                        .replace(/^./, (str) => str.toUpperCase())}
-                    </li>
-                  ))}
+                {["kv", "maMas", "distance", "time"].map((key) => (
+                  <li key={key}>
+                    <strong>{key.toUpperCase()}:</strong>{" "}
+                    {injuryDetails.exposureProtocol[key] || "N/A"}
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="mb-2">
               <strong>Outcome Attributed to Event:</strong>{" "}
-              {injuryDetails.outcomeAttributed}
+              {Array.isArray(injuryDetails.outcomeAttributed)
+                ? injuryDetails.outcomeAttributed.join(", ")
+                : injuryDetails.outcomeAttributed || "N/A"}
             </div>
             <div className="mb-2">
               <strong>Description:</strong>
@@ -414,20 +420,38 @@ const ComplaintSummaryPage = () => {
         )}
 
         {/* SPARE PARTS (if any) */}
+        {/* SPARE PARTS (if any) */}
         {selectedSpares && selectedSpares.length > 0 && (
           <div className="mb-4 p-4 border rounded bg-gray-100">
             <h3 className="text-lg font-semibold mb-2">Spare Parts</h3>
             <ul>
-              {selectedSpares.map((spare, index) => (
-                <li key={index} className="mb-2">
-                  <strong>{spare.PartNumber}</strong> - {spare.Description}
-                  {spare.remark && (
-                    <p className="text-sm text-gray-600">
-                      Remark: {spare.remark}
-                    </p>
-                  )}
-                </li>
-              ))}
+              {selectedSpares.map((spare, index) => {
+                if (typeof spare === "string") {
+                  return (
+                    <li key={index} className="mb-2">
+                      <strong>Spare Part No: {spare}</strong>
+                      <p>Description: </p>
+                    </li>
+                  );
+                } else {
+                  return (
+                    <li key={index} className="mb-2">
+                      <strong>Spare Part No: {spare.PartNumber}</strong>
+                      <p>Description: {spare.Description}</p>
+                      {spare.defectivePartNumber && (
+                        <p className="text-sm text-gray-600">
+                          Defective Part Number: {spare.defectivePartNumber}
+                        </p>
+                      )}
+                      {spare.replacedPartNumber && (
+                        <p className="text-sm text-gray-600">
+                          Replaced Part Number: {spare.replacedPartNumber}
+                        </p>
+                      )}
+                    </li>
+                  );
+                }
+              })}
             </ul>
           </div>
         )}

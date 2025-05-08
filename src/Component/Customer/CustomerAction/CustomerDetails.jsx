@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 
 const CustomerDetails = () => {
   const { id } = useParams();
@@ -156,7 +156,14 @@ const CustomerDetails = () => {
                       }`}
                     >
                       <td className="py-2 px-6 border text-center">
-                        {item.serialnumber}
+                        {/* Link to EquipmentDetail with serial number in state */}
+                        <Link
+                          to="/equipmentdetail"
+                          state={{ serialNumber: item.serialnumber }}
+                          className="text-blue-600 underline"
+                        >
+                          {item.serialnumber}
+                        </Link>
                       </td>
                       <td className="py-2 px-6 border text-center">
                         {item.materialcode}

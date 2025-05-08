@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Autocomplete from "@mui/joy/Autocomplete";
 import { TextField } from "@mui/joy";
 
 const EquipmentDetail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [equipmentSerials, setEquipmentSerials] = useState([]);
   const [selectedSerial, setSelectedSerial] = useState(null);
   const [equipmentDetails, setEquipmentDetails] = useState(null);
+  const [sparesData, setSparesData] = useState([]);
+  const [activeTab, setActiveTab] = useState(null); // No tab selected by default
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,6 +45,19 @@ const EquipmentDetail = () => {
       if (!response.ok) throw new Error("Failed to fetch equipment details");
       const data = await response.json();
       setEquipmentDetails(data);
+
+      // If a part number exists in equipment details, fetch the spares details.
+      if (data?.equipment?.materialcode) {
+        const sparesResponse = await fetch(
+          `http://localhost:5000/collections/search/${data.equipment.materialcode}`
+        );
+        if (!sparesResponse.ok)
+          throw new Error("Failed to fetch spares details");
+        const spares = await sparesResponse.json();
+        setSparesData(spares);
+      } else {
+        setSparesData([]);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -49,13 +65,25 @@ const EquipmentDetail = () => {
     }
   };
 
+  // If a serial number is passed via location state, pre-select it and fetch details.
+  useEffect(() => {
+    if (location.state && location.state.serialNumber) {
+      setSelectedSerial(location.state.serialNumber);
+      fetchEquipmentDetails(location.state.serialNumber);
+    }
+  }, [location.state]);
+
   const handleEquipmentChange = (event, newValue) => {
     if (newValue) {
       setSelectedSerial(newValue);
+      // Reset activeTab to null on new selection so no table is shown immediately.
+      setActiveTab(null);
       fetchEquipmentDetails(newValue);
     } else {
       setSelectedSerial(null);
       setEquipmentDetails(null);
+      setSparesData([]);
+      setActiveTab(null);
     }
   };
 
@@ -86,6 +114,7 @@ const EquipmentDetail = () => {
         <Autocomplete
           options={equipmentSerials}
           getOptionLabel={(option) => option}
+          value={selectedSerial || ""}
           loading={loading}
           onChange={handleEquipmentChange}
           noOptionsText={loading ? "Loading..." : "No Equipment Found"}
@@ -106,7 +135,9 @@ const EquipmentDetail = () => {
             <div>
               <h3 className="font-bold mb-2">Equipment Details</h3>
               <p>Name: {equipmentDetails.equipment?.name || "N/A"}</p>
-              <p>Part No: {equipmentDetails.equipment?.materialcode || "N/A"}</p>
+              <p>
+                Part No: {equipmentDetails.equipment?.materialcode || "N/A"}
+              </p>
               <p>
                 Description:{" "}
                 {equipmentDetails.equipment?.materialdescription || "N/A"}
@@ -163,70 +194,109 @@ const EquipmentDetail = () => {
               </p>
               <p>City: {equipmentDetails.customer?.city || "N/A"}</p>
               <p>PinCode: {equipmentDetails.customer?.pincode || "N/A"}</p>
-              <p>
-                Telephone: {equipmentDetails.customer?.telephone || "N/A"}
-              </p>
+              <p>Telephone: {equipmentDetails.customer?.telephone || "N/A"}</p>
               <p>Email: {equipmentDetails.customer?.email || "N/A"}</p>
             </div>
 
-            {/* Customer Equipments Table */}
-            {equipmentDetails.customerEquipments &&
-              equipmentDetails.customerEquipments.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="font-bold mb-2">
-                    Equipments with Same Customer(Installation Base)
-                  </h3>
-                  <table className="min-w-full border border-gray-300">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-4 py-2 border">Serial No</th>
-                        <th className="px-4 py-2 border">Part No</th>
-                        <th className="px-4 py-2 border">Product</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {equipmentDetails.customerEquipments.map((equip) => (
-                        <tr key={equip.serialnumber}>
-                          <td className="px-4 py-2 border">
-                            {equip.serialnumber}
-                          </td>
-                          <td className="px-4 py-2 border">
-                            {equip.materialcode}
-                          </td>
-                          <td className="px-4 py-2 border">{equip.name}</td>
+            {/* Toggle Buttons */}
+            <div className="mt-4">
+              <button
+                onClick={() => setActiveTab("installation")}
+                className={`px-4 py-2 my-3 rounded-lg w-full ${
+                  activeTab === "installation"
+                    ? "bg-primary text-white"
+                    : "bg-gray-200 text-gray-800"
+                }`}
+              >
+                Check Total Installation
+              </button>
+              <button
+                onClick={() => setActiveTab("spares")}
+                className={`px-4 py-2 rounded-lg w-full ${
+                  activeTab === "spares"
+                    ? "bg-primary text-white"
+                    : "bg-gray-200 text-gray-800"
+                }`}
+              >
+                Check Spare Part
+              </button>
+            </div>
+
+            {/* Conditional Rendering Based on Active Tab */}
+            {activeTab === "installation" && (
+              <>
+                {equipmentDetails.customerEquipments &&
+                equipmentDetails.customerEquipments.length > 0 ? (
+                  <div className="mt-6">
+                    <h3 className="font-bold mb-2">
+                      Equipments with Same Customer (Installation Base)
+                    </h3>
+                    <table className="min-w-full border border-gray-300">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 border">Serial No</th>
+                          <th className="px-4 py-2 border">Part No</th>
+                          <th className="px-4 py-2 border">Product</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-           
-                <div className="mt-6">
-                  <h3 className="font-bold mb-2">
-                    Spares with Same Customer(Spares Base)
-                  </h3>
-                  <table className="min-w-full border border-gray-300">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-4 py-2 border">Serial No</th>
-                        <th className="px-4 py-2 border">Part No</th>
-                        <th className="px-4 py-2 border">Product</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                        <tr  >
-                          <td className="px-4 py-2 border">
-                           
-                          </td>
-                          <td className="px-4 py-2 border">
-                          </td>
-                          <td className="px-4 py-2 border"></td>
+                      </thead>
+                      <tbody>
+                        {equipmentDetails.customerEquipments.map((equip) => (
+                          <tr key={equip.serialnumber}>
+                            <td className="px-4 py-2 border">
+                              {equip.serialnumber}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {equip.materialcode}
+                            </td>
+                            <td className="px-4 py-2 border">{equip.name}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="mt-6 text-gray-500">
+                    No Installation Base Data Found.
+                  </p>
+                )}
+              </>
+            )}
+
+            {activeTab === "spares" && (
+              <>
+                {sparesData && sparesData.length > 0 ? (
+                  <div className="mt-6">
+                    <h3 className="font-bold mb-2">Spares Base</h3>
+                    <table className="min-w-full border border-gray-300">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 border">Serial No</th>
+                          <th className="px-4 py-2 border">Part No</th>
+                          <th className="px-4 py-2 border">Product</th>
                         </tr>
-                     
-                    </tbody>
-                  </table>
-                </div>
-            
+                      </thead>
+                      <tbody>
+                        {sparesData.map((spare, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-2 border">
+                              {selectedSerial}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {spare.PartNumber}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {spare.Description}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="mt-6 text-gray-500">No Spare Data Found.</p>
+                )}
+              </>
+            )}
           </div>
         ) : (
           <p className="text-gray-500 my-2">

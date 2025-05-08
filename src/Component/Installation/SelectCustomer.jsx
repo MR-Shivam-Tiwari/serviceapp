@@ -5,24 +5,25 @@ function SelectCustomer() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Destructure the data passed from the Installation page
+  // Receive data from the previous page
   const {
-    selectedSerialNumber,
-    equipmentData,
-    pendingInstallationData,
-    abnormalCondition,
-    voltageData,
-    palNumber,
+    installItems = [],
+    abnormalCondition = "",
+    voltageData = {},
   } = location.state || {};
 
+  // States for fetching and filtering customers
   const [customers, setCustomers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch customers from API
+  // Fetch customers from API (example uses fetch; you can also use axios)
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/collections/customer`)
       .then((response) => response.json())
-      .then((data) => setCustomers(data.customers))
+      .then((data) => {
+        // Suppose the API returns { customers: [...] }
+        setCustomers(data.customers || []);
+      })
       .catch((error) => console.error("Error fetching customers:", error));
   }, []);
 
@@ -34,22 +35,23 @@ function SelectCustomer() {
       .includes(searchQuery.toLowerCase())
   );
 
+  // Handle selecting a customer
+  // We pass the entire "installItems" array, the chosen "customer",
+  // plus the abnormalCondition and voltageData.
   const handleSelectCustomer = (customer) => {
     navigate("/installation-summary", {
       state: {
-        equipmentData,
-        pendingInstallationData,
-        selectedSerialNumber,
-        abnormalCondition,
-        voltageData,
-        palNumber,
-        customer, // selected customer data
+        installItems,       // array of machine data
+        customer,           // single chosen customer
+        abnormalCondition,  // pass it forward
+        voltageData,        // pass it forward
       },
     });
   };
 
   return (
     <div className="w-full">
+      {/* Header */}
       <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
         <button className="mr-2 text-white" onClick={() => navigate("/installation")}>
           <svg
@@ -70,12 +72,23 @@ function SelectCustomer() {
       </div>
 
       <div className="px-4">
+        {/* If you want to display the global Abnormal Condition & Voltage, do it here */}
+        {/* Example: 
+        <div className="mb-4 p-3 border border-gray-200 rounded">
+          <p><strong>Abnormal Condition:</strong> {abnormalCondition}</p>
+          <p><strong>Voltage (L-N/R-Y):</strong> {voltageData.lnry || "N/A"}</p>
+          <p><strong>Voltage (L-G/Y-B):</strong> {voltageData.lgyb || "N/A"}</p>
+          <p><strong>Voltage (N-G/B-R):</strong> {voltageData.ngbr || "N/A"}</p>
+        </div>
+        */}
+
         <div className="relative mb-4">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg 
+                       focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Search Customers..."
           />
           <button className="absolute right-2 top-2.5 text-gray-500">
@@ -92,33 +105,35 @@ function SelectCustomer() {
           </button>
         </div>
 
-        <div>
-          {filteredCustomers.map((customer) => (
-            <div
-              key={customer._id}
-              className="flex items-center justify-between p-4 mb-2 bg-gray-100 rounded-lg shadow hover:bg-gray-200"
-            >
-              <div>
-                <p className="text-sm font-semibold text-gray-700">
-                  {customer.customername}
-                </p>
-                <p className="text-sm text-gray-500">{customer.telephone}</p>
-                <p className="text-sm text-gray-500">{customer.email}</p>
-                <p className="text-sm text-gray-500">City: {customer.city}</p>
-              </div>
-              <button
-                className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={() => handleSelectCustomer(customer)}
-              >
-                SELECT
-              </button>
+        {/* List of filtered customers */}
+        {filteredCustomers.map((customer) => (
+          <div
+            key={customer._id}
+            className="flex items-center justify-between p-4 mb-2 bg-gray-100 
+                       rounded-lg shadow hover:bg-gray-200"
+          >
+            <div>
+              <p className="text-sm font-semibold text-gray-700">
+                {customer.customername}
+              </p>
+              <p className="text-sm text-gray-500">{customer.telephone}</p>
+              <p className="text-sm text-gray-500">{customer.email}</p>
+              <p className="text-sm text-gray-500">City: {customer.city}</p>
             </div>
-          ))}
+            <button
+              className="px-4 py-2 text-white bg-primary rounded-lg 
+                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={() => handleSelectCustomer(customer)}
+            >
+              SELECT
+            </button>
+          </div>
+        ))}
 
-          {filteredCustomers.length === 0 && (
-            <p className="text-center text-gray-500">No customers found.</p>
-          )}
-        </div>
+        {/* No results found */}
+        {filteredCustomers.length === 0 && (
+          <p className="text-center text-gray-500">No customers found.</p>
+        )}
       </div>
     </div>
   );

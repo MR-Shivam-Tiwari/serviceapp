@@ -13,15 +13,38 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
   });
   const [deviceUserRemarks, setDeviceUserRemarks] = useState("");
   const [incidentDuringProcedure, setIncidentDuringProcedure] = useState("");
+  // Update the state initialization at the top of your component:
   const [exposureProtocol, setExposureProtocol] = useState({
-    kv: false,
-    maMas: false,
-    distance: false,
-    time: false,
+    kv: "",
+    maMas: "",
+    distance: "",
+    time: "",
   });
-  const [outcomeAttributed, setOutcomeAttributed] = useState("");
-  const [description, setDescription] = useState("");
 
+  const outcomeOptions = [
+    "Death / Life-threatening",
+    "Permanent Damage or Irreversible Injuries",
+    "Temporary & Medically Reversible Injuries",
+    "Skin burn Infection/allergy to user",
+    "Erythema (Skin inflammation or redness)",
+    "Hospitalization (initial or prolonged)",
+    "Required medical Intervention to Prevent Permanent Impairment/Damage",
+    "Wrong diagnosis",
+    "Inconvenience / discomfort to user/patient",
+    "Delay in Procedure / monitoring / Diagnostics",
+    "Damage to property",
+    "None",
+  ];
+
+  // Add these state variables:
+  const [selectedOutcomes, setSelectedOutcomes] = useState([]);
+  const [outcomeQuery, setOutcomeQuery] = useState("");
+  const [description, setDescription] = useState("");
+  const filteredOutcomes = outcomeOptions.filter(
+    (option) =>
+      option.toLowerCase().includes(outcomeQuery.toLowerCase()) &&
+      !selectedOutcomes.includes(option)
+  );
   // Helper for toggling checkboxes
   const handleCheckboxChange = (groupState, setGroupState, key) => {
     setGroupState({
@@ -36,7 +59,7 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
       deviceUserRemarks,
       incidentDuringProcedure,
       exposureProtocol,
-      outcomeAttributed,
+      outcomeAttributed: selectedOutcomes, // use selectedOutcomes here
       description,
     };
     // Pass the details back to the parent component
@@ -49,7 +72,10 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
         {/* Modal Header */}
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-xl font-bold">Injury Details</h3>
-          <button onClick={onCancel} className="text-gray-500 hover:text-gray-800">
+          <button
+            onClick={onCancel}
+            className="text-gray-500 hover:text-gray-800"
+          >
             &times;
           </button>
         </div>
@@ -58,8 +84,12 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
 
         {/* 1) Device User / Affected Person */}
         <div className="mb-4">
-          <label className="block font-semibold">1) Device User / Affected Person</label>
-          <p className="text-sm text-gray-500">(Multiple selection; “None” means problem noted prior to use)</p>
+          <label className="block font-semibold">
+            1) Device User / Affected Person
+          </label>
+          <p className="text-sm text-gray-500">
+            (Multiple selection; “None” means problem noted prior to use)
+          </p>
           <div className="flex flex-wrap mt-2 gap-4">
             <label className="flex items-center">
               <input
@@ -67,7 +97,11 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
                 className="mr-2"
                 checked={deviceUsers.healthcareProfessional}
                 onChange={() =>
-                  handleCheckboxChange(deviceUsers, setDeviceUsers, "healthcareProfessional")
+                  handleCheckboxChange(
+                    deviceUsers,
+                    setDeviceUsers,
+                    "healthcareProfessional"
+                  )
                 }
               />
               Healthcare Professional
@@ -77,7 +111,9 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
                 type="checkbox"
                 className="mr-2"
                 checked={deviceUsers.patient}
-                onChange={() => handleCheckboxChange(deviceUsers, setDeviceUsers, "patient")}
+                onChange={() =>
+                  handleCheckboxChange(deviceUsers, setDeviceUsers, "patient")
+                }
               />
               Patient
             </label>
@@ -86,7 +122,13 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
                 type="checkbox"
                 className="mr-2"
                 checked={deviceUsers.unauthorizedUser}
-                onChange={() => handleCheckboxChange(deviceUsers, setDeviceUsers, "unauthorizedUser")}
+                onChange={() =>
+                  handleCheckboxChange(
+                    deviceUsers,
+                    setDeviceUsers,
+                    "unauthorizedUser"
+                  )
+                }
               />
               Unauthorized User
             </label>
@@ -95,7 +137,9 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
                 type="checkbox"
                 className="mr-2"
                 checked={deviceUsers.operator}
-                onChange={() => handleCheckboxChange(deviceUsers, setDeviceUsers, "operator")}
+                onChange={() =>
+                  handleCheckboxChange(deviceUsers, setDeviceUsers, "operator")
+                }
               />
               Operator
             </label>
@@ -104,7 +148,13 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
                 type="checkbox"
                 className="mr-2"
                 checked={deviceUsers.serviceEngineer}
-                onChange={() => handleCheckboxChange(deviceUsers, setDeviceUsers, "serviceEngineer")}
+                onChange={() =>
+                  handleCheckboxChange(
+                    deviceUsers,
+                    setDeviceUsers,
+                    "serviceEngineer"
+                  )
+                }
               />
               Service/Application Engineer
             </label>
@@ -113,7 +163,9 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
                 type="checkbox"
                 className="mr-2"
                 checked={deviceUsers.none}
-                onChange={() => handleCheckboxChange(deviceUsers, setDeviceUsers, "none")}
+                onChange={() =>
+                  handleCheckboxChange(deviceUsers, setDeviceUsers, "none")
+                }
               />
               None
             </label>
@@ -122,7 +174,9 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
 
         {/* 2) Did Incident occur during procedure? */}
         <div className="mb-4">
-          <label className="block font-semibold">2) Did Incident occur during procedure?</label>
+          <label className="block font-semibold">
+            2) Did Incident occur during procedure?
+          </label>
           <div className="flex items-center gap-4 mt-2">
             <label className="flex items-center">
               <input
@@ -149,94 +203,139 @@ const AddInjuryModal = ({ onSave, onCancel }) => {
 
         {/* 3) Provide user/equipment exposure protocol */}
         <div className="mb-4">
-          <label className="block font-semibold">3) Provide user/equipment exposure protocol</label>
-          <p className="text-sm text-gray-500">(Check all that apply for CC products)</p>
-          <div className="flex flex-wrap gap-4 mt-2">
-            <label className="flex items-center">
+          <label className="block font-semibold">
+            3) Provide user/equipment exposure protocol
+          </label>
+          <p className="text-sm text-gray-500">
+            (Enter detailed data for each field)
+          </p>
+          <div className="mt-2 grid grid-cols-1 gap-4">
+            <div>
+              <label className="block font-medium">KV:</label>
               <input
-                type="checkbox"
-                className="mr-2"
-                checked={exposureProtocol.kv}
-                onChange={() => handleCheckboxChange(exposureProtocol, setExposureProtocol, "kv")}
-              />
-              KV
-            </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="mr-2"
-                checked={exposureProtocol.maMas}
-                onChange={() => handleCheckboxChange(exposureProtocol, setExposureProtocol, "maMas")}
-              />
-              mA/mAs
-            </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="mr-2"
-                checked={exposureProtocol.distance}
-                onChange={() =>
-                  handleCheckboxChange(exposureProtocol, setExposureProtocol, "distance")
+                type="text"
+                value={exposureProtocol.kv}
+                onChange={(e) =>
+                  setExposureProtocol({
+                    ...exposureProtocol,
+                    kv: e.target.value,
+                  })
                 }
+                placeholder="Enter KV details"
+                className="border p-2 rounded w-full"
               />
-              Distance from X-Ray Source
-            </label>
-            <label className="flex items-center">
+            </div>
+            <div>
+              <label className="block font-medium">mA/mAs:</label>
               <input
-                type="checkbox"
-                className="mr-2"
-                checked={exposureProtocol.time}
-                onChange={() => handleCheckboxChange(exposureProtocol, setExposureProtocol, "time")}
+                type="text"
+                value={exposureProtocol.maMas}
+                onChange={(e) =>
+                  setExposureProtocol({
+                    ...exposureProtocol,
+                    maMas: e.target.value,
+                  })
+                }
+                placeholder="Enter mA/mAs details"
+                className="border p-2 rounded w-full"
               />
-              Time
-            </label>
+            </div>
+            <div>
+              <label className="block font-medium">
+                Distance from X-Ray Source:
+              </label>
+              <input
+                type="text"
+                value={exposureProtocol.distance}
+                onChange={(e) =>
+                  setExposureProtocol({
+                    ...exposureProtocol,
+                    distance: e.target.value,
+                  })
+                }
+                placeholder="Enter distance details"
+                className="border p-2 rounded w-full"
+              />
+            </div>
+            <div>
+              <label className="block font-medium">Time:</label>
+              <input
+                type="text"
+                value={exposureProtocol.time}
+                onChange={(e) =>
+                  setExposureProtocol({
+                    ...exposureProtocol,
+                    time: e.target.value,
+                  })
+                }
+                placeholder="Enter time details"
+                className="border p-2 rounded w-full"
+              />
+            </div>
           </div>
         </div>
 
         {/* 4) Outcome Attributed to Event */}
         <div className="mb-4">
-          <label className="block font-semibold">4) Outcome Attributed to Event</label>
+          <label className="block font-semibold">
+            4) Outcome Attributed to Event
+          </label>
           <p className="text-sm text-gray-500 mb-1">
-            (Select one; this information goes to Factory team & customer)
+            (Search and select one or more outcomes; this information goes to
+            Factory team & customer)
           </p>
-          <select
-            className="border p-2 rounded w-full"
-            value={outcomeAttributed}
-            onChange={(e) => setOutcomeAttributed(e.target.value)}
-          >
-            <option value="">-- Select Outcome --</option>
-            <option value="Death/Life-threatening">Death / Life-threatening</option>
-            <option value="Permanent Damage or Irreversible Injuries">
-              Permanent Damage or Irreversible Injuries
-            </option>
-            <option value="Temporary & Medically Reversible Injuries">
-              Temporary & Medically Reversible Injuries
-            </option>
-            <option value="Skin burn Infection/allergy to user">
-              Skin burn Infection/allergy to user
-            </option>
-            <option value="Erythema (Skin inflammation or redness)">
-              Erythema (Skin inflammation or redness)
-            </option>
-            <option value="Hospitalization (initial or prolonged)">
-              Hospitalization (initial or prolonged)
-            </option>
-            <option value="Required medical Intervention to Prevent Permanent Impairment/Damage">
-              Required medical Intervention to Prevent Permanent Impairment/Damage
-            </option>
-            <option value="Wrong diagnosis">Wrong diagnosis</option>
-            <option value="Inconvenience / discomfort to user/patient">
-              Inconvenience / discomfort to user/patient
-            </option>
-            <option value="Delay in Procedure / monitoring / Diagnostics">
-              Delay in Procedure / monitoring / Diagnostics
-            </option>
-            <option value="Damage to property">Damage to property</option>
-            <option value="None">None</option>
-          </select>
+          <div>
+            <input
+              type="text"
+              value={outcomeQuery}
+              onChange={(e) => setOutcomeQuery(e.target.value)}
+              placeholder="Search outcomes..."
+              className="border p-2 rounded w-full"
+            />
+            {outcomeQuery && filteredOutcomes.length > 0 && (
+              <ul className="border rounded w-full bg-white max-h-40 overflow-y-auto mt-1">
+                {filteredOutcomes.map((option, index) => (
+                  <li
+                    key={index}
+                    className="p-2 cursor-pointer hover:bg-gray-200"
+                    onClick={() => {
+                      setSelectedOutcomes([...selectedOutcomes, option]);
+                      setOutcomeQuery("");
+                    }}
+                  >
+                    {option}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {selectedOutcomes.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedOutcomes.map((option, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center bg-gray-200 rounded px-2 py-1"
+                  >
+                    <span>{option}</span>
+                    <button
+                      className="ml-1 text-red-500"
+                      onClick={() =>
+                        setSelectedOutcomes(
+                          selectedOutcomes.filter((_, i) => i !== index)
+                        )
+                      }
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Description Field */}
           <div className="mt-2">
-            <label className="block text-sm font-medium">Description (Required)</label>
+            <label className="block text-sm font-medium">
+              Description (Required)
+            </label>
             <textarea
               className="border p-2 rounded w-full"
               value={description}

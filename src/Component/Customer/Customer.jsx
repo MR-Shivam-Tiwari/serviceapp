@@ -35,12 +35,12 @@ function Customer() {
               <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  shape-rendering="geometricPrecision"
-                  text-rendering="geometricPrecision"
-                  image-rendering="optimizeQuality"
-                  fill-rule="evenodd"
+                  shapeRendering="geometricPrecision"
+                  textRendering="geometricPrecision"
+                  imageRendering="optimizeQuality"
+                  fillRule="evenodd"
                   fill="currentColor"
-                  clip-rule="evenodd"
+                  clipRule="evenodd"
                   viewBox="0 0 472 511.84"
                   width="48" // Set width as per your requirement
                   height="48"
@@ -58,12 +58,12 @@ function Customer() {
               <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  shape-rendering="geometricPrecision"
-                  text-rendering="geometricPrecision"
-                  image-rendering="optimizeQuality"
-                  fill-rule="evenodd"
+                  shapeRendering="geometricPrecision"
+                  textRendering="geometricPrecision"
+                  imageRendering="optimizeQuality"
+                  fillRule="evenodd"
                   fill="currentColor"
-                  clip-rule="evenodd"
+                  clipRule="evenodd"
                   viewBox="0 0 472 511.84"
                   width="58" // Set width as per your requirement
                   height="48"

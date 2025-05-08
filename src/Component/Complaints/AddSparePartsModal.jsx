@@ -3,7 +3,8 @@ import React, { useState } from "react";
 
 const AddSparePartsModal = ({ spareOptions, onSave, onCancel }) => {
   const [selectedSpare, setSelectedSpare] = useState("");
-  const [remark, setRemark] = useState("");
+  const [defectivePartNumber, setDefectivePartNumber] = useState("");
+  const [replacedPartNumber, setReplacedPartNumber] = useState("");
   const [addedSpares, setAddedSpares] = useState([]);
 
   const handleAddSpare = () => {
@@ -15,10 +16,15 @@ const AddSparePartsModal = ({ spareOptions, onSave, onCancel }) => {
       if (spareDetails) {
         setAddedSpares([
           ...addedSpares,
-          { ...spareDetails, remark: remark.trim() },
+          {
+            ...spareDetails,
+            defectivePartNumber: defectivePartNumber.trim(),
+            replacedPartNumber: replacedPartNumber.trim(),
+          },
         ]);
         setSelectedSpare("");
-        setRemark("");
+        setDefectivePartNumber("");
+        setReplacedPartNumber("");
       }
     }
   };
@@ -28,7 +34,6 @@ const AddSparePartsModal = ({ spareOptions, onSave, onCancel }) => {
   };
 
   const handleSave = () => {
-    // Pass the array of added spares back to the parent component
     onSave(addedSpares);
   };
 
@@ -66,15 +71,27 @@ const AddSparePartsModal = ({ spareOptions, onSave, onCancel }) => {
           )}
         </div>
 
-        {/* Remark Input */}
+        {/* Defective Part Number Input */}
         <div className="mb-4">
-          <label className="block font-medium mb-1">Remark:</label>
+          <label className="block font-medium mb-1">Defective Part Number:</label>
           <input
             type="text"
             className="border p-2 rounded w-full"
-            value={remark}
-            onChange={(e) => setRemark(e.target.value)}
-            placeholder="Enter remark for the spare part"
+            value={defectivePartNumber}
+            onChange={(e) => setDefectivePartNumber(e.target.value)}
+            placeholder="Enter defective part number"
+          />
+        </div>
+
+        {/* Replaced Part Number Input */}
+        <div className="mb-4">
+          <label className="block font-medium mb-1">Replaced Part Number:</label>
+          <input
+            type="text"
+            className="border p-2 rounded w-full"
+            value={replacedPartNumber}
+            onChange={(e) => setReplacedPartNumber(e.target.value)}
+            placeholder="Enter replaced part number"
           />
         </div>
 
@@ -99,7 +116,14 @@ const AddSparePartsModal = ({ spareOptions, onSave, onCancel }) => {
                 >
                   <span>
                     <strong>{spare.PartNumber}</strong> - {spare.Description}
-                    {spare.remark && <span> (Remark: {spare.remark})</span>}
+                    <div>
+                      {spare.defectivePartNumber && (
+                        <span>Defective: {spare.defectivePartNumber}</span>
+                      )}
+                      {spare.replacedPartNumber && (
+                        <span> | Replaced: {spare.replacedPartNumber}</span>
+                      )}
+                    </div>
                   </span>
                   <button
                     onClick={() => handleRemoveSpare(index)}

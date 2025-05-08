@@ -25,7 +25,25 @@ const CloseComplaintPage = () => {
   // Spare Parts Modal State
   const [showSpareModal, setShowSpareModal] = useState(false);
   const [spareOptions, setSpareOptions] = useState([]);
-  const [selectedSpares, setSelectedSpares] = useState([]);
+  // Initialize selectedSpares with complaint's spare parts if available
+  const [selectedSpares, setSelectedSpares] = useState(
+    Array.isArray(complaint?.sparerequest)
+      ? complaint.sparerequest
+      : complaint?.sparerequest
+      ? [complaint.sparerequest]
+      : []
+  );
+
+  // If complaint updates, update selectedSpares accordingly
+  useEffect(() => {
+    if (complaint?.sparerequest) {
+      setSelectedSpares(
+        Array.isArray(complaint.sparerequest)
+          ? complaint.sparerequest
+          : [complaint.sparerequest]
+      );
+    }
+  }, [complaint]);
 
   // Fetch spare parts using the complaint's materialcode
   useEffect(() => {
@@ -48,15 +66,14 @@ const CloseComplaintPage = () => {
     setShowInjuryModal(false);
   };
 
-  // Spare Parts Modal callback
+  // Spare Parts Modal callback - Append new spare parts to the existing list
   const handleSaveSpares = (spares) => {
-    setSelectedSpares(spares);
+    setSelectedSpares((prevSpares) => [...prevSpares, ...spares]);
     setShowSpareModal(false);
   };
 
   // "Close Complaint" => Navigate to the summary page with all data
   const handleCloseComplaintSubmit = () => {
-    // Pass all data to the summary page
     navigate("/complaintsummary", {
       state: {
         complaint,
@@ -72,6 +89,9 @@ const CloseComplaintPage = () => {
     });
   };
 
+  const handleRemoveSpare = (index) => {
+    setSelectedSpares((prevSpares) => prevSpares.filter((_, i) => i !== index));
+  };
   return (
     <div className=" ">
       {/* Top header with Back button */}
@@ -162,79 +182,128 @@ const CloseComplaintPage = () => {
 
         {/* Display Injury Details if available */}
         {injuryDetails && (
-          <div className="mb-4 p-4 border rounded bg-gray-50">
-            <h3 className="text-lg font-semibold mb-4">Injury Details Added</h3>
-            <div className="mb-2">
-              <h4 className="font-semibold">Device Users:</h4>
-              <ul className="list-disc list-inside">
-                {Object.entries(injuryDetails.deviceUsers)
-                  .filter(([_, value]) => value)
-                  .map(([key]) => (
-                    <li key={key}>
-                      {key
-                        .replace(/([A-Z])/g, " $1")
-                        .replace(/^./, (str) => str.toUpperCase())}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-            {injuryDetails.deviceUserRemarks && (
-              <div className="mb-2">
-                <h4 className="font-semibold">User Remarks:</h4>
-                <p>{injuryDetails.deviceUserRemarks}</p>
-              </div>
-            )}
-            <div className="mb-2">
-              <h4 className="font-semibold">
-                Incident Occurred During Procedure:
-              </h4>
-              <p>
-                {injuryDetails.incidentDuringProcedure === "yes" ? "Yes" : "No"}
-              </p>
-            </div>
-            <div className="mb-2">
-              <h4 className="font-semibold">Exposure Protocol:</h4>
-              <ul className="list-disc list-inside">
-                {Object.entries(injuryDetails.exposureProtocol)
-                  .filter(([_, value]) => value)
-                  .map(([key]) => (
-                    <li key={key}>
-                      {key
-                        .replace(/([A-Z])/g, " $1")
-                        .replace(/^./, (str) => str.toUpperCase())}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-            <div className="mb-2">
-              <h4 className="font-semibold">Outcome Attributed to Event:</h4>
-              <p>{injuryDetails.outcomeAttributed}</p>
-            </div>
-            <div className="mb-2">
-              <h4 className="font-semibold">Description:</h4>
-              <p>{injuryDetails.description}</p>
-            </div>
-          </div>
-        )}
+  <div className="mb-4 p-4 border rounded bg-gray-50">
+    <h3 className="text-lg font-semibold mb-4">Injury Details Added</h3>
+    <div className="mb-2">
+      <h4 className="font-semibold">Device Users:</h4>
+      <ul className="list-disc list-inside">
+        {Object.entries(injuryDetails.deviceUsers)
+          .filter(([_, value]) => value)
+          .map(([key]) => (
+            <li key={key}>
+              {key
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase())}
+            </li>
+          ))}
+      </ul>
+    </div>
+    {injuryDetails.deviceUserRemarks && (
+      <div className="mb-2">
+        <h4 className="font-semibold">User Remarks:</h4>
+        <p>{injuryDetails.deviceUserRemarks}</p>
+      </div>
+    )}
+    <div className="mb-2">
+      <h4 className="font-semibold">
+        Incident Occurred During Procedure:
+      </h4>
+      <p>
+        {injuryDetails.incidentDuringProcedure === "yes" ? "Yes" : "No"}
+      </p>
+    </div>
+    <div className="mb-2">
+      <h4 className="font-semibold">Exposure Protocol:</h4>
+      <ul className="list-disc list-inside">
+        <li>
+          <strong>KV:</strong> {injuryDetails.exposureProtocol.kv || "N/A"}
+        </li>
+        <li>
+          <strong>mA/mAs:</strong> {injuryDetails.exposureProtocol.maMas || "N/A"}
+        </li>
+        <li>
+          <strong>Distance:</strong> {injuryDetails.exposureProtocol.distance || "N/A"}
+        </li>
+        <li>
+          <strong>Time:</strong> {injuryDetails.exposureProtocol.time || "N/A"}
+        </li>
+      </ul>
+    </div>
+    <div className="mb-2">
+      <h4 className="font-semibold">Outcome Attributed to Event:</h4>
+      <p>
+        {Array.isArray(injuryDetails.outcomeAttributed)
+          ? injuryDetails.outcomeAttributed.join(", ")
+          : injuryDetails.outcomeAttributed || "N/A"}
+      </p>
+    </div>
+    <div className="mb-2">
+      <h4 className="font-semibold">Description:</h4>
+      <p>{injuryDetails.description}</p>
+    </div>
+  </div>
+)}
 
-        {/* Display Spare Parts if available */}
-        {selectedSpares.length > 0 && (
-          <div className="mb-4 p-4 border rounded bg-gray-50">
-            <h3 className="text-lg font-semibold mb-2">Spare Parts Added:</h3>
+
+        {/* Spare Parts Section - Always Rendered */}
+        <div className="mb-4 p-4 border rounded bg-gray-50">
+          <h3 className="text-lg font-semibold mb-2">Spare Parts Added:</h3>
+          {selectedSpares.length > 0 ? (
             <ul>
-              {selectedSpares.map((spare, index) => (
-                <li key={index} className="mb-2">
-                  <strong>{spare.PartNumber}</strong> - {spare.Description}
-                  {spare.remark && (
-                    <p className="text-sm text-gray-600">
-                      Remark: {spare.remark}
-                    </p>
-                  )}
-                </li>
-              ))}
+              {selectedSpares.map((spare, index) => {
+                if (typeof spare === "string") {
+                  return (
+                    <li
+                      key={index}
+                      className="flex justify-between items-center"
+                    >
+                      <span>{spare}</span>
+                      <button
+                        className="text-red-500 ml-2"
+                        onClick={() => handleRemoveSpare(index)}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  );
+                }
+                return (
+                  <li
+                    key={index}
+                    className="mb-2 flex justify-between items-center"
+                  >
+                    <div>
+                      <strong>{spare.PartNumber}</strong> - {spare.Description}
+                      {spare.defectivePartNumber && (
+                        <p className="text-sm text-gray-600">
+                          Defective Part Number: {spare.defectivePartNumber}
+                        </p>
+                      )}
+                      {spare.replacedPartNumber && (
+                        <p className="text-sm text-gray-600">
+                          Replaced Part Number: {spare.replacedPartNumber}
+                        </p>
+                      )}
+                      {spare.remark && (
+                        <p className="text-sm text-gray-600">
+                          Remark: {spare.remark}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      className="text-red-500 ml-2"
+                      onClick={() => handleRemoveSpare(index)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
-          </div>
-        )}
+          ) : (
+            <p>N/A</p>
+          )}
+        </div>
 
         {/* Buttons for Injury Details and Spare Parts */}
         <div className="flex flex-wrap gap-2 mb-4">

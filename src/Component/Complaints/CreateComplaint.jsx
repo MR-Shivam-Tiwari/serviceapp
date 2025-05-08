@@ -20,8 +20,14 @@ const CreateComplaint = () => {
   const [selectedProblemType, setSelectedProblemType] = useState("");
   const [selectedProblemName, setSelectedProblemName] = useState("");
   const [breakDown, setBreakDown] = useState(false);
-  const [sparesrequested, setSparesrequested] = useState("");
   const [remarks, setRemarks] = useState("");
+
+  // New states for spare parts autocomplete and equipment details
+  const [spareOptions, setSpareOptions] = useState([]);
+  const [selectedSpare, setSelectedSpare] = useState(null);
+  const [equipmentDetails, setEquipmentDetails] = useState(null);
+  const [AmcDateDetails, setAmcDateDetails] = useState(null);
+  const [CustomerDetails, setCustomerDetails] = useState(null);
 
   // Loading states
   const [loadingSerialNumbers, setLoadingSerialNumbers] = useState(true);
@@ -33,6 +39,32 @@ const CreateComplaint = () => {
 
   // Modal state
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
+
+  // State for service engineer (user) info loaded from localStorage
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    mobilenumber: "",
+    branch: "",
+  });
+
+  // Load user info from localStorage on mount
+// Load user info from localStorage on mount
+useEffect(() => {
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  console.log("Stored User Data:", storedUser);
+  if (storedUser && storedUser.details) {
+    setUserInfo({
+      firstName: storedUser.details.firstname || storedUser.details.firstName || "",
+      lastName: storedUser.details.lastname || storedUser.details.lastName || "",
+      email: storedUser.details.email || "",
+      mobilenumber: storedUser.details.mobilenumber || "",
+      branch: storedUser.details.branch || "",
+    });
+  }
+}, []);
+
 
   // Fetch API data functions
   const fetchSerialNumbers = async () => {
@@ -120,6 +152,38 @@ const CreateComplaint = () => {
     }
   };
 
+  // Fetch equipment details when a serial number is selected
+  useEffect(() => {
+    if (selectedSerialNumber) {
+      axios
+        .get(
+          `${process.env.REACT_APP_BASE_URL}/collections/equipment-details/${selectedSerialNumber}`
+        )
+        .then((response) => {
+          setEquipmentDetails(response.data.equipment);
+          setAmcDateDetails(response.data.amcContract);
+          setCustomerDetails(response.data.customer);
+        })
+        .catch((error) =>
+          console.error("Error fetching equipment details:", error)
+        );
+    }
+  }, [selectedSerialNumber]);
+
+  // Fetch spare parts using the material code from equipment details
+  useEffect(() => {
+    if (equipmentDetails && equipmentDetails.materialcode) {
+      axios
+        .get(
+          `${process.env.REACT_APP_BASE_URL}/collections/search/${equipmentDetails.materialcode}`
+        )
+        .then((response) => {
+          setSpareOptions(response.data);
+        })
+        .catch((error) => console.error("Error fetching spare parts:", error));
+    }
+  }, [equipmentDetails]);
+
   // useEffect to fetch all data on component mount
   useEffect(() => {
     fetchSerialNumbers();
@@ -128,70 +192,46 @@ const CreateComplaint = () => {
     fetchProblemTypes();
     fetchProblemNames();
   }, []);
-  const [userInfo, setUserInfo] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    mobilenumber: "",
-    branch: "",
-  });
-
-  // Load user info from localStorage on mount
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    console.log("Stored User Data:", storedUser); // Logging the data
-    if (storedUser) {
-      setUserInfo({
-        firstName: storedUser.firstname,
-        lastName: storedUser.lastname,
-        email: storedUser.email,
-        mobilenumber: storedUser.mobilenumber,
-        branch: storedUser.branch,
-        
-      });
-    }
-  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setLoadingSubmit(true); // Show loader on submit button
-  
+    setLoadingSubmit(true);
+
     const complaintData = {
       serialnumber: selectedSerialNumber,
       notificationtype: selectedComplaintType,
       productgroup: selectedProductGroup,
       problemtype: selectedProblemType,
       problemname: selectedProblemName,
-      sparesrequested: sparesrequested,
+      sparesrequested: selectedSpare
+        ? `${selectedSpare.PartNumber} - ${selectedSpare.Description}`
+        : "",
       breakdown: breakDown,
       remark: remarks,
-      
-      // User Information Included
+      // Include service engineer details from localStorage
       user: {
         firstName: userInfo.firstName,
         lastName: userInfo.lastName,
         email: userInfo.email,
         mobilenumber: userInfo.mobilenumber,
         branch: userInfo.branch,
-      }
+      },
     };
-  
+
     axios
       .post(
         `${process.env.REACT_APP_BASE_URL}/collections/sendComplaintEmail`,
         complaintData
       )
       .then((response) => {
-        // Show success modal
         setOpenSuccessModal(true);
-        setLoadingSubmit(false); // Hide loader after submission
+        setLoadingSubmit(false);
       })
       .catch((error) => {
         console.error("Error creating complaint:", error);
-        setLoadingSubmit(false); // Hide loader if error occurs
+        setLoadingSubmit(false);
       });
   };
-  
 
   const handleCloseModal = () => {
     setOpenSuccessModal(false);
@@ -201,9 +241,11 @@ const CreateComplaint = () => {
     setSelectedProductGroup("");
     setSelectedProblemType("");
     setSelectedProblemName("");
-    setSparesrequested("");
+    setSelectedSpare(null);
     setBreakDown(false);
     setRemarks("");
+    setEquipmentDetails(null);
+    setSpareOptions([]);
   };
 
   return (
@@ -248,9 +290,11 @@ const CreateComplaint = () => {
                   id="serialNumber"
                   options={serialNumbers}
                   getOptionLabel={(option) => option}
-                  onChange={(event, newValue) =>
-                    setSelectedSerialNumber(newValue)
-                  }
+                  onChange={(event, newValue) => {
+                    setSelectedSerialNumber(newValue);
+                    setEquipmentDetails(null);
+                    setSpareOptions([]);
+                  }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -262,6 +306,71 @@ const CreateComplaint = () => {
                 />
               )}
             </div>
+
+            {/* Equipment Details Render */}
+            {equipmentDetails && (
+              <div className="mb-4 p-4 border rounded-md bg-gray-50">
+                <h3 className="text-lg font-bold mb-2">Equipment Details:</h3>
+                <p>
+                  <strong>Serial Number:</strong>{" "}
+                  {equipmentDetails.serialnumber}
+                </p>
+                <p>
+                  <strong>Part No:</strong> {equipmentDetails.materialcode}
+                </p>
+                <p>
+                  <strong>Description:</strong>{" "}
+                  {equipmentDetails.materialdescription}
+                </p>
+                <p>
+                  <strong>Current Customer:</strong>{" "}
+                  {equipmentDetails.currentcustomer}
+                </p>
+                <p>
+                  <strong>Warranty Start:</strong>{" "}
+                  {new Date(
+                    equipmentDetails.custWarrantystartdate
+                  ).toLocaleDateString()}
+                </p>
+                <p>
+                  <strong>Warranty End:</strong>{" "}
+                  {new Date(
+                    equipmentDetails.custWarrantyenddate
+                  ).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+            {AmcDateDetails && (
+              <div className="mb-4 p-4 border rounded-md bg-gray-50">
+                <p>
+                  <strong>Amc Start Date:</strong>{" "}
+                  {new Date(AmcDateDetails.startdate).toLocaleDateString("en-GB")}
+                </p>
+                <p>
+                  <strong>Amc End Date:</strong>{" "}
+                  {new Date(AmcDateDetails.enddate).toLocaleDateString("en-GB")}
+                </p>
+              </div>
+            )}
+            {CustomerDetails && (
+              <div className="mb-4 p-4 border rounded-md bg-gray-50">
+                <p>
+                  <strong>Hospital Name:</strong> {CustomerDetails.hospitalname}
+                </p>
+                <p>
+                  <strong>City:</strong> {CustomerDetails.city}
+                </p>
+                <p>
+                  <strong>Email:</strong>{" "}
+                  {CustomerDetails.email.length > 25
+                    ? CustomerDetails.email.slice(0, 25) + "..."
+                    : CustomerDetails.email}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {CustomerDetails.telephone}
+                </p>
+              </div>
+            )}
 
             {/* Complaint Type Selection */}
             <div className="mb-4">
@@ -368,20 +477,30 @@ const CreateComplaint = () => {
               )}
             </div>
 
-            {/* Additional Fields */}
+            {/* Spare Parts Autocomplete for Spares Requested */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
                 Spares Requested
               </label>
-              <input
-                type="text"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                value={sparesrequested}
-                onChange={(e) => setSparesrequested(e.target.value)}
-                placeholder="Enter spares requested..."
+              <Autocomplete
+                id="spareRequested"
+                options={spareOptions}
+                getOptionLabel={(option) =>
+                  `${option.PartNumber} - ${option.Description}` || ""
+                }
+                onChange={(event, newValue) => setSelectedSpare(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    className="mt-1 block w-full"
+                    label="Select Spare Part"
+                  />
+                )}
               />
             </div>
 
+            {/* Breakdown Checkbox */}
             <div className="mb-4">
               <label className="block text-sm font-medium">
                 Breakdown:{" "}
@@ -392,6 +511,7 @@ const CreateComplaint = () => {
               </label>
             </div>
 
+            {/* Remarks Field */}
             <div className="mb-4">
               <label htmlFor="remarks" className="block text-sm font-medium">
                 Remarks
@@ -401,15 +521,14 @@ const CreateComplaint = () => {
                 value={remarks}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    // Prevent any manual line breaks (e.g., Enter or Shift+Enter)
                     e.preventDefault();
                   }
                 }}
                 onChange={(e) => setRemarks(e.target.value)}
-                maxLength={400} // Prevent typing more than 400 characters
+                maxLength={400}
                 className="mt-1 block w-full rounded-md border border-gray-300 p-2"
                 rows="4"
-                wrap="soft" // Allows automatic wrapping without inserting newline characters
+                wrap="soft"
               ></textarea>
               <p className="mt-2 text-red-600 text-sm">
                 400 character limit. Typed {remarks.length} out of 400.
@@ -436,7 +555,7 @@ const CreateComplaint = () => {
         </div>
       </div>
 
-      {/* Success Modal using Tailwind CSS */}
+      {/* Success Modal */}
       {openSuccessModal && (
         <div className="fixed inset-0 px-5 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
@@ -444,7 +563,8 @@ const CreateComplaint = () => {
               Complaint Created Successfully!
             </h2>
             <p className="mb-4">
-            Your complaint has been created successfully, and an email has been sent to CIC. Thank you!
+              Your complaint has been created successfully, and an email has
+              been sent to CIC. Thank you!
             </p>
             <div className="flex justify-end">
               <button

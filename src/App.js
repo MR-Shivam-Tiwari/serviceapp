@@ -26,13 +26,22 @@ import PreventiveMaintenance from './Component/PreventiveMaintenance/PreventiveM
 import PmDetails from './Component/PreventiveMaintenance/PmDetails';
 import CloseComplaintPage from './Component/Complaints/CloseComplaintPage';
 import ComplaintSummaryPage from './Component/Complaints/ComplaintSummaryPage';
+import ContractProposal from './Component/ContractProposal/ContractProposal';
+import CreateProposal from './Component/ContractProposal/CreateProposal';
+import PendingProposal from './Component/ContractProposal/PendingProposal';
+import CompletedOrder from './Component/ContractProposal/CompletedOrder';
+import ProposalDetails from './Component/ContractProposal/ProposalDetails';
+import ProposalRevision from './Component/ContractProposal/ProposalRevision';
+import QuoteGeneration from './Component/ContractProposal/QuoteGeneration';
+import CNoteGen from './Component/ContractProposal/CNoteGen';
+import OnCallService from './Component/OnCallService/OnCallService';
 
 function App() {
   return (
     <Router>
       <Toaster
-        position="top-right" // This ensures the toast appears at the top-right corner
-        reverseOrder={false} // Optional, to make toasts appear in the order they are called
+        position="top-right" 
+        reverseOrder={false}
         toastOptions={{
           style: {
             borderRadius: '10px',
@@ -131,6 +140,42 @@ function App() {
             path="/customer-details/:id"
             element={<PrivateRoute element={CustomerDetails} />}
           />
+          <Route
+            path="/contract-proposal"
+            element={<PrivateRoute element={ContractProposal} />}
+          />
+          <Route
+            path="/create-proposal"
+            element={<PrivateRoute element={CreateProposal} />}
+          />
+          <Route
+            path="/pending-proposal"
+            element={<PrivateRoute element={PendingProposal} />}
+          />
+          <Route
+            path="/completed-order"
+            element={<PrivateRoute element={CompletedOrder} />}
+          />
+          <Route
+            path="/proposal-details"
+            element={<PrivateRoute element={ProposalDetails} />}
+          /> 
+          <Route
+            path="/quote-generation"
+            element={<PrivateRoute element={QuoteGeneration} />}
+          /> 
+          <Route
+            path="/quote-generation/:id"
+            element={<PrivateRoute element={CNoteGen} />}
+          /> 
+          <Route
+            path="/proposal-revision/:id"
+            element={<PrivateRoute element={ProposalRevision} />}
+          /> 
+          <Route
+            path="/oncall-service"
+            element={<PrivateRoute element={OnCallService} />}
+          /> 
         </Routes>
       </div>
     </Router>
