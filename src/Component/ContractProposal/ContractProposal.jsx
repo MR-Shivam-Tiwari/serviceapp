@@ -5,7 +5,7 @@ function ContractProposal() {
   const navigate = useNavigate();
   return (
     <div className="flex flex-col h-screen">
-      {" "}
+      
       <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
         <button className="mr-2 text-white" onClick={() => navigate("/")}>
           <svg

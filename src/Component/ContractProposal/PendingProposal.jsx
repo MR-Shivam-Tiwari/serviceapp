@@ -40,6 +40,19 @@ function PendingProposal() {
     navigate(`/proposal-revision/${proposalId}`);
   };
 
+  const shouldShowRevisionButton = (proposal) => {
+    // Current discount percentage check (yeh field sahi naam se check karein)
+    const currentDiscount = proposal.discountPercentage || 0;
+
+    // Case 1: Agar current discount 5% ya kam hai
+    if (currentDiscount <= 5) return true;
+
+    // Case 2: Agar current discount 5% se jyada hai
+    const latestRevision = proposal.revisions?.[proposal.revisions.length - 1];
+
+    // Agar koi revision nahi hai ya latest revision rejected hai
+    return !proposal.revisions?.length || latestRevision?.status === "rejected";
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -153,12 +166,21 @@ function PendingProposal() {
                 >
                   View Details
                 </button>
-                <button
-                  onClick={() => handleRevision(proposal._id)}
-                  className="flex-1 bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded"
-                >
-                  Revision
-                </button>
+                {shouldShowRevisionButton(proposal) ? (
+                  <button
+                    onClick={() => handleRevision(proposal._id)}
+                    className="flex-1 bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded"
+                  >
+                    Revision
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="flex-1 bg-gray-300 text-gray-500 py-2 px-4 rounded cursor-not-allowed"
+                  >
+                    Revision
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -221,7 +243,10 @@ function PendingProposal() {
                     </h4>
                     <div className="space-y-3">
                       {selectedProposal.items.map((item, index) => (
-                        <div key={index} className="border-b pb-2 bg-gray-100 p-2 rounded">
+                        <div
+                          key={index}
+                          className="border-b pb-2 bg-gray-100 p-2 rounded"
+                        >
                           <p className="font-medium">{item.equipment.name}</p>
                           <p className="text-sm text-gray-600">
                             {item.equipment.materialdescription}

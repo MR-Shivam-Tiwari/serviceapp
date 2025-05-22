@@ -1,15 +1,96 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
+import axios from "axios";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import CommercialOfferPdf from "./CommercialOfferPdf";
+import { offerData } from "./offerData";
+import toast from "react-hot-toast";
 function CNoteGen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const contentRef = useRef(null);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    try {
+      const input = contentRef.current;
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pages = Array.from(input.getElementsByClassName("page"));
+
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+
+        // Make page temporarily visible for rendering
+        page.style.visibility = "visible";
+
+        const canvas = await html2canvas(page, {
+          scale: 1, // Reduce scale for better compatibility
+          useCORS: true,
+          logging: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+        });
+
+        // Hide page again after capture
+        page.style.visibility = "hidden";
+
+        const imgData = canvas.toDataURL("image/jpeg", 1.0);
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      }
+
+      pdf.save("SK-Q0307.pdf");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
+  };
+  const handleGenerateCNote = async (proposal) => {
+    try {
+      setIsGenerating(true);
+
+      // Call your backend API to generate CNote
+      const response = await axios.post(
+        "http://localhost:5000/phone/cnote",
+        {
+          proposalId: proposal._id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data) {
+        toast.success("CNote generated successfully!");
+      }
+    } catch (error) {
+      console.error("Error generating CNote:", error);
+      toast.error(error.response?.data?.message || "Failed to generate CNote", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const selectedProposal = location.state?.proposal;
   const [expandedSections, setExpandedSections] = useState({
     customer: false,
     equipment: false,
     financial: false,
-    revisions: false
+    revisions: false,
   });
 
   if (!selectedProposal) {
@@ -26,14 +107,10 @@ function CNoteGen() {
     navigate("/quote-generation");
   };
 
-  const handleGenerateCNote = (proposal) => {
-    console.log("Generating CNote for:", proposal.proposalNumber);
-  };
-
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
@@ -70,17 +147,24 @@ function CNoteGen() {
           <div className="mb-6 border rounded overflow-hidden">
             <button
               className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100"
-              onClick={() => toggleSection('customer')}
+              onClick={() => toggleSection("customer")}
             >
               <h2 className="text-xl font-bold">Customer Details</h2>
               <svg
-                className={`w-6 h-6 transform transition-transform ${expandedSections.customer ? 'rotate-180' : ''}`}
+                className={`w-6 h-6 transform transition-transform ${
+                  expandedSections.customer ? "rotate-180" : ""
+                }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {expandedSections.customer && (
@@ -127,25 +211,36 @@ function CNoteGen() {
           <div className="mb-6 border rounded overflow-hidden">
             <button
               className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100"
-              onClick={() => toggleSection('equipment')}
+              onClick={() => toggleSection("equipment")}
             >
               <h2 className="text-xl font-bold">Equipment Details</h2>
               <svg
-                className={`w-6 h-6 transform transition-transform ${expandedSections.equipment ? 'rotate-180' : ''}`}
+                className={`w-6 h-6 transform transition-transform ${
+                  expandedSections.equipment ? "rotate-180" : ""
+                }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {expandedSections.equipment && (
               <div className="p-4">
                 {selectedProposal.items.map((item, index) => {
-                  const showBothApprovals = selectedProposal.discountPercentage > 10;
-                  const showOnlyRSH = selectedProposal.discountPercentage >= 6 && selectedProposal.discountPercentage <= 10;
-                  const showNoApprovals = selectedProposal.discountPercentage < 6;
+                  const showBothApprovals =
+                    selectedProposal.discountPercentage > 10;
+                  const showOnlyRSH =
+                    selectedProposal.discountPercentage >= 6 &&
+                    selectedProposal.discountPercentage <= 10;
+                  const showNoApprovals =
+                    selectedProposal.discountPercentage < 6;
 
                   const needsBothApprovals = showBothApprovals;
                   const hasRequiredApprovals = needsBothApprovals
@@ -153,7 +248,10 @@ function CNoteGen() {
                     : item.RSHApproval.approved;
 
                   return (
-                    <div key={item._id} className="mb-4 p-4 border rounded bg-gray-50">
+                    <div
+                      key={item._id}
+                      className="mb-4 p-4 border rounded bg-gray-50"
+                    >
                       <h3 className="font-bold text-lg mb-2">
                         Equipment {index + 1}: {item.equipment.name}
                       </h3>
@@ -198,10 +296,13 @@ function CNoteGen() {
                                 <p>
                                   {item.RSHApproval.approved ? (
                                     <span className="text-green-600">
-                                      Approved on {formatDate(item.RSHApproval.approvedAt)}
+                                      Approved on{" "}
+                                      {formatDate(item.RSHApproval.approvedAt)}
                                     </span>
                                   ) : (
-                                    <span className="text-red-600">Pending</span>
+                                    <span className="text-red-600">
+                                      Pending
+                                    </span>
                                   )}
                                 </p>
                               </div>
@@ -213,10 +314,13 @@ function CNoteGen() {
                                 <p>
                                   {item.NSHApproval.approved ? (
                                     <span className="text-green-600">
-                                      Approved on {formatDate(item.NSHApproval.approvedAt)}
+                                      Approved on{" "}
+                                      {formatDate(item.NSHApproval.approvedAt)}
                                     </span>
                                   ) : (
-                                    <span className="text-red-600">Pending</span>
+                                    <span className="text-red-600">
+                                      Pending
+                                    </span>
                                   )}
                                 </p>
                               </div>
@@ -235,17 +339,24 @@ function CNoteGen() {
           <div className="mb-6 border rounded overflow-hidden">
             <button
               className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100"
-              onClick={() => toggleSection('financial')}
+              onClick={() => toggleSection("financial")}
             >
               <h2 className="text-xl font-bold">Financial Details</h2>
               <svg
-                className={`w-6 h-6 transform transition-transform ${expandedSections.financial ? 'rotate-180' : ''}`}
+                className={`w-6 h-6 transform transition-transform ${
+                  expandedSections.financial ? "rotate-180" : ""
+                }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {expandedSections.financial && (
@@ -297,23 +408,33 @@ function CNoteGen() {
             <div className="mb-6 border rounded overflow-hidden">
               <button
                 className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100"
-                onClick={() => toggleSection('revisions')}
+                onClick={() => toggleSection("revisions")}
               >
                 <h2 className="text-xl font-bold">Revision History</h2>
                 <svg
-                  className={`w-6 h-6 transform transition-transform ${expandedSections.revisions ? 'rotate-180' : ''}`}
+                  className={`w-6 h-6 transform transition-transform ${
+                    expandedSections.revisions ? "rotate-180" : ""
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               {expandedSections.revisions && (
                 <div className="p-4">
                   {selectedProposal.revisions.map((revision) => (
-                    <div key={revision._id} className="mb-4 p-4 border rounded bg-gray-50">
+                    <div
+                      key={revision._id}
+                      className="mb-4 p-4 border rounded bg-gray-50"
+                    >
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-bold">
                           Revision #{revision.revisionNumber}
@@ -332,7 +453,9 @@ function CNoteGen() {
                         </div>
                         <div>
                           <p className="font-semibold">After Discount:</p>
-                          <p>₹{revision.changes.afterDiscount.toLocaleString()}</p>
+                          <p>
+                            ₹{revision.changes.afterDiscount.toLocaleString()}
+                          </p>
                         </div>
                         <div>
                           <p className="font-semibold">TDS:</p>
@@ -348,7 +471,9 @@ function CNoteGen() {
                         </div>
                         <div>
                           <p className="font-semibold">Final Amount:</p>
-                          <p>₹{revision.changes.finalAmount.toLocaleString()}</p>
+                          <p>
+                            ₹{revision.changes.finalAmount.toLocaleString()}
+                          </p>
                         </div>
                         <div className="col-span-2">
                           <p className="font-semibold">Remark:</p>
@@ -368,6 +493,73 @@ function CNoteGen() {
               selectedProposal.items.every(
                 (item) => item.RSHApproval.approved && item.NSHApproval.approved
               ) ? (
+                <button className="bg-primary w-full text-white px-6 py-2 rounded hover:bg-primary-dark transition">
+                  <a href="/SK-Q0307.pdf" download="SK-Q0307.pdf">
+                    Download Quotation
+                  </a>
+                </button>
+              ) : (
+                <p className="text-red-500 italic">
+                  Both RSH and NSH approvals are required for discounts above
+                  10%
+                </p>
+              )
+            ) : selectedProposal.discountPercentage >= 6 ? (
+              selectedProposal.items.every(
+                (item) => item.RSHApproval.approved
+              ) ? (
+                <button className="bg-primary w-full text-white px-6 py-2 rounded hover:bg-primary-dark transition">
+                  <a href="/SK-Q0307.pdf" download="SK-Q0307.pdf">
+                    Download Quotation
+                  </a>
+                </button>
+              ) : (
+                <p className="text-red-500 italic">
+                  RSH approval is required for discounts between 6-10%
+                </p>
+              )
+            ) : (
+              <button className="bg-primary w-full text-white px-6 py-2 rounded hover:bg-primary-dark transition">
+                <a href="/SK-Q0307.pdf" download="SK-Q0307.pdf">
+                  Download Quotation
+                </a>
+              </button>
+            )}
+          </div>
+
+          <div className="flex justify-end mt-6">
+            {isGenerating ? (
+              <button
+                disabled
+                className="bg-gray-400 w-full text-white px-6 py-2 rounded flex items-center justify-center cursor-not-allowed"
+              >
+                <svg
+                  className="animate-spin h-5 w-5 mr-3 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  ></path>
+                </svg>
+                Generating CNote...
+              </button>
+            ) : selectedProposal?.discountPercentage > 10 ? (
+              selectedProposal?.items?.every(
+                (item) =>
+                  item?.RSHApproval?.approved && item?.NSHApproval?.approved
+              ) ? (
                 <button
                   onClick={() => handleGenerateCNote(selectedProposal)}
                   className="bg-primary w-full text-white px-6 py-2 rounded hover:bg-primary-dark transition"
@@ -376,12 +568,13 @@ function CNoteGen() {
                 </button>
               ) : (
                 <p className="text-red-500 italic">
-                  Both RSH and NSH approvals are required for discounts above 10%
+                  Both RSH and NSH approvals are required for discounts above
+                  10%
                 </p>
               )
-            ) : selectedProposal.discountPercentage >= 6 ? (
-              selectedProposal.items.every(
-                (item) => item.RSHApproval.approved
+            ) : selectedProposal?.discountPercentage >= 6 ? (
+              selectedProposal?.items?.every(
+                (item) => item?.RSHApproval?.approved
               ) ? (
                 <button
                   onClick={() => handleGenerateCNote(selectedProposal)}
@@ -408,5 +601,22 @@ function CNoteGen() {
     </div>
   );
 }
+const downloadButtonStyle = {
+  padding: "10px 20px",
+  backgroundColor: "#007bff",
+  color: "white",
+  border: "none",
+  borderRadius: "5px",
+  cursor: "pointer",
+  margin: "20px",
+};
+
+const hiddenContentStyle = {
+  position: "absolute",
+  left: "-9999px",
+  top: 0,
+  width: "210mm", // A4 width
+  minHeight: "297mm", // A4 height
+};
 
 export default CNoteGen;

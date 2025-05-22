@@ -7,8 +7,10 @@ function PreventiveMaintenance() {
   const [pms, setPms] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
-  // State to track selected PM items
+  const [cityFilter, setCityFilter] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedPms, setSelectedPms] = useState([]);
+  const [viewMode, setViewMode] = useState("customers"); // 'customers' or 'pms'
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BASE_URL}/upload/allpms`)
@@ -19,25 +21,44 @@ function PreventiveMaintenance() {
       .catch((err) => console.error("Error fetching PM data", err));
   }, []);
 
-  // Filter to show only "Due" or "Overdue"
-  const filteredPms = pms
-    .filter((pm) => pm.pmStatus === "Due" || pm.pmStatus === "Overdue")
-    .filter((pm) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        pm.customerCode.toLowerCase().includes(query) ||
-        pm.serialNumber.toLowerCase().includes(query) ||
-        pm.materialDescription.toLowerCase().includes(query);
-      const matchesRegion = regionFilter ? pm.region === regionFilter : true;
-      return matchesSearch && matchesRegion;
-    });
-
+  // Get unique regions
   const uniqueRegions = [...new Set(pms.map((pm) => pm.region))];
+
+  // Get cities based on selected region
+  const uniqueCities = regionFilter
+    ? [...new Set(pms.filter(pm => pm.region === regionFilter).map(pm => pm.city))]
+    : [];
+
+  // Get customers based on selected region and city
+  const customers = regionFilter && cityFilter
+    ? [...new Set(
+        pms
+          .filter(pm => pm.region === regionFilter && pm.city === cityFilter)
+          .map(pm => pm.customerCode)
+      )]
+    : [];
+
+  // Filter PMs for the selected customer
+  const customerPms = selectedCustomer
+    ? pms.filter(pm => 
+        pm.customerCode === selectedCustomer && 
+        (pm.pmStatus === "Due" || pm.pmStatus === "Overdue")
+      )
+    : [];
+
+  // Filter for search functionality in PM view
+  const filteredPms = customerPms.filter((pm) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      pm.customerCode.toLowerCase().includes(query) ||
+      pm.serialNumber.toLowerCase().includes(query) ||
+      pm.materialDescription.toLowerCase().includes(query)
+    );
+  });
 
   // Toggle selection for a PM card. Limit selections to 10.
   const toggleSelection = (pm) => {
     if (selectedPms.some((sel) => sel._id === pm._id)) {
-      // Deselect if already selected
       setSelectedPms(selectedPms.filter((sel) => sel._id !== pm._id));
     } else {
       if (selectedPms.length < 10) {
@@ -48,12 +69,10 @@ function PreventiveMaintenance() {
     }
   };
 
-  // Remove all selected PMs
   const handleRemoveAll = () => {
     setSelectedPms([]);
   };
 
-  // Proceed button action navigates with the selected PMs
   const handleProceed = () => {
     if (selectedPms.length === 0) {
       alert("Please select at least one PM.");
@@ -62,11 +81,48 @@ function PreventiveMaintenance() {
     navigate("/pm-details", { state: { selectedPms } });
   };
 
+  const handleCustomerSelect = (customerCode) => {
+    setSelectedCustomer(customerCode);
+    setViewMode("pms");
+  };
+
+  const handleBackToCustomers = () => {
+    setSelectedCustomer(null);
+    setViewMode("customers");
+    setSelectedPms([]);
+  };
+
+  const handleBackToCities = () => {
+    setCityFilter("");
+    setSelectedCustomer(null);
+    setViewMode("customers");
+  };
+
+  const handleBackToRegions = () => {
+    setRegionFilter("");
+    setCityFilter("");
+    setSelectedCustomer(null);
+    setViewMode("customers");
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header - Fixed Top */}
       <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-        <button className="mr-2 text-white" onClick={() => navigate("/")}>
+        <button 
+          className="mr-2 text-white" 
+          onClick={() => {
+            if (viewMode === "pms") {
+              handleBackToCustomers();
+            } else if (cityFilter) {
+              handleBackToCities();
+            } else if (regionFilter) {
+              handleBackToRegions();
+            } else {
+              navigate("/");
+            }
+          }}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="36"
@@ -88,34 +144,53 @@ function PreventiveMaintenance() {
         <h2 className="text-xl font-bold">Preventive Maintenance</h2>
       </div>
 
-      {/* Search, Filter, and Remove All Button */}
+      {/* Search and Filters */}
       <div className="flex flex-col md:flex-row md:items-center pb-0 p-3 mt-[80px]">
-        <input
-          type="text"
-          placeholder="Search by Customer Code, Serial No, or Description"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="border p-2 rounded w-full md:mr-4 mb-2 md:mb-0"
-        />
-        <div className="flex gap-3">
-          <select
-            value={regionFilter}
-            onChange={(e) => setRegionFilter(e.target.value)}
-            className={`border p-2 h-10 rounded mb-2 md:mb-0 
-      ${selectedPms.length > 0 ? "w-full md:w-1/2" : "w-full"}`}
-          >
-            <option value="">Filter by Region</option>
-            {uniqueRegions.map((region) => (
-              <option key={region} value={region}>
-                {region}
-              </option>
-            ))}
-          </select>
+        {viewMode === "pms" ? (
+          <input
+            type="text"
+            placeholder="Search by Customer Code, Serial No, or Description"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="border p-2 rounded w-full md:mr-4 mb-2 md:mb-0"
+          />
+        ) : null}
 
-          {selectedPms.length > 0 && (
+        <div className="flex gap-3 w-full">
+          {viewMode === "customers" && !regionFilter && (
+            <select
+              value={regionFilter}
+              onChange={(e) => setRegionFilter(e.target.value)}
+              className="border p-2 rounded w-full"
+            >
+              <option value="">Select Region</option>
+              {uniqueRegions.map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {viewMode === "customers" && regionFilter && !cityFilter && (
+            <select
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="border p-2 rounded w-full"
+            >
+              <option value="">Select City</option>
+              {uniqueCities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {viewMode === "pms" && selectedPms.length > 0 && (
             <button
               onClick={handleRemoveAll}
-              className="border p-2 rounded h-10 bg-red-500 text-white w-full md:w-1/2"
+              className="border p-2 rounded bg-red-500 text-white w-full md:w-1/2"
             >
               Remove All
             </button>
@@ -123,66 +198,96 @@ function PreventiveMaintenance() {
         </div>
       </div>
 
-      {/* PM Cards List */}
+      {/* Content Area */}
       <div className="flex-1 overflow-y-auto mb-[70px] p-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPms.map((pm) => (
-            <div
-              key={pm._id}
-              className="border rounded p-2 shadow hover:shadow-lg"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <p>
-                    <strong>Customer Code:</strong> {pm.customerCode}
-                  </p>
-                  <p>
-                    <strong>PM Type:</strong> {pm.pmType}
-                  </p>
-                  <p>
-                    <strong>Description:</strong> {pm.materialDescription}
-                  </p>
-                  <p>
-                    <strong>Serial Number:</strong> {pm.serialNumber}
-                  </p>
-                  <p>
-                    <strong>Status:</strong> {pm.pmStatus}
-                  </p>
-                  <p>
-                    <strong>PM Due Month:</strong> {pm.pmDueMonth}
-                  </p>
+        {viewMode === "customers" && regionFilter && cityFilter && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {customers.map((customerCode) => {
+              const customerPms = pms.filter(pm => pm.customerCode === customerCode);
+              const firstPm = customerPms[0];
+              const duePms = customerPms.filter(pm => pm.pmStatus === "Due" || pm.pmStatus === "Overdue").length;
+              
+              return (
+                <div
+                  key={customerCode}
+                  onClick={() => handleCustomerSelect(customerCode)}
+                  className="border rounded p-4 shadow hover:shadow-lg cursor-pointer"
+                >
+                  <p><strong>Customer Code:</strong> {customerCode}</p>
+                  {firstPm && (
+                    <>
+                      <p><strong>Region:</strong> {firstPm.region}</p>
+                      <p><strong>City:</strong> {firstPm.city}</p>
+                    </>
+                  )}
+                  <p><strong>Due PMs:</strong> {duePms}</p>
+                  <p className="text-blue-500 mt-2">View PMs →</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {viewMode === "pms" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredPms.map((pm) => (
+              <div
+                key={pm._id}
+                className="border rounded p-2 shadow hover:shadow-lg"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p><strong>Customer Code:</strong> {pm.customerCode}</p>
+                    <p><strong>PM Type:</strong> {pm.pmType}</p>
+                    <p><strong>Description:</strong> {pm.materialDescription}</p>
+                    <p><strong>Serial Number:</strong> {pm.serialNumber}</p>
+                    <p><strong>Status:</strong> {pm.pmStatus}</p>
+                    <p><strong>PM Due Month:</strong> {pm.pmDueMonth}</p>
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <button
+                    onClick={() => toggleSelection(pm)}
+                    disabled={
+                      !selectedPms.some((sel) => sel._id === pm._id) &&
+                      selectedPms.length === 10
+                    }
+                    className={`px-3 py-2 rounded w-full font-semibold transition ${
+                      selectedPms.some((sel) => sel._id === pm._id)
+                        ? "bg-primary text-white"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    } ${
+                      !selectedPms.some((sel) => sel._id === pm._id) &&
+                      selectedPms.length === 10
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                  >
+                    {selectedPms.some((sel) => sel._id === pm._id)
+                      ? "Remove"
+                      : "Select"}
+                  </button>
                 </div>
               </div>
-              <div className="pt-2">
-                <button
-                  onClick={() => toggleSelection(pm)}
-                  disabled={
-                    !selectedPms.some((sel) => sel._id === pm._id) &&
-                    selectedPms.length === 10
-                  }
-                  className={`px-3 py-2 rounded w-full font-semibold transition ${
-                    selectedPms.some((sel) => sel._id === pm._id)
-                      ? "bg-primary text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  } ${
-                    !selectedPms.some((sel) => sel._id === pm._id) &&
-                    selectedPms.length === 10
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  {selectedPms.some((sel) => sel._id === pm._id)
-                    ? "Remove"
-                    : "Select"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {viewMode === "customers" && !regionFilter && (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">Please select a region to begin</p>
+          </div>
+        )}
+
+        {viewMode === "customers" && regionFilter && !cityFilter && (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">Please select a city</p>
+          </div>
+        )}
       </div>
 
       {/* Proceed Button - Fixed Bottom */}
-      {selectedPms.length > 0 && (
+      {viewMode === "pms" && selectedPms.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white p-3 shadow-md z-10">
           <button
             onClick={handleProceed}

@@ -278,7 +278,7 @@ function Home() {
             </svg>
             Contract Proposal
           </button>
-          <button
+          {/* <button
             onClick={() => navigate("/oncall-service")}
             className="flex flex-col gap-2 items-center h-[100px] text-sm    justify-center px-4 text-orange-600 bg-gray-100 rounded-lg shadow hover:bg-orange-100"
           >
@@ -302,7 +302,7 @@ function Home() {
               />
             </svg>
             On Call Service
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
