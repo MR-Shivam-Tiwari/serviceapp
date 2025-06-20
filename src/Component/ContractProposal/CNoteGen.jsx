@@ -56,7 +56,7 @@ function CNoteGen() {
 
       // Call your backend API to generate CNote
       const response = await axios.post(
-        "http://localhost:5000/phone/cnote",
+        `${process.env.REACT_APP_BASE_URL}/phone/cnote`,
         {
           proposalId: proposal._id,
         },
@@ -115,9 +115,9 @@ function CNoteGen() {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen">
+    <div className=" ">
       {/* Header */}
-      <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
         <button className="mr-2 text-white" onClick={handleBackToList}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -141,8 +141,8 @@ function CNoteGen() {
       </div>
 
       {/* Main Content */}
-      <div className="pt-20">
-        <div className="bg-white rounded shadow-md p-4">
+      <div className=" ">
+        <div className="bg-white rounded shadow-md px-4">
           {/* Customer Details Accordion */}
           <div className="mb-6 border rounded overflow-hidden">
             <button

@@ -19,7 +19,7 @@ function ProposalRevision() {
 
         // Fetch proposal data
         const proposalResponse = await fetch(
-          `http://localhost:5000/phone/proposal/${id}`
+          `${process.env.REACT_APP_BASE_URL}/phone/proposal/${id}`
         );
         if (!proposalResponse.ok) throw new Error("Failed to fetch proposal");
         const proposalData = await proposalResponse.json();
@@ -28,7 +28,7 @@ function ProposalRevision() {
 
         // Fetch discount options
         const discountResponse = await fetch(
-          "http://localhost:5000/admin/discount"
+          `${process.env.REACT_APP_BASE_URL}/admin/discount`
         );
         if (!discountResponse.ok) throw new Error("Failed to fetch discounts");
         const discountData = await discountResponse.json();
@@ -59,7 +59,7 @@ function ProposalRevision() {
       const newAmounts = calculateNewAmounts();
 
       const response = await fetch(
-        `http://localhost:5000/phone/proposal/${id}/revision`,
+        `${process.env.REACT_APP_BASE_URL}/phone/proposal/${id}/revision`,
         {
           method: "PUT",
           headers: {
@@ -121,7 +121,7 @@ function ProposalRevision() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className="">
         <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
           <button className="mr-2 text-white" onClick={() => navigate(-1)}>
             <svg
@@ -153,7 +153,7 @@ function ProposalRevision() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className=" ">
         <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
           <button className="mr-2 text-white" onClick={() => navigate(-1)}>
             {/* Back button SVG */}
@@ -167,7 +167,7 @@ function ProposalRevision() {
 
   if (!proposal) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div className=" ">
         <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
           <button className="mr-2 text-white" onClick={() => navigate(-1)}>
             {/* Back button SVG */}
@@ -180,8 +180,8 @@ function ProposalRevision() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
+    <div className=" ">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
         <button className="mr-2 text-white" onClick={() => navigate(-1)}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -204,7 +204,7 @@ function ProposalRevision() {
         <h2 className="text-xl font-bold">Proposal Revision</h2>
       </div>
 
-      <main className="mt-20 space-y-6">
+      <main className=" mb-6 px-4 space-y-4">
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="font-semibold text-lg mb-4">
             Proposal #{proposal.proposalNumber}

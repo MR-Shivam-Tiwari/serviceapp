@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios"; // To make API requests
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast"; // Import the toast function from react-hot-toast
@@ -9,31 +9,42 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
+  const [deviceId, setDeviceId] = useState("");
   // Toggle password visibility
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
+  useEffect(() => {
+    const storedDeviceId = localStorage.getItem("deviceId");
+    if (storedDeviceId) {
+      setDeviceId(storedDeviceId);
+    } else {
+      const newDeviceId = "device_" + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem("deviceId", newDeviceId);
+      setDeviceId(newDeviceId);
+    }
+  }, []);
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true); // Set loading to true while waiting for response
+    setIsLoading(true);
 
     try {
       // Make API request to login (replace with your backend API endpoint)
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/collections/login`, // Your login API
         {
-          employeeid: employeeId, // Use employeeId instead of email
+          employeeid: employeeId,
           password: password,
+          deviceid: deviceId, // Send device ID to backend
         }
       );
 
       // If login is successful, store the token in localStorage
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
-
+      localStorage.setItem("deviceId", deviceId);
       // Display success toast
       toast.success("Login Successful!");
 
@@ -43,10 +54,14 @@ const Login = () => {
 
       navigate("/");
     } catch (error) {
-      // If error occurs, show the error message in a toast
-      toast.error("Login failed. Please check your credentials.");
+      // Handle specific device ID error
+      if (error.response?.data?.errorCode === "DEVICE_MISMATCH") {
+        toast.error("User already logged in on another device");
+      } else {
+        toast.error("Login failed. Please check your credentials.");
+      }
     } finally {
-      setIsLoading(false); // Reset loading state
+      setIsLoading(false);
     }
   };
 
@@ -167,5 +182,5 @@ const Login = () => {
     </div>
   );
 };
-
+ 
 export default Login;

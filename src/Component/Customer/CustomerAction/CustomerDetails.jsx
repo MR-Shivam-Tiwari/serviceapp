@@ -169,7 +169,7 @@ const CustomerDetails = () => {
                         {item.materialcode}
                       </td>
                       <td className="py-2 px-6 border text-center">
-                        {item.name}
+                        {item.materialdescription}
                       </td>
                     </tr>
                   ))}

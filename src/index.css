@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
+
+
+
 /* global.css */
 .primary {
   color: #4b39ef; /* Text color */
@@ -14,7 +19,26 @@
 .border-primary {
   border: 1px solid #4b39ef; /* Border color */
 }
+/* Safe area padding for iOS and Android */
+.safe-area-container {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
 
+/* For Android devices with soft navigation bar */
+@supports (padding-bottom: max(0px)) {
+  .safe-area-container {
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+}
+
+/* Ensure content doesn't go behind the notch */
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
 /* Base font family */
 .rubik {
   font-family: "Rubik", serif;

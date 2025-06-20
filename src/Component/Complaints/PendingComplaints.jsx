@@ -10,7 +10,7 @@ const PendingComplaintsPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BASE_URL}/collections/pendingcomplaints`)
+    fetch(`${process.env.REACT_APP_BASE_URL}/collections/allpendingcomplaints`)
       .then((response) => response.json())
       .then((data) => {
         setComplaints(data.pendingComplaints);

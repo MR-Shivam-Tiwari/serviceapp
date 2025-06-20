@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+
+import { StatusBar, Style } from '@capacitor/status-bar';
+
 import ForgotPassword from './Component/Auth/ForgotPassword';
 import Login from './Component/Auth/Login';
 import ResetPassword from './Component/Auth/ResetPassword';
@@ -18,8 +24,8 @@ import CreateCloseComplaint from './Component/Complaints/CreateCloseComplaint';
 import ComplaintDetailsPage from './Component/Complaints/ComplaintDetailsPage ';
 import CustomerDetails from './Component/Customer/CustomerAction/CustomerDetails';
 import { Toaster } from 'react-hot-toast';
-import PrivateRoute from './PrivateRoute'; // Import the PrivateRoute
-import PublicRoute from './PublicRoute'; // Import PublicRoute
+import PrivateRoute from './PrivateRoute';
+import PublicRoute from './PublicRoute';
 import SelectCustomer from './Component/Installation/SelectCustomer';
 import InstallationSummary from './Component/Installation/InstallationSummary';
 import PreventiveMaintenance from './Component/PreventiveMaintenance/PreventiveMaintenance';
@@ -35,12 +41,74 @@ import ProposalRevision from './Component/ContractProposal/ProposalRevision';
 import QuoteGeneration from './Component/ContractProposal/QuoteGeneration';
 import CNoteGen from './Component/ContractProposal/CNoteGen';
 import OnCallService from './Component/OnCallService/OnCallService';
+const platform = Capacitor.getPlatform();
+
+
+
+
+const BackButtonHandler = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [routeStack, setRouteStack] = useState(['/']);
+
+  useEffect(() => {
+    setRouteStack(prev => {
+      if (prev[prev.length - 1] !== location.pathname) {
+        return [...prev, location.pathname];
+      }
+      return prev;
+    });
+  }, [location]);
+
+  useEffect(() => {
+    // Run only on Android/iOS
+    if (Capacitor.getPlatform() !== 'web') {
+      const handler = CapacitorApp.addListener('backButton', () => {
+        if (routeStack.length > 1) {
+          const previousRoute = routeStack[routeStack.length - 2];
+          setRouteStack(prev => prev.slice(0, -1));
+          navigate(previousRoute, { replace: true });
+        } else {
+          CapacitorApp.minimizeApp(); // App minimize karega root screen pe
+        }
+      });
+
+      // Clean up
+      return () => {
+        if (typeof handler?.remove === 'function') {
+          handler.remove();
+        }
+      };
+    }
+  }, [navigate, routeStack]);
+
+  return null;
+};
 
 function App() {
+  useEffect(() => {
+    const setupNativeUI = async () => {
+      if (Capacitor.isNativePlatform()) {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
+        const { SplashScreen } = await import('@capacitor/splash-screen');
+
+        try {
+          await StatusBar.setStyle({ style: Style.Dark });
+          await StatusBar.setBackgroundColor({ color: '#ffffff' });
+          await SplashScreen.hide();
+        } catch (error) {
+          console.warn('Native UI plugin error:', error);
+        }
+      }
+    };
+
+    setupNativeUI();
+  }, []);
+
   return (
     <Router>
       <Toaster
-        position="top-right" 
+        position="top-right"
         reverseOrder={false}
         toastOptions={{
           style: {
@@ -50,7 +118,9 @@ function App() {
           },
         }}
       />
-      <div className="varela-round">
+      {/* Safe area container */}
+      <div className="safe-area-container  varela-round">
+        <BackButtonHandler />
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<PublicRoute element={Login} />} />
@@ -159,23 +229,23 @@ function App() {
           <Route
             path="/proposal-details"
             element={<PrivateRoute element={ProposalDetails} />}
-          /> 
+          />
           <Route
             path="/quote-generation"
             element={<PrivateRoute element={QuoteGeneration} />}
-          /> 
+          />
           <Route
             path="/quote-generation/:id"
             element={<PrivateRoute element={CNoteGen} />}
-          /> 
+          />
           <Route
             path="/proposal-revision/:id"
             element={<PrivateRoute element={ProposalRevision} />}
-          /> 
+          />
           <Route
             path="/oncall-service"
             element={<PrivateRoute element={OnCallService} />}
-          /> 
+          />
         </Routes>
       </div>
     </Router>

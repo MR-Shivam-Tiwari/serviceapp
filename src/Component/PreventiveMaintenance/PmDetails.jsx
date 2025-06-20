@@ -32,7 +32,9 @@ const MachineChecklist = ({ pm, onComplete }) => {
     setIsChecklistModalOpen(true);
     if (tempChecklistResults.length === 0) {
       setLoadingChecklist(true);
-      fetch(`${process.env.REACT_APP_BASE_URL}/upload/checklist/by-part/${pm.partNumber}`)
+      fetch(
+        `${process.env.REACT_APP_BASE_URL}/upload/checklist/by-part/${pm.partNumber}`
+      )
         .then((res) => res.json())
         .then((data) => {
           // Filter checklists where checklisttype is "PM"
@@ -52,18 +54,14 @@ const MachineChecklist = ({ pm, onComplete }) => {
   // Update answer (result) for a checklist item by its _id
   const handleChecklistResultChange = (id, value) => {
     setTempChecklistResults((prev) =>
-      prev.map((item) =>
-        item._id === id ? { ...item, result: value } : item
-      )
+      prev.map((item) => (item._id === id ? { ...item, result: value } : item))
     );
   };
 
   // Update remark for a checklist item by its _id
   const handleChecklistRemarkChange = (id, value) => {
     setTempChecklistResults((prev) =>
-      prev.map((item) =>
-        item._id === id ? { ...item, remark: value } : item
-      )
+      prev.map((item) => (item._id === id ? { ...item, remark: value } : item))
     );
   };
 
@@ -77,7 +75,8 @@ const MachineChecklist = ({ pm, onComplete }) => {
     // For "Yes / No" or "OK/NOT OK", if the negative answer is selected then a remark is required.
     if (
       (currentItem.resulttype === "Yes / No" && currentItem.result === "No") ||
-      (currentItem.resulttype === "OK/NOT OK" && currentItem.result === "NOT OK")
+      (currentItem.resulttype === "OK/NOT OK" &&
+        currentItem.result === "NOT OK")
     ) {
       if (!currentItem.remark || currentItem.remark.trim() === "") {
         alert("Please provide a remark for this item.");
@@ -99,7 +98,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
     setIsChecklistModalOpen(false);
     setChecklistCompleted(true);
     if (onComplete) {
-      onComplete(pm._id, { items: tempChecklistResults, globalRemark: globalChecklistRemark });
+      onComplete(pm._id, {
+        items: tempChecklistResults,
+        globalRemark: globalChecklistRemark,
+      });
     }
   };
 
@@ -107,18 +109,42 @@ const MachineChecklist = ({ pm, onComplete }) => {
     <div className="mb-8 border p-2 rounded shadow">
       {/* PM Details Card */}
       <div className="bg-white p-3 rounded shadow mb-4">
-        <h2 className="text-2xl font-bold mb-4">PM Details - {pm.partNumber}</h2>
-        <p><strong>PM Type:</strong> {pm.pmType}</p>
-        <p><strong>Description:</strong> {pm.materialDescription}</p>
-        <p><strong>Serial Number:</strong> {pm.serialNumber}</p>
-        <p><strong>Customer Code:</strong> {pm.customerCode}</p>
-        <p><strong>Customer Region:</strong> {pm.region}</p>
-        <p><strong>Customer City:</strong> {pm.city}</p>
-        <p><strong>Due Month:</strong> {pm.pmDueMonth}</p>
-        <p><strong>Done Date:</strong> {pm.pmDoneDate}</p>
-        <p><strong>Vendor Code:</strong> {pm.pmVendorCode}</p>
-        <p><strong>Engineer Code:</strong> {pm.pmEngineerCode}</p>
-        <p><strong>Status:</strong> {pm.pmStatus}</p>
+        <h2 className="text-2xl font-bold mb-4">
+          PM Details - {pm.partNumber}
+        </h2>
+        <p>
+          <strong>PM Type:</strong> {pm.pmType}
+        </p>
+        <p>
+          <strong>Description:</strong> {pm.materialDescription}
+        </p>
+        <p>
+          <strong>Serial Number:</strong> {pm.serialNumber}
+        </p>
+        <p>
+          <strong>Customer Code:</strong> {pm.customerCode}
+        </p>
+        <p>
+          <strong>Customer Region:</strong> {pm.region}
+        </p>
+        <p>
+          <strong>Customer City:</strong> {pm.city}
+        </p>
+        <p>
+          <strong>Due Month:</strong> {pm.pmDueMonth}
+        </p>
+        <p>
+          <strong>Done Date:</strong> {pm.pmDoneDate}
+        </p>
+        <p>
+          <strong>Vendor Code:</strong> {pm.pmVendorCode}
+        </p>
+        <p>
+          <strong>Engineer Code:</strong> {pm.pmEngineerCode}
+        </p>
+        <p>
+          <strong>Status:</strong> {pm.pmStatus}
+        </p>
         {!checklistCompleted && (
           <div className="mt-2">
             <button
@@ -150,7 +176,8 @@ const MachineChecklist = ({ pm, onComplete }) => {
                 {currentQuestionIndex < tempChecklistResults.length ? (
                   // Render current checklist item
                   (() => {
-                    const currentItem = tempChecklistResults[currentQuestionIndex];
+                    const currentItem =
+                      tempChecklistResults[currentQuestionIndex];
                     return (
                       <div key={currentItem._id} className="mb-4">
                         <p className="text-sm mb-2 font-semibold">
@@ -163,7 +190,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
                             type="number"
                             value={currentItem.result || ""}
                             onChange={(e) =>
-                              handleChecklistResultChange(currentItem._id, e.target.value)
+                              handleChecklistResultChange(
+                                currentItem._id,
+                                e.target.value
+                              )
                             }
                             className="border rounded p-1 w-full"
                           />
@@ -178,7 +208,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
                                 className="mr-1"
                                 checked={currentItem.result === "OK"}
                                 onChange={() =>
-                                  handleChecklistResultChange(currentItem._id, "OK")
+                                  handleChecklistResultChange(
+                                    currentItem._id,
+                                    "OK"
+                                  )
                                 }
                               />
                               OK
@@ -189,7 +222,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
                                 className="mr-1"
                                 checked={currentItem.result === "NOT OK"}
                                 onChange={() =>
-                                  handleChecklistResultChange(currentItem._id, "NOT OK")
+                                  handleChecklistResultChange(
+                                    currentItem._id,
+                                    "NOT OK"
+                                  )
                                 }
                               />
                               NOT OK
@@ -204,7 +240,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
                                 placeholder="Enter remark for this item"
                                 value={currentItem.remark || ""}
                                 onChange={(e) =>
-                                  handleChecklistRemarkChange(currentItem._id, e.target.value)
+                                  handleChecklistRemarkChange(
+                                    currentItem._id,
+                                    e.target.value
+                                  )
                                 }
                                 className="border rounded p-1 w-full"
                               />
@@ -220,7 +259,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
                                 className="mr-1"
                                 checked={currentItem.result === "Yes"}
                                 onChange={() =>
-                                  handleChecklistResultChange(currentItem._id, "Yes")
+                                  handleChecklistResultChange(
+                                    currentItem._id,
+                                    "Yes"
+                                  )
                                 }
                               />
                               Yes
@@ -231,7 +273,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
                                 className="mr-1"
                                 checked={currentItem.result === "No"}
                                 onChange={() =>
-                                  handleChecklistResultChange(currentItem._id, "No")
+                                  handleChecklistResultChange(
+                                    currentItem._id,
+                                    "No"
+                                  )
                                 }
                               />
                               No
@@ -246,7 +291,10 @@ const MachineChecklist = ({ pm, onComplete }) => {
                                 placeholder="Enter remark for this item"
                                 value={currentItem.remark || ""}
                                 onChange={(e) =>
-                                  handleChecklistRemarkChange(currentItem._id, e.target.value)
+                                  handleChecklistRemarkChange(
+                                    currentItem._id,
+                                    e.target.value
+                                  )
                                 }
                                 className="border rounded p-1 w-full"
                               />
@@ -276,7 +324,9 @@ const MachineChecklist = ({ pm, onComplete }) => {
                 ) : (
                   // Global Checklist Remark step
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold mb-2">Global Checklist Remark</h3>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Global Checklist Remark
+                    </h3>
                     <input
                       type="text"
                       placeholder="Enter global checklist remark"
@@ -446,7 +496,10 @@ function PmDetails() {
         }
       );
       const sendData = await sendRes.json();
-      if (sendData.message && sendData.message.includes("All PDF attachments sent successfully")) {
+      if (
+        sendData.message &&
+        sendData.message.includes("All PDF attachments sent successfully")
+      ) {
         details.push("✔️ All PDFs emailed successfully.");
         toast.success("Combined email sent successfully!");
       } else {
@@ -530,15 +583,25 @@ function PmDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className=" ">
       {/* Header */}
       <div className="flex items-center bg-primary p-3 py-5 text-white">
         <button
           onClick={() => navigate("/preventive-maintenance")}
           className="mr-2 text-white"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" className="bi bi-arrow-left-short" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="36"
+            height="36"
+            fill="currentColor"
+            className="bi bi-arrow-left-short"
+            viewBox="0 0 16 16"
+          >
+            <path
+              fillRule="evenodd"
+              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
+            />
           </svg>
         </button>
         <h2 className="text-xl font-bold">Preventive Details</h2>
@@ -546,7 +609,11 @@ function PmDetails() {
 
       {/* Render each PM with its MachineChecklist */}
       {selectedPms.map((pm) => (
-        <MachineChecklist key={pm._id} pm={pm} onComplete={handleChecklistComplete} />
+        <MachineChecklist
+          key={pm._id}
+          pm={pm}
+          onComplete={handleChecklistComplete}
+        />
       ))}
 
       {/* Global submission section */}
@@ -569,9 +636,17 @@ function PmDetails() {
 
       {/* OTP Modal */}
       {showGlobalOtpModal && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 px-3 bg-gray-800 bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded shadow max-w-sm w-full">
-            <h3 className="text-2xl font-bold mb-4">Enter OTP for Submission</h3>
+            <h3 className="text-2xl font-bold mb-3">
+              Enter OTP for Submission
+            </h3>
+
+            {/* Info Text */}
+            <p className="text-sm text-gray-600 mb-4">
+              An OTP has been sent to the customer’s registered email address.
+            </p>
+
             <input
               type="text"
               placeholder="Enter OTP"
@@ -605,18 +680,27 @@ function PmDetails() {
             </div>
             <p className="mb-2">
               {progressStatus.current} / {progressStatus.total} done (
-              {Math.round((progressStatus.current / progressStatus.total) * 100)}%)
+              {Math.round(
+                (progressStatus.current / progressStatus.total) * 100
+              )}
+              %)
             </p>
             <div className="w-full bg-gray-300 rounded h-3 mb-4">
               <div
                 className="bg-green-500 h-3 rounded"
-                style={{ width: `${(progressStatus.current / progressStatus.total) * 100}%` }}
+                style={{
+                  width: `${
+                    (progressStatus.current / progressStatus.total) * 100
+                  }%`,
+                }}
               ></div>
             </div>
             <div className="max-h-48 overflow-y-auto text-sm border p-2 rounded mb-2">
               <ul>
                 {progressStatus.details.map((line, idx) => (
-                  <li key={idx} className="mb-1">{line}</li>
+                  <li key={idx} className="mb-1">
+                    {line}
+                  </li>
                 ))}
               </ul>
             </div>

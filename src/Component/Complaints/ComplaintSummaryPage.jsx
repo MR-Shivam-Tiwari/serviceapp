@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 
 // A simple inline modal component for OTP
@@ -35,7 +36,7 @@ const OtpModal = ({
               We will send an OTP to: <strong>{customerEmail}</strong>
             </p>
             <button
-              className="bg-primary text-white py-2 px-4 rounded hover:bg-blue-700"
+              className="bg-primary w-full text-white py-2 px-4 rounded hover:bg-blue-700"
               onClick={onSendOtp}
               disabled={loading}
             >
@@ -229,7 +230,7 @@ const handleVerifyOtp = async (enteredOtp) => {
       throw new Error(data.message || "Failed to verify OTP");
     }
 
-    alert("OTP verified and final email sent successfully!");
+    toast.success("OTP verified and final email sent successfully!");
     setShowOtpModal(false);
   } catch (error) {
     console.error("Error verifying OTP:", error);
@@ -458,7 +459,7 @@ const handleVerifyOtp = async (enteredOtp) => {
 
         {/* Final Button => Open OTP Modal */}
         <button
-          className="bg-primary text-white py-2 mb-4 px-4 rounded-md w-full hover:bg-blue-700"
+          className="bg-primary text-white  py-2 mb-7 px-4 rounded-md w-full hover:bg-blue-700"
           onClick={handleProceedForOTP}
         >
           PROCEED FOR OTP

@@ -40,31 +40,78 @@ const CreateComplaint = () => {
   // Modal state
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
 
-  // State for service engineer (user) info loaded from localStorage
-  const [userInfo, setUserInfo] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    mobilenumber: "",
-    branch: "",
-  });
+  const [userInfo, setUserInfo] = useState({});
 
-  // Load user info from localStorage on mount
-// Load user info from localStorage on mount
-useEffect(() => {
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  console.log("Stored User Data:", storedUser);
-  if (storedUser && storedUser.details) {
-    setUserInfo({
-      firstName: storedUser.details.firstname || storedUser.details.firstName || "",
-      lastName: storedUser.details.lastname || storedUser.details.lastName || "",
-      email: storedUser.details.email || "",
-      mobilenumber: storedUser.details.mobilenumber || "",
-      branch: storedUser.details.branch || "",
-    });
-  }
-}, []);
+  useEffect(() => {
+    const userDataString = localStorage.getItem("user");
 
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+
+        // Extract all individual fields into variables
+        const id = userData.id;
+        const firstname = userData.firstname;
+        const lastname = userData.lastname;
+        const email = userData.email;
+        const mobilenumber = userData.mobilenumber;
+        const status = userData.status;
+        const branch = userData.branch;
+        const loginexpirydate = userData.loginexpirydate;
+        const employeeid = userData.employeeid;
+        const country = userData.country;
+        const state = userData.state;
+        const city = userData.city;
+        const department = userData.department;
+        const profileimage = userData.profileimage;
+        const deviceid = userData.deviceid;
+        const deviceregistereddate = userData.deviceregistereddate;
+        const usertype = userData.usertype;
+
+        // Optional/nested fields
+        const roleName = userData.role?.roleName || "";
+        const roleId = userData.role?.roleId || "";
+        const dealerName = userData.dealerInfo?.dealerName || "";
+        const dealerId = userData.dealerInfo?.dealerId || "";
+        const location = userData.location || [];
+        const skills = userData.skills || "";
+
+        // Set all in a state object if needed
+        setUserInfo({
+          id,
+          firstname,
+          lastname,
+          email,
+          mobilenumber,
+          status,
+          branch,
+          loginexpirydate,
+          employeeid,
+          country,
+          state,
+          city,
+          department,
+          profileimage,
+          deviceid,
+          deviceregistereddate,
+          usertype,
+          roleName,
+          roleId,
+          dealerName,
+          dealerId,
+          location,
+          skills,
+        });
+
+        // Or just console log variables
+        console.log("First Name:", firstname);
+        console.log("Role:", roleName);
+        console.log("Dealer ID:", dealerId);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   // Fetch API data functions
   const fetchSerialNumbers = async () => {
@@ -160,13 +207,16 @@ useEffect(() => {
           `${process.env.REACT_APP_BASE_URL}/collections/equipment-details/${selectedSerialNumber}`
         )
         .then((response) => {
-          setEquipmentDetails(response.data.equipment);
-          setAmcDateDetails(response.data.amcContract);
-          setCustomerDetails(response.data.customer);
+          setEquipmentDetails(response.data.equipment || null);
+          setAmcDateDetails(response.data.amcContract || null);
+          setCustomerDetails(response.data.customer || null);
         })
-        .catch((error) =>
-          console.error("Error fetching equipment details:", error)
-        );
+        .catch((error) => {
+          console.error("Error fetching equipment details:", error);
+          setEquipmentDetails(null);
+          setAmcDateDetails(null);
+          setCustomerDetails(null);
+        });
     }
   }, [selectedSerialNumber]);
 
@@ -178,9 +228,14 @@ useEffect(() => {
           `${process.env.REACT_APP_BASE_URL}/collections/search/${equipmentDetails.materialcode}`
         )
         .then((response) => {
-          setSpareOptions(response.data);
+          setSpareOptions(response.data || []);
         })
-        .catch((error) => console.error("Error fetching spare parts:", error));
+        .catch((error) => {
+          console.error("Error fetching spare parts:", error);
+          setSpareOptions([]);
+        });
+    } else {
+      setSpareOptions([]);
     }
   }, [equipmentDetails]);
 
@@ -210,11 +265,11 @@ useEffect(() => {
       remark: remarks,
       // Include service engineer details from localStorage
       user: {
-        firstName: userInfo.firstName,
-        lastName: userInfo.lastName,
-        email: userInfo.email,
-        mobilenumber: userInfo.mobilenumber,
-        branch: userInfo.branch,
+        firstName: userInfo.firstname || "", // make sure it exists
+        lastName: userInfo.lastname || "",
+        email: userInfo.email || "",
+        mobilenumber: userInfo.mobilenumber || "",
+        branch: userInfo.branch || [],
       },
     };
 
@@ -246,6 +301,8 @@ useEffect(() => {
     setRemarks("");
     setEquipmentDetails(null);
     setSpareOptions([]);
+    setAmcDateDetails(null);
+    setCustomerDetails(null);
   };
 
   return (
@@ -294,6 +351,8 @@ useEffect(() => {
                     setSelectedSerialNumber(newValue);
                     setEquipmentDetails(null);
                     setSpareOptions([]);
+                    setAmcDateDetails(null);
+                    setCustomerDetails(null);
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -326,49 +385,72 @@ useEffect(() => {
                   <strong>Current Customer:</strong>{" "}
                   {equipmentDetails.currentcustomer}
                 </p>
-                <p>
-                  <strong>Warranty Start:</strong>{" "}
-                  {new Date(
-                    equipmentDetails.custWarrantystartdate
-                  ).toLocaleDateString()}
-                </p>
-                <p>
-                  <strong>Warranty End:</strong>{" "}
-                  {new Date(
-                    equipmentDetails.custWarrantyenddate
-                  ).toLocaleDateString()}
-                </p>
+                {equipmentDetails.custWarrantystartdate && (
+                  <p>
+                    <strong>Warranty Start:</strong>{" "}
+                    {new Date(
+                      equipmentDetails.custWarrantystartdate
+                    ).toLocaleDateString()}
+                  </p>
+                )}
+                {equipmentDetails.custWarrantyenddate && (
+                  <p>
+                    <strong>Warranty End:</strong>{" "}
+                    {new Date(
+                      equipmentDetails.custWarrantyenddate
+                    ).toLocaleDateString()}
+                  </p>
+                )}
               </div>
             )}
-            {AmcDateDetails && (
+
+            {AmcDateDetails && Object.keys(AmcDateDetails).length > 0 && (
               <div className="mb-4 p-4 border rounded-md bg-gray-50">
-                <p>
-                  <strong>Amc Start Date:</strong>{" "}
-                  {new Date(AmcDateDetails.startdate).toLocaleDateString("en-GB")}
-                </p>
-                <p>
-                  <strong>Amc End Date:</strong>{" "}
-                  {new Date(AmcDateDetails.enddate).toLocaleDateString("en-GB")}
-                </p>
+                {AmcDateDetails.startdate && (
+                  <p>
+                    <strong>Amc Start Date:</strong>{" "}
+                    {new Date(AmcDateDetails.startdate).toLocaleDateString(
+                      "en-GB"
+                    )}
+                  </p>
+                )}
+                {AmcDateDetails.enddate && (
+                  <p>
+                    <strong>Amc End Date:</strong>{" "}
+                    {new Date(AmcDateDetails.enddate).toLocaleDateString(
+                      "en-GB"
+                    )}
+                  </p>
+                )}
               </div>
             )}
-            {CustomerDetails && (
+
+            {CustomerDetails && Object.keys(CustomerDetails).length > 0 && (
               <div className="mb-4 p-4 border rounded-md bg-gray-50">
-                <p>
-                  <strong>Hospital Name:</strong> {CustomerDetails.hospitalname}
-                </p>
-                <p>
-                  <strong>City:</strong> {CustomerDetails.city}
-                </p>
-                <p>
-                  <strong>Email:</strong>{" "}
-                  {CustomerDetails.email.length > 25
-                    ? CustomerDetails.email.slice(0, 25) + "..."
-                    : CustomerDetails.email}
-                </p>
-                <p>
-                  <strong>Phone:</strong> {CustomerDetails.telephone}
-                </p>
+                {CustomerDetails.hospitalname && (
+                  <p>
+                    <strong>Hospital Name:</strong>{" "}
+                    {CustomerDetails.hospitalname}
+                  </p>
+                )}
+                {CustomerDetails.city && (
+                  <p>
+                    <strong>City:</strong> {CustomerDetails.city}
+                  </p>
+                )}
+                {CustomerDetails.email && (
+                  <p>
+                    <strong>Email:</strong>{" "}
+                    {CustomerDetails.email.length > 25
+                      ? CustomerDetails.email.slice(0, 25) + "..."
+                      : CustomerDetails.email}
+                  </p>
+                )}
+                {CustomerDetails.telephone && (
+                  <p>
+                    <strong>Phone:</strong> {CustomerDetails.telephone}
+                  </p>
+                )}
               </div>
             )}
 
@@ -387,6 +469,7 @@ useEffect(() => {
                   id="complaintType"
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 p-2 focus:border-purple-500 focus:ring focus:ring-purple-200"
                   onChange={(e) => setSelectedComplaintType(e.target.value)}
+                  value={selectedComplaintType}
                 >
                   <option value="">Please select...</option>
                   {complaintTypes.map((type, index) => (
@@ -413,6 +496,7 @@ useEffect(() => {
                   id="productGroup"
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 p-2 focus:border-purple-500 focus:ring focus:ring-purple-200"
                   onChange={(e) => setSelectedProductGroup(e.target.value)}
+                  value={selectedProductGroup}
                 >
                   <option value="">Please select...</option>
                   {Array.isArray(productGroups) &&
@@ -440,6 +524,7 @@ useEffect(() => {
                   id="problemType"
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 p-2 focus:border-purple-500 focus:ring focus:ring-purple-200"
                   onChange={(e) => setSelectedProblemType(e.target.value)}
+                  value={selectedProblemType}
                 >
                   <option value="">Please select...</option>
                   {problemTypes.map((type) => (
@@ -466,6 +551,7 @@ useEffect(() => {
                   id="problemName"
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 p-2 focus:border-purple-500 focus:ring focus:ring-purple-200"
                   onChange={(e) => setSelectedProblemName(e.target.value)}
+                  value={selectedProblemName}
                 >
                   <option value="">Please select...</option>
                   {problemNames.map((name) => (
@@ -489,6 +575,7 @@ useEffect(() => {
                   `${option.PartNumber} - ${option.Description}` || ""
                 }
                 onChange={(event, newValue) => setSelectedSpare(newValue)}
+                value={selectedSpare}
                 renderInput={(params) => (
                   <TextField
                     {...params}

@@ -12,7 +12,7 @@ function AddNewCustomer() {
     city: "",
     postalcode: "",
     district: "",
-    region: "",
+    state: "",
     country: "",
     telephone: "",
     taxnumber1: "",
@@ -39,7 +39,7 @@ function AddNewCustomer() {
   // Handle input changes and clear error for that field
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     // For email, perform real-time validation
     if (name === "email") {
       if (value && !isValidEmail(value)) {
@@ -72,16 +72,12 @@ function AddNewCustomer() {
       newErrors.hospitalname = "Hospital Name is required.";
     if (!formData.street) newErrors.street = "Street is required.";
     if (!formData.city) newErrors.city = "City is required.";
-    if (!formData.postalcode)
-      newErrors.postalcode = "Postal Code is required.";
+    if (!formData.postalcode) newErrors.postalcode = "Postal Code is required.";
     if (!formData.district) newErrors.district = "District is required.";
-    if (!formData.region) newErrors.region = "State/Region is required.";
-    if (!formData.telephone)
-      newErrors.telephone = "Telephone is required.";
-    if (!formData.taxnumber1)
-      newErrors.taxnumber1 = "PAN Number is required.";
-    if (!formData.taxnumber2)
-      newErrors.taxnumber2 = "GST Number is required.";
+    if (!formData.state) newErrors.state = "State is required.";
+    if (!formData.telephone) newErrors.telephone = "Telephone is required.";
+    if (!formData.taxnumber1) newErrors.taxnumber1 = "PAN Number is required.";
+    if (!formData.taxnumber2) newErrors.taxnumber2 = "GST Number is required.";
     if (!formData.email) newErrors.email = "Email is required.";
     return newErrors;
   };
@@ -121,7 +117,7 @@ function AddNewCustomer() {
           city: "",
           postalcode: "",
           district: "",
-          region: "",
+          state: "",
           country: "",
           telephone: "",
           taxnumber1: "",
@@ -168,7 +164,7 @@ function AddNewCustomer() {
       </header>
 
       {/* Scrollable Form Area */}
-      <main className="flex-1 overflow-y-auto px-3 py-4">
+      <main className="flex-1 overflow-y-auto px-3 py-4 mb-20">
         <form id="customerForm" onSubmit={handleSubmit} className="space-y-4">
           {/* Customer Type */}
           <div>
@@ -186,9 +182,7 @@ function AddNewCustomer() {
               <option value="Private">Private</option>
             </select>
             {errors.customertype && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.customertype}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.customertype}</p>
             )}
           </div>
 
@@ -224,9 +218,7 @@ function AddNewCustomer() {
               onChange={handleInputChange}
             />
             {errors.hospitalname && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.hospitalname}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.hospitalname}</p>
             )}
           </div>
 
@@ -297,9 +289,7 @@ function AddNewCustomer() {
               }}
             />
             {errors.postalcode && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.postalcode}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.postalcode}</p>
             )}
           </div>
 
@@ -321,21 +311,21 @@ function AddNewCustomer() {
             )}
           </div>
 
-          {/* Region (State) */}
+          {/* state (State) */}
           <div>
             <label className="block text-gray-700 mb-1">
-              State/Region <span className="text-red-500">*</span>
+              State <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              name="region"
-              placeholder="Enter State/Region*"
+              name="state"
+              placeholder="Enter State*"
               className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.region}
+              value={formData.state}
               onChange={handleInputChange}
             />
-            {errors.region && (
-              <p className="text-red-500 text-sm mt-1">{errors.region}</p>
+            {errors.state && (
+              <p className="text-red-500 text-sm mt-1">{errors.state}</p>
             )}
           </div>
 
@@ -425,40 +415,41 @@ function AddNewCustomer() {
           </div>
         </form>
       </main>
-
-      {/* Fixed Footer with Submit Button */}
-      <footer className="bg-white p-3">
-        <button
-          type="submit"
-          form="customerForm"
-          className="w-full px-4 py-2 text-white bg-primary rounded hover:bg-blue-700 focus:outline-none flex items-center justify-center"
-          disabled={isLoading}
-        >
-          {isLoading && (
-            <svg
-              className="animate-spin mr-2 h-5 w-5 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8z"
-              />
-            </svg>
-          )}
-          {isLoading ? "Sending..." : "Add Customer"}
-        </button>
+      <footer className="bg-white fixed bottom-0 w-full z-10 p-4 pb-10 border-t shadow-sm">
+        <div className="flex flex-col space-y-2">
+          <button
+            type="submit"
+            form="customerForm"
+            className="w-full px-4 py-2 text-white bg-primary rounded hover:bg-blue-700 focus:outline-none flex items-center justify-center"
+            disabled={isLoading}
+          >
+            {isLoading && (
+              <svg
+                className="animate-spin mr-2 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                />
+              </svg>
+            )}
+            {isLoading ? "Sending..." : "Add Customer"}
+          </button>
+        </div>
       </footer>
+     
 
       {/* SUCCESS MODAL */}
       {showSuccessModal && (

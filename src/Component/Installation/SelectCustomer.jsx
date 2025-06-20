@@ -41,10 +41,10 @@ function SelectCustomer() {
   const handleSelectCustomer = (customer) => {
     navigate("/installation-summary", {
       state: {
-        installItems,       // array of machine data
-        customer,           // single chosen customer
-        abnormalCondition,  // pass it forward
-        voltageData,        // pass it forward
+        installItems, // array of machine data
+        customer, // single chosen customer
+        abnormalCondition, // pass it forward
+        voltageData, // pass it forward
       },
     });
   };
@@ -53,7 +53,10 @@ function SelectCustomer() {
     <div className="w-full">
       {/* Header */}
       <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
-        <button className="mr-2 text-white" onClick={() => navigate("/installation")}>
+        <button
+          className="mr-2 text-white"
+          onClick={() => navigate("/installation")}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="36"
@@ -117,8 +120,15 @@ function SelectCustomer() {
                 {customer.customername}
               </p>
               <p className="text-sm text-gray-500">{customer.telephone}</p>
-              <p className="text-sm text-gray-500">{customer.email}</p>
               <p className="text-sm text-gray-500">City: {customer.city}</p>
+              <p className="text-sm text-gray-500">
+                Customer Code: {customer.customercodeid}
+              </p>
+              <p className="text-sm text-gray-500">
+                {customer.email.length > 25
+                  ? `${customer.email.slice(0, 25)}...`
+                  : customer.email}
+              </p>
             </div>
             <button
               className="px-4 py-2 text-white bg-primary rounded-lg 

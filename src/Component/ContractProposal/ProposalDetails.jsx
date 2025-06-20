@@ -38,7 +38,7 @@ export default function ProposalDetails() {
 
         // Fetch prices
         const pricesResponse = await fetch(
-          "http://localhost:5000/admin/cmcncmcprice"
+          `${process.env.REACT_APP_BASE_URL}/admin/cmcncmcprice`
         );
         const pricesData = await pricesResponse.json();
         const pricesMap = {};
@@ -52,19 +52,21 @@ export default function ProposalDetails() {
 
         // Fetch TDS options
         const tdsResponse = await fetch(
-          "http://localhost:5000/admin/cmc-ncmc-tds"
+          `${process.env.REACT_APP_BASE_URL}/admin/cmc-ncmc-tds`
         );
         const tdsData = await tdsResponse.json();
         setTdsOptions(tdsData.records || []);
 
         // Fetch GST options
-        const gstResponse = await fetch("http://localhost:5000/admin/gst");
+        const gstResponse = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/admin/gst`
+        );
         const gstData = await gstResponse.json();
         setGstOptions(gstData.records || []);
 
         // Fetch Discount options
         const discountResponse = await fetch(
-          "http://localhost:5000/admin/discount"
+          `${process.env.REACT_APP_BASE_URL}/admin/discount`
         );
         const discountData = await discountResponse.json();
         setDiscountOptions(discountData || []);
@@ -163,7 +165,6 @@ export default function ProposalDetails() {
     };
   };
 
-  
   const handleSubmit = async () => {
     if (!hasSelectedWarranty) {
       alert("Please select at least one warranty type (CMC or NCMC)");
@@ -226,13 +227,16 @@ export default function ProposalDetails() {
       setLoading(true);
 
       // Save to backend API
-      const response = await fetch("http://localhost:5000/phone/proposal", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(proposalData),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/phone/proposal`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(proposalData),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to save proposal");
@@ -249,7 +253,7 @@ export default function ProposalDetails() {
           createdAt: savedProposal.createdAt,
         },
       });
-      toast.success("Proposal Created Successfully")
+      toast.success("Proposal Created Successfully");
     } catch (error) {
       console.error("Error saving proposal:", error);
       alert("Failed to save proposal. Please try again.");
@@ -261,12 +265,9 @@ export default function ProposalDetails() {
   const calculation = calculateTotalAmount();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-        <button
-          className="mr-2 text-white"
-          onClick={() => navigate("/create-proposal")}
-        >
+    <div className=" ">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
+        <button className="mr-2 text-white" onClick={() => navigate("/create-proposal")}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="36"
@@ -277,18 +278,14 @@ export default function ProposalDetails() {
           >
             <path
               fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
-      0 0 1-.708.708l-3-3a.5.5 
-      0 0 1 0-.708l3-3a.5.5 
-      0 1 1 .708.708L5.707 7.5H11.5a.5.5 
-      0 0 1 .5.5"
+              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
             />
           </svg>
         </button>
         <h2 className="text-xl font-bold">Proposal Details</h2>
       </div>
 
-      <main className="mt-20 space-y-6">
+      <main className="  px-4 space-y-6">
         {/* Customer */}
         <section className="bg-white p-4 rounded-lg shadow">
           <h3 className="font-semibold mb-2">Customer Info</h3>

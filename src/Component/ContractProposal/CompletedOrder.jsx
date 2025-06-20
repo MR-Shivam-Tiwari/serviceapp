@@ -10,7 +10,9 @@ function CompletedOrder() {
   useEffect(() => {
     const fetchProposals = async () => {
       try {
-        const response = await fetch("http://localhost:5000/phone/cnote");
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/phone/cnote`
+        );
         const data = await response.json();
         setProposals(data);
         setLoading(false);
@@ -38,16 +40,16 @@ function CompletedOrder() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex mt-64 items-center justify-center">
+        <span className="loader"></span>
       </div>
     );
   }
 
   if (selectedProposal) {
     return (
-      <div className="p-4">
-        <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
+      <div className="">
+        <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
           <button className="mr-2 text-white" onClick={handleBackToList}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -70,7 +72,7 @@ function CompletedOrder() {
           <h2 className="text-xl font-bold">Proposal Details</h2>
         </div>
 
-        <div className="mt-20 mb-16">
+        <div className="px-4 mb-16">
           <div className="bg-white rounded-lg shadow-md p-4 mb-4">
             <h3 className="text-lg font-semibold mb-2">Customer Information</h3>
             <p>
@@ -231,8 +233,8 @@ function CompletedOrder() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
+    <div className="">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
         <button
           className="mr-2 text-white"
           onClick={() => navigate("/contract-proposal")}
@@ -258,7 +260,7 @@ function CompletedOrder() {
         <h2 className="text-xl font-bold">Completed Proposals</h2>
       </div>
 
-      <div className="mt-20 mb-16">
+      <div className="px-4 mb-16">
         {proposals.length === 0 ? (
           <div className="flex justify-center items-center h-64">
             <p className="text-gray-500">No proposals found</p>

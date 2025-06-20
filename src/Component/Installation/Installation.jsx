@@ -2,6 +2,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Autocomplete, TextField } from "@mui/joy";
+import toast from "react-hot-toast";
 
 function Installation() {
   const navigate = useNavigate();
@@ -26,8 +27,38 @@ function Installation() {
   // If palnumber === "", user can type a new one here:
   const [palNumber, setPalNumber] = useState("");
 
-  // The final “cards”
+  // The final "cards"
   const [installItems, setInstallItems] = useState([]);
+  // Add these states near your other state declarations
+  const [abnormalConditionError, setAbnormalConditionError] = useState("");
+  const [voltageError, setVoltageError] = useState("");
+
+  // Add this validation function
+  const validateFields = () => {
+    let isValid = true;
+
+    // Validate Abnormal Condition
+    if (!abnormalCondition.trim()) {
+      setAbnormalConditionError("Please enter abnormal site condition");
+      isValid = false;
+    } else {
+      setAbnormalConditionError("");
+    }
+
+    // Validate Voltage - at least one voltage field should be filled
+    if (!voltageData.lnry && !voltageData.lgyb && !voltageData.ngbr) {
+      setVoltageError("Please enter at least one voltage reading");
+      isValid = false;
+    } else {
+      setVoltageError("");
+    }
+
+    if (!isValid) {
+      toast.error("Please fill all required fields");
+    }
+
+    return isValid;
+  };
 
   // ----------- Fetch Serial Number List on Mount -----------
   useEffect(() => {
@@ -47,7 +78,7 @@ function Installation() {
   }, []);
 
   // ----------- Handle Selecting Serial -----------
-  // As soon as the user picks a serial, we remove it from `serialNumbers` so they can’t pick it again
+  // As soon as the user picks a serial, we remove it from `serialNumbers` so they can't pick it again
   const handleSerialChange = async (newVal) => {
     // user cleared Autocomplete
     if (!newVal) {
@@ -144,12 +175,19 @@ function Installation() {
         ...prev,
         [field]: val,
       }));
+      // Clear voltage error when user starts typing
+      if (val && voltageError) {
+        setVoltageError("");
+      }
     }
   };
 
   // ------------- On "Install" => user might not have clicked "Add More" -----------
   // We also want to include the currentSerialData if the user hasn't added it yet
   const handleInstall = () => {
+    if (!validateFields()) {
+      return;
+    }
     let finalItems = [...installItems];
 
     // If there's a currently selected item that is not in the list, add it
@@ -189,31 +227,29 @@ function Installation() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="">
       {/* HEADER */}
-      <header className="bg-primary p-3 py-5 text-white fixed top-0 w-full z-10">
-        <div className="flex items-center">
-          <button className="mr-2 text-white" onClick={() => navigate("/")}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="currentColor"
-              className="bi bi-arrow-left-short"
-              viewBox="0 0 16 16"
-            >
-              <path
-                fillRule="evenodd"
-                d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-              />
-            </svg>
-          </button>
-          <h2 className="text-xl font-bold">Equipment Details</h2>
-        </div>
-      </header>
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
+        <button className="mr-2 text-white" onClick={() => navigate("/")}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="36"
+            height="36"
+            fill="currentColor"
+            className="bi bi-arrow-left-short"
+            viewBox="0 0 16 16"
+          >
+            <path
+              fillRule="evenodd"
+              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
+            />
+          </svg>
+        </button>
+        <h2 className="text-xl font-bold">Equipment Installation Detail</h2>
+      </div>
 
       {/* MAIN CONTENT */}
-      <main className="pt-20 pb-24 flex-1 overflow-y-auto px-4">
+      <main className="  pb-24 flex-1 overflow-y-auto px-4">
         {/* Autocomplete */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">
@@ -289,8 +325,7 @@ function Installation() {
               {currentSerialData?.warrantyMonths
                 ? new Date(
                     new Date().setMonth(
-                      new Date().getMonth() +
-                        currentSerialData.warrantyMonths
+                      new Date().getMonth() + currentSerialData.warrantyMonths
                     )
                   ).toLocaleDateString("en-US", {
                     month: "long",
@@ -409,10 +444,21 @@ function Installation() {
           <input
             type="text"
             placeholder="Enter abnormal condition..."
-            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+            className={`w-full px-4 py-2 mb-1 bg-gray-100 border ${
+              abnormalConditionError ? "border-red-500" : "border-gray-300"
+            } rounded`}
             value={abnormalCondition}
-            onChange={(e) => setAbnormalCondition(e.target.value)}
+            onChange={(e) => {
+              setAbnormalCondition(e.target.value);
+              if (e.target.value.trim()) {
+                setAbnormalConditionError("");
+              }
+            }}
+            required
           />
+          {abnormalConditionError && (
+            <p className="text-red-500 text-sm">{abnormalConditionError}</p>
+          )}
         </div>
 
         {/* Voltage (one for all) */}
@@ -423,27 +469,36 @@ function Installation() {
             placeholder="L-N / R-Y"
             value={voltageData.lnry}
             onChange={(e) => handleVoltageInput("lnry", e.target.value)}
-            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+            className={`w-full px-4 py-2 mb-2 bg-gray-100 border ${
+              voltageError ? "border-red-500" : "border-gray-300"
+            } rounded`}
           />
           <input
             type="text"
             placeholder="L-G / Y-B"
             value={voltageData.lgyb}
             onChange={(e) => handleVoltageInput("lgyb", e.target.value)}
-            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+            className={`w-full px-4 py-2 mb-2 bg-gray-100 border ${
+              voltageError ? "border-red-500" : "border-gray-300"
+            } rounded`}
           />
           <input
             type="text"
             placeholder="N-G / B-R"
             value={voltageData.ngbr}
             onChange={(e) => handleVoltageInput("ngbr", e.target.value)}
-            className="w-full px-4 py-2 mb-2 bg-gray-100 border border-gray-300 rounded"
+            className={`w-full px-4 py-2 mb-2 bg-gray-100 border ${
+              voltageError ? "border-red-500" : "border-gray-300"
+            } rounded`}
           />
+          {voltageError && (
+            <p className="text-red-500 text-sm">{voltageError}</p>
+          )}
         </div>
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white fixed bottom-0 w-full z-10 p-4 border-t shadow-sm">
+      <footer className="bg-white fixed bottom-0 w-full z-10 p-4 pb-10 border-t shadow-sm">
         <div className="flex flex-col space-y-2">
           <button
             className="w-full px-4 py-2 text-white bg-primary rounded-lg 
@@ -455,14 +510,8 @@ function Installation() {
           </button>
           <button
             className="w-full px-4 py-2 text-white bg-primary rounded-lg 
-              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             onClick={handleInstall}
-            // We allow “Install” even if we haven’t done “Add More” – user can do a single machine
-            disabled={
-              !currentSerialData && installItems.length === 0
-                ? true
-                : false
-            }
           >
             Install
           </button>

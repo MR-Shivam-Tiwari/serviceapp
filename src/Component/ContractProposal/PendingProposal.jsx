@@ -11,7 +11,9 @@ function PendingProposal() {
   useEffect(() => {
     const fetchProposals = async () => {
       try {
-        const response = await fetch("http://localhost:5000/phone/proposal");
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/phone/proposal`
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch proposals");
         }
@@ -53,6 +55,11 @@ function PendingProposal() {
     // Agar koi revision nahi hai ya latest revision rejected hai
     return !proposal.revisions?.length || latestRevision?.status === "rejected";
   };
+
+  const formatCurrency = (value) => {
+    return value !== null ? `₹${value.toFixed(2)}` : "₹0.00";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -66,7 +73,9 @@ function PendingProposal() {
           <h2 className="text-xl font-bold">Pending Proposal</h2>
         </div>
         <div className="mt-20 flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <div className="flex mt-20 items-center justify-center">
+            <span className="loader"></span>
+          </div>
         </div>
       </div>
     );
@@ -90,8 +99,8 @@ function PendingProposal() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
+    <div className=" ">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
         <button
           className="mr-2 text-white"
           onClick={() => navigate("/contract-proposal")}
@@ -106,18 +115,14 @@ function PendingProposal() {
           >
             <path
               fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
-      0 0 1-.708.708l-3-3a.5.5 
-      0 0 1 0-.708l3-3a.5.5 
-      0 1 1 .708.708L5.707 7.5H11.5a.5.5 
-      0 0 1 .5.5"
+              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
             />
           </svg>
         </button>
-        <h2 className="text-xl font-bold">Pending Proposal</h2>
+        <h2 className="text-xl font-bold">Pending Details</h2>
       </div>
 
-      <main className="mt-20 space-y-4">
+      <main className=" px-4 space-y-4">
         {proposals.length === 0 ? (
           <div className="text-center p-8 text-gray-500">
             No pending proposals found
@@ -154,7 +159,7 @@ function PendingProposal() {
                 <div>
                   <p className="text-gray-500">Final Amount</p>
                   <p className="font-bold">
-                    ₹{proposal.finalAmount.toFixed(2)}
+                    {formatCurrency(proposal.finalAmount)}
                   </p>
                 </div>
               </div>
@@ -189,7 +194,7 @@ function PendingProposal() {
         {/* Proposal Details Modal */}
         {selectedProposal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-20">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[100vh] overflow-y-auto">
               <div className="p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-bold">Proposal Details</h3>
@@ -247,9 +252,12 @@ function PendingProposal() {
                           key={index}
                           className="border-b pb-2 bg-gray-100 p-2 rounded"
                         >
-                          <p className="font-medium">{item.equipment.name}</p>
+                          <p className="font-medium">
+                            {item.equipment?.name ||
+                              item.equipment?.materialcode}
+                          </p>
                           <p className="text-sm text-gray-600">
-                            {item.equipment.materialdescription}
+                            {item.equipment?.materialdescription}
                           </p>
                           <div className="grid grid-cols-3 gap-2 text-sm mt-1">
                             <p>
@@ -261,8 +269,8 @@ function PendingProposal() {
                               {item.years}
                             </p>
                             <p>
-                              <span className="text-gray-500">Price:</span> ₹
-                              {item.subtotal.toFixed(2)}
+                              <span className="text-gray-500">Price:</span>{" "}
+                              {formatCurrency(item.subtotal)}
                             </p>
                           </div>
                         </div>
@@ -276,28 +284,39 @@ function PendingProposal() {
                       <div className="flex justify-between">
                         <span>Subtotal:</span>
                         <span>
-                          ₹{selectedProposal.grandSubTotal.toFixed(2)}
+                          {formatCurrency(selectedProposal.grandSubTotal)}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>
-                          Discount ({selectedProposal.discountPercentage}%):
+                          Discount ({selectedProposal.discountPercentage || 0}
+                          %):
                         </span>
                         <span>
-                          -₹{selectedProposal.discountAmount.toFixed(2)}
+                          -{formatCurrency(selectedProposal.discountAmount)}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>TDS ({selectedProposal.tdsPercentage}%):</span>
-                        <span>-₹{selectedProposal.tdsAmount.toFixed(2)}</span>
+                        <span>
+                          TDS ({selectedProposal.tdsPercentage || 0}%):
+                        </span>
+                        <span>
+                          -{formatCurrency(selectedProposal.tdsAmount)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>GST ({selectedProposal.gstPercentage}%):</span>
-                        <span>+₹{selectedProposal.gstAmount.toFixed(2)}</span>
+                        <span>
+                          GST ({selectedProposal.gstPercentage || 0}%):
+                        </span>
+                        <span>
+                          +{formatCurrency(selectedProposal.gstAmount)}
+                        </span>
                       </div>
                       <div className="flex justify-between font-bold border-t pt-2 mt-2">
                         <span>Final Amount:</span>
-                        <span>₹{selectedProposal.finalAmount.toFixed(2)}</span>
+                        <span>
+                          {formatCurrency(selectedProposal.finalAmount)}
+                        </span>
                       </div>
                     </div>
                   </div>

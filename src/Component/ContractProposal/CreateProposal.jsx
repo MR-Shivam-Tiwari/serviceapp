@@ -12,7 +12,9 @@ export default function CreateProposal() {
   const [view, setView] = useState("customers"); // 'customers' or 'equipment'
 
   useEffect(() => {
-    fetch("http://localhost:5000/upload/contract/contract-proposals")
+    fetch(
+      `${process.env.REACT_APP_BASE_URL}/upload/contract/contract-proposals`
+    )
       .then((res) => res.json())
       .then((data) => setEquipmentData(data))
       .catch((err) => console.error("Error fetching data:", err));
@@ -24,7 +26,7 @@ export default function CreateProposal() {
     if (!acc[customerCode]) {
       acc[customerCode] = {
         customer: item.customer,
-        equipment: []
+        equipment: [],
       };
     }
     acc[customerCode].equipment.push(item.equipment);
@@ -39,24 +41,35 @@ export default function CreateProposal() {
   );
 
   // Filter customers based on search and city
-  const filteredCustomers = Object.values(customersWithEquipment).filter(({ customer, equipment }) => {
-    const matchesSearch = 
-      customer?.customername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.customercodeid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      equipment.some(eq => 
-        eq.serialnumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        eq.materialdescription.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const filteredCustomers = Object.values(customersWithEquipment).filter(
+    ({ customer, equipment }) => {
+      const matchesSearch =
+        customer?.customername
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        customer?.customercodeid
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        equipment.some(
+          (eq) =>
+            eq.serialnumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            eq.materialdescription
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
+        );
 
-    const matchesCity = cityFilter === "" || customer?.city === cityFilter;
+      const matchesCity = cityFilter === "" || customer?.city === cityFilter;
 
-    return matchesSearch && matchesCity;
-  });
+      return matchesSearch && matchesCity;
+    }
+  );
 
   // Filter equipment for selected customer
-  const filteredEquipment = selectedCustomer 
-    ? equipmentData.filter(item => 
-        item.customer?.customercodeid === selectedCustomer.customer?.customercodeid
+  const filteredEquipment = selectedCustomer
+    ? equipmentData.filter(
+        (item) =>
+          item.customer?.customercodeid ===
+          selectedCustomer.customer?.customercodeid
       )
     : [];
 
@@ -93,8 +106,8 @@ export default function CreateProposal() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
+    <div className="">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
         {view === "equipment" ? (
           <button className="mr-2 text-white" onClick={handleBackToCustomers}>
             <svg
@@ -143,133 +156,140 @@ export default function CreateProposal() {
           {view === "customers" ? "Select Customer" : "Select Equipment"}
         </h2>
       </div>
-      <main className="mt-20 px-4">
-        {/* Search input */}
-        <input
-          type="text"
-          placeholder={
-            view === "customers" 
-              ? "Search by customer name or ID" 
-              : "Search by serial or material"
-          }
-          className="w-full mt-2 p-2 border rounded-lg bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="mb-5">
+        <main className="  px-4">
+          {/* Search input */}
+          <input
+            type="text"
+            placeholder={
+              view === "customers"
+                ? "Search by customer name or ID"
+                : "Search by serial or material"
+            }
+            className="w-full mt-2 p-2 border rounded-lg bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
 
-        {/* City filter dropdown (only show in customers view) */}
-        {view === "customers" && (
-          <select
-            value={cityFilter}
-            onChange={(e) => setCityFilter(e.target.value)}
-            className="w-full p-2 border rounded bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary mt-4"
-          >
-            <option value="">All Cities</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
-        )}
+          {/* City filter dropdown (only show in customers view) */}
+          {view === "customers" && (
+            <select
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="w-full p-2 border rounded bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary mt-4"
+            >
+              <option value="">All Cities</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          )}
 
-        {view === "customers" ? (
-          /* Customers list */
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 py-4">
-            {filteredCustomers.map(({ customer, equipment }) => (
-              <div
-                key={customer?.customercodeid || "unknown"}
-                className="flex flex-col justify-between p-4 bg-white border rounded-lg shadow"
-              >
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {customer?.customername || "Unknown Customer"}
-                  </h3>
-                  <p className="text-gray-500 text-sm">
-                    ID: {customer?.customercodeid || "N/A"}
-                  </p>
-                  <p className="text-gray-500 text-sm">
-                    City: {customer?.city || "N/A"}
-                  </p>
-                  <p className="text-gray-500 text-sm">
-                    Equipment: {equipment.length} items
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleSelectCustomer({ customer, equipment })}
-                  className="mt-4 w-full py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition"
+          {view === "customers" ? (
+            /* Customers list */
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 py-4">
+              {filteredCustomers.map(({ customer, equipment }) => (
+                <div
+                  key={customer?.customercodeid || "unknown"}
+                  className="flex flex-col justify-between p-4 bg-white border rounded-lg shadow"
                 >
-                  Select
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* Equipment list for selected customer */
-          <div className="py-4">
-            <div className="mb-4 p-4 bg-white rounded-lg shadow">
-              <h3 className="font-bold text-lg">
-                {selectedCustomer.customer?.customername || "Unknown Customer"}
-              </h3>
-              <p className="text-gray-600">
-                {selectedCustomer.customer?.city || "N/A"}
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredEquipment.map((item) => {
-                const { equipment } = item;
-                const selected = selectedItems.some(
-                  (i) => i.equipment._id === equipment._id
-                );
-                return (
-                  <div
-                    key={equipment._id}
-                    className={`flex flex-col justify-between p-4 bg-white border rounded-lg shadow ${
-                      selected ? "border-primary ring-2 ring-primary" : ""
-                    }`}
-                  >
-                    <div>
-                      <h3 className="font-semibold text-lg">{equipment.name}</h3>
-                      <p className="text-gray-500 text-xs">
-                        Serial: {equipment.serialnumber}
-                      </p>
-                      <p className="text-gray-500 text-xs">
-                        Code: {equipment.materialcode}
-                      </p>
-                      <p className="text-gray-600 text-sm">
-                        {equipment.materialdescription}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleSelectEquipment(item)}
-                      className={`mt-4 w-full py-2 rounded-lg font-medium ${
-                        selected
-                          ? "bg-red-500 text-white hover:bg-red-600"
-                          : "bg-primary text-white hover:bg-primary-dark"
-                      } transition`}
-                    >
-                      {selected ? "Remove" : "Select"}
-                    </button>
+                  <div>
+                    <h3 className="font-semibold text-lg">
+                      {customer?.customername || "Unknown Customer"}
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      ID: {customer?.customercodeid || "N/A"}
+                    </p>
+                    <p className="text-gray-500 text-sm">
+                      City: {customer?.city || "N/A"}
+                    </p>
+                    <p className="text-gray-500 text-sm">
+                      Equipment: {equipment.length} items
+                    </p>
                   </div>
-                );
-              })}
+                  <button
+                    onClick={() =>
+                      handleSelectCustomer({ customer, equipment })
+                    }
+                    className="mt-4 w-full py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition"
+                  >
+                    Select
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
-        )}
-      </main>
+          ) : (
+            /* Equipment list for selected customer */
+            <div className="py-4">
+              <div className="mb-4 p-4 bg-white rounded-lg shadow">
+                <h3 className="font-bold text-lg">
+                  {selectedCustomer.customer?.customername ||
+                    "Unknown Customer"}
+                </h3>
+                <p className="text-gray-600">
+                  {selectedCustomer.customer?.city || "N/A"}
+                </p>
+              </div>
 
-      {/* Next button (only show in equipment view) */}
-      {view === "equipment" && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t">
-          <button
-            onClick={handleNext}
-            className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition"
-          >
-            Next ({selectedItems.length} selected)
-          </button>
-        </div>
-      )}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredEquipment.map((item) => {
+                  const { equipment } = item;
+                  const selected = selectedItems.some(
+                    (i) => i.equipment._id === equipment._id
+                  );
+                  return (
+                    <div
+                      key={equipment._id}
+                      className={`flex flex-col justify-between p-4 bg-white border rounded-lg shadow ${
+                        selected ? "border-primary ring-2 ring-primary" : ""
+                      }`}
+                    >
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {equipment.name}
+                        </h3>
+                        <p className="text-gray-500 text-xs">
+                          Serial: {equipment.serialnumber}
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          Code: {equipment.materialcode}
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          {equipment.materialdescription}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleSelectEquipment(item)}
+                        className={`mt-4 w-full py-2 rounded-lg font-medium ${
+                          selected
+                            ? "bg-red-500 text-white hover:bg-red-600"
+                            : "bg-primary text-white hover:bg-primary-dark"
+                        } transition`}
+                      >
+                        {selected ? "Remove" : "Select"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </main>
+        <footer className="bg-white fixed bottom-0 w-full z-10 p-4 pb-10 border-t shadow-sm">
+          {view === "equipment" && (
+            <button
+              onClick={handleNext}
+              className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition"
+            >
+              Next ({selectedItems.length} selected)
+            </button>
+          )}
+        </footer>
+
+        {/* Next button (only show in equipment view) */}
+      </div>
     </div>
   );
 }

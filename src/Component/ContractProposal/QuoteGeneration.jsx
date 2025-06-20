@@ -10,7 +10,9 @@ function QuoteGeneration() {
   useEffect(() => {
     const fetchProposals = async () => {
       try {
-        const response = await fetch("http://localhost:5000/phone/proposal");
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/phone/proposal`
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch proposals");
         }
@@ -35,14 +37,24 @@ function QuoteGeneration() {
     navigate(`/quote-generation/${proposal._id}`, { state: { proposal } });
   };
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  if (loading)
+    return (
+      <div className="p-4">
+        <div className="flex mt-20 items-center justify-center">
+          <span className="loader"></span>
+        </div>
+      </div>
+    );
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
 
   return (
-    <div className="bg-gray-100 min-h-screen">
+    <div className=" ">
       {/* Header */}
-      <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-        <button className="mr-2 text-white" onClick={() => navigate('/contract-proposal')}>
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
+        <button
+          className="mr-2 text-white"
+          onClick={() => navigate("/contract-proposal")}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="36"
@@ -65,7 +77,7 @@ function QuoteGeneration() {
       </div>
 
       {/* Main Content */}
-      <div className="pt-[95px]  pb-4 px-4">
+      <div className="   pb-4 px-4">
         <div className="space-y-4">
           {proposals.map((proposal) => (
             <div

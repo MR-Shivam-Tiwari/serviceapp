@@ -157,93 +157,120 @@ const CloseComplaintPage = () => {
           <label className="block font-medium mb-1">Enter Voltage:</label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <input
-              type="text"
+              type="number"
               className="border p-2 rounded"
               placeholder="L-N / R-Y"
               value={voltageLN_RY}
-              onChange={(e) => setVoltageLN_RY(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (
+                  value === "" ||
+                  (value.length <= 3 && parseInt(value) <= 999)
+                ) {
+                  setVoltageLN_RY(value);
+                }
+              }}
             />
             <input
-              type="text"
+              type="number"
               className="border p-2 rounded"
               placeholder="L-G / Y-B"
               value={voltageLG_YB}
-              onChange={(e) => setVoltageLG_YB(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (
+                  value === "" ||
+                  (value.length <= 3 && parseInt(value) <= 999)
+                ) {
+                  setVoltageLG_YB(value);
+                }
+              }}
             />
             <input
-              type="text"
+              type="number"
               className="border p-2 rounded"
               placeholder="N-G / B-R"
               value={voltageNG_BR}
-              onChange={(e) => setVoltageNG_BR(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (
+                  value === "" ||
+                  (value.length <= 3 && parseInt(value) <= 999)
+                ) {
+                  setVoltageNG_BR(value);
+                }
+              }}
             />
           </div>
         </div>
 
         {/* Display Injury Details if available */}
         {injuryDetails && (
-  <div className="mb-4 p-4 border rounded bg-gray-50">
-    <h3 className="text-lg font-semibold mb-4">Injury Details Added</h3>
-    <div className="mb-2">
-      <h4 className="font-semibold">Device Users:</h4>
-      <ul className="list-disc list-inside">
-        {Object.entries(injuryDetails.deviceUsers)
-          .filter(([_, value]) => value)
-          .map(([key]) => (
-            <li key={key}>
-              {key
-                .replace(/([A-Z])/g, " $1")
-                .replace(/^./, (str) => str.toUpperCase())}
-            </li>
-          ))}
-      </ul>
-    </div>
-    {injuryDetails.deviceUserRemarks && (
-      <div className="mb-2">
-        <h4 className="font-semibold">User Remarks:</h4>
-        <p>{injuryDetails.deviceUserRemarks}</p>
-      </div>
-    )}
-    <div className="mb-2">
-      <h4 className="font-semibold">
-        Incident Occurred During Procedure:
-      </h4>
-      <p>
-        {injuryDetails.incidentDuringProcedure === "yes" ? "Yes" : "No"}
-      </p>
-    </div>
-    <div className="mb-2">
-      <h4 className="font-semibold">Exposure Protocol:</h4>
-      <ul className="list-disc list-inside">
-        <li>
-          <strong>KV:</strong> {injuryDetails.exposureProtocol.kv || "N/A"}
-        </li>
-        <li>
-          <strong>mA/mAs:</strong> {injuryDetails.exposureProtocol.maMas || "N/A"}
-        </li>
-        <li>
-          <strong>Distance:</strong> {injuryDetails.exposureProtocol.distance || "N/A"}
-        </li>
-        <li>
-          <strong>Time:</strong> {injuryDetails.exposureProtocol.time || "N/A"}
-        </li>
-      </ul>
-    </div>
-    <div className="mb-2">
-      <h4 className="font-semibold">Outcome Attributed to Event:</h4>
-      <p>
-        {Array.isArray(injuryDetails.outcomeAttributed)
-          ? injuryDetails.outcomeAttributed.join(", ")
-          : injuryDetails.outcomeAttributed || "N/A"}
-      </p>
-    </div>
-    <div className="mb-2">
-      <h4 className="font-semibold">Description:</h4>
-      <p>{injuryDetails.description}</p>
-    </div>
-  </div>
-)}
-
+          <div className="mb-4 p-4 border rounded bg-gray-50">
+            <h3 className="text-lg font-semibold mb-4">Injury Details Added</h3>
+            <div className="mb-2">
+              <h4 className="font-semibold">Device Users:</h4>
+              <ul className="list-disc list-inside">
+                {Object.entries(injuryDetails.deviceUsers)
+                  .filter(([_, value]) => value)
+                  .map(([key]) => (
+                    <li key={key}>
+                      {key
+                        .replace(/([A-Z])/g, " $1")
+                        .replace(/^./, (str) => str.toUpperCase())}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+            {injuryDetails.deviceUserRemarks && (
+              <div className="mb-2">
+                <h4 className="font-semibold">User Remarks:</h4>
+                <p>{injuryDetails.deviceUserRemarks}</p>
+              </div>
+            )}
+            <div className="mb-2">
+              <h4 className="font-semibold">
+                Incident Occurred During Procedure:
+              </h4>
+              <p>
+                {injuryDetails.incidentDuringProcedure === "yes" ? "Yes" : "No"}
+              </p>
+            </div>
+            <div className="mb-2">
+              <h4 className="font-semibold">Exposure Protocol:</h4>
+              <ul className="list-disc list-inside">
+                <li>
+                  <strong>KV:</strong>{" "}
+                  {injuryDetails.exposureProtocol.kv || "N/A"}
+                </li>
+                <li>
+                  <strong>mA/mAs:</strong>{" "}
+                  {injuryDetails.exposureProtocol.maMas || "N/A"}
+                </li>
+                <li>
+                  <strong>Distance:</strong>{" "}
+                  {injuryDetails.exposureProtocol.distance || "N/A"}
+                </li>
+                <li>
+                  <strong>Time:</strong>{" "}
+                  {injuryDetails.exposureProtocol.time || "N/A"}
+                </li>
+              </ul>
+            </div>
+            <div className="mb-2">
+              <h4 className="font-semibold">Outcome Attributed to Event:</h4>
+              <p>
+                {Array.isArray(injuryDetails.outcomeAttributed)
+                  ? injuryDetails.outcomeAttributed.join(", ")
+                  : injuryDetails.outcomeAttributed || "N/A"}
+              </p>
+            </div>
+            <div className="mb-2">
+              <h4 className="font-semibold">Description:</h4>
+              <p>{injuryDetails.description}</p>
+            </div>
+          </div>
+        )}
 
         {/* Spare Parts Section - Always Rendered */}
         <div className="mb-4 p-4 border rounded bg-gray-50">
@@ -323,7 +350,7 @@ const CloseComplaintPage = () => {
 
         {/* Close Complaint => Go to summary */}
         <button
-          className="bg-primary text-white py-2 px-4 rounded-md w-full hover:bg-blue-700"
+          className="bg-primary mb-8 text-white py-2 px-4 rounded-md w-full hover:bg-blue-700"
           onClick={handleCloseComplaintSubmit}
         >
           CLOSE COMPLAINT

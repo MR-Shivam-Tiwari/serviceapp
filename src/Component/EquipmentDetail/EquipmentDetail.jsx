@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Autocomplete from "@mui/joy/Autocomplete";
 import { TextField } from "@mui/joy";
+import CircularProgress from "@mui/joy/CircularProgress";
 
 const EquipmentDetail = () => {
   const navigate = useNavigate();
@@ -10,9 +11,13 @@ const EquipmentDetail = () => {
   const [selectedSerial, setSelectedSerial] = useState(null);
   const [equipmentDetails, setEquipmentDetails] = useState(null);
   const [sparesData, setSparesData] = useState([]);
-  const [activeTab, setActiveTab] = useState(null); // No tab selected by default
+  const [activeTab, setActiveTab] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false); // New state for details loading
   const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [modalImage, setModalImage] = useState("");
+  const [isImageLoading, setIsImageLoading] = useState(true);
 
   // Fetch equipment serial numbers from the API
   useEffect(() => {
@@ -37,31 +42,46 @@ const EquipmentDetail = () => {
 
   // Fetch combined details for the selected equipment using its serial number
   const fetchEquipmentDetails = async (serialNumber) => {
-    setLoading(true);
+    setDetailsLoading(true); // Start details loading
+    setError("");
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/collections/equipment-details/${serialNumber}`
       );
-      if (!response.ok) throw new Error("Failed to fetch equipment details");
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch equipment details: ${errorText}`);
+      }
+
       const data = await response.json();
       setEquipmentDetails(data);
 
-      // If a part number exists in equipment details, fetch the spares details.
+      // Fetch spares if materialcode exists
       if (data?.equipment?.materialcode) {
-        const sparesResponse = await fetch(
-          `http://localhost:5000/collections/search/${data.equipment.materialcode}`
-        );
-        if (!sparesResponse.ok)
-          throw new Error("Failed to fetch spares details");
-        const spares = await sparesResponse.json();
-        setSparesData(spares);
+        try {
+          const sparesResponse = await fetch(
+            `${process.env.REACT_APP_BASE_URL}/collections/search/${data.equipment.materialcode}`
+          );
+
+          if (!sparesResponse.ok) {
+            const errorText = await sparesResponse.text();
+            throw new Error(`${errorText}`);
+          }
+
+          const spares = await sparesResponse.json();
+          setSparesData(spares);
+        } catch (sparesErr) {
+          setError(sparesErr.message);
+          setSparesData([]);
+        }
       } else {
         setSparesData([]);
       }
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setDetailsLoading(false); // End details loading
     }
   };
 
@@ -76,7 +96,6 @@ const EquipmentDetail = () => {
   const handleEquipmentChange = (event, newValue) => {
     if (newValue) {
       setSelectedSerial(newValue);
-      // Reset activeTab to null on new selection so no table is shown immediately.
       setActiveTab(null);
       fetchEquipmentDetails(newValue);
     } else {
@@ -117,6 +136,7 @@ const EquipmentDetail = () => {
           value={selectedSerial || ""}
           loading={loading}
           onChange={handleEquipmentChange}
+          placeholder="Search and Select serial number"
           noOptionsText={loading ? "Loading..." : "No Equipment Found"}
           renderInput={(params) => (
             <TextField
@@ -128,8 +148,13 @@ const EquipmentDetail = () => {
         />
 
         {/* Equipment Details */}
-        {error && <p className="text-red-500">{error}</p>}
-        {equipmentDetails ? (
+        {error && <p className="text-red-500 mt-1">{error}</p>}
+
+        {detailsLoading ? (
+          <div className="flex justify-center mt-4">
+            <span className="loader"></span>
+          </div>
+        ) : equipmentDetails ? (
           <div className="my-4 space-y-6 text-sm text-gray-800">
             {/* Equipment Details */}
             <div>
@@ -231,28 +256,32 @@ const EquipmentDetail = () => {
                     <h3 className="font-bold mb-2">
                       Equipments with Same Customer (Installation Base)
                     </h3>
-                    <table className="min-w-full border border-gray-300">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="px-4 py-2 border">Serial No</th>
-                          <th className="px-4 py-2 border">Part No</th>
-                          <th className="px-4 py-2 border">Product</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {equipmentDetails.customerEquipments.map((equip) => (
-                          <tr key={equip.serialnumber}>
-                            <td className="px-4 py-2 border">
-                              {equip.serialnumber}
-                            </td>
-                            <td className="px-4 py-2 border">
-                              {equip.materialcode}
-                            </td>
-                            <td className="px-4 py-2 border">{equip.name}</td>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full border border-gray-300">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-4 py-2 border">Serial No</th>
+                            <th className="px-4 py-2 border">Part No</th>
+                            <th className="px-4 py-2 border">Product</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {equipmentDetails.customerEquipments.map((equip) => (
+                            <tr key={equip.serialnumber}>
+                              <td className="px-4 py-2 border">
+                                {equip.serialnumber}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {equip.materialcode}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {equip.materialdescription}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : (
                   <p className="mt-6 text-gray-500">
@@ -267,30 +296,71 @@ const EquipmentDetail = () => {
                 {sparesData && sparesData.length > 0 ? (
                   <div className="mt-6">
                     <h3 className="font-bold mb-2">Spares Base</h3>
-                    <table className="min-w-full border border-gray-300">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="px-4 py-2 border">Serial No</th>
-                          <th className="px-4 py-2 border">Part No</th>
-                          <th className="px-4 py-2 border">Product</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sparesData.map((spare, index) => (
-                          <tr key={index}>
-                            <td className="px-4 py-2 border">
-                              {selectedSerial}
-                            </td>
-                            <td className="px-4 py-2 border">
-                              {spare.PartNumber}
-                            </td>
-                            <td className="px-4 py-2 border">
-                              {spare.Description}
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full border border-gray-300">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-4 py-2 border">Serial No</th>
+                            <th className="px-4 py-2 border">Part No</th>
+                            <th className="px-4 py-2 border">Product</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {sparesData.map((spare, index) => (
+                            <tr key={index}>
+                              <td
+                                className="px-4 py-2 border text-blue-600 underline cursor-pointer"
+                                onClick={() => {
+                                  setModalImage(spare.Image);
+                                  setIsImageLoading(true);
+                                  setShowModal(true);
+                                }}
+                              >
+                                {selectedSerial}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {spare.PartNumber}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {spare.Description}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {showModal && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white p-4 rounded-lg max-w-full max-h-full overflow-auto relative">
+                          <button
+                            className="absolute top-1 right-2 text-black font-bold text-2xl"
+                            onClick={() => setShowModal(false)}
+                          >
+                            &times;
+                          </button>
+
+                          {/* Loader */}
+                          {isImageLoading && (
+                            <div className="flex justify-center items-center h-[80vh] w-[90vw]">
+                              <div className="flex justify-center mt-4">
+                                <span className="loader"></span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Image */}
+                          <img
+                            src={modalImage}
+                            alt="Spare Part"
+                            className={`max-w-[90vw] max-h-[80vh] object-contain transition-opacity duration-300 ${
+                              isImageLoading ? "opacity-0" : "opacity-100"
+                            }`}
+                            onLoad={() => setIsImageLoading(false)}
+                            loading="lazy"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="mt-6 text-gray-500">No Spare Data Found.</p>
@@ -299,9 +369,11 @@ const EquipmentDetail = () => {
             )}
           </div>
         ) : (
-          <p className="text-gray-500 my-2">
-            Select a serial number to see details.
-          </p>
+          !detailsLoading && (
+            <p className="text-gray-500 my-2">
+              Select a serial number to see details.
+            </p>
+          )
         )}
       </div>
 

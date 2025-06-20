@@ -122,6 +122,7 @@ function CheckStock() {
           ) : (
             <Autocomplete
               // Provide array of objects
+              placeholder="Search Material Code"
               options={materialOptions}
               // Show "CODE (DESCRIPTION)" in the text field after selection
               getOptionLabel={(option) =>
@@ -254,6 +255,12 @@ function CheckStock() {
             ) : null}
           </>
         )}
+      <button
+        onClick={() => navigate("/")}
+        className="w-full px-4 py-2 my-3 text-white bg-primary rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        OK
+      </button>
       </div>
     </div>
   );
