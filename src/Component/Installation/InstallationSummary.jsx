@@ -46,7 +46,17 @@ function InstallationSummary() {
   const [tempChecklistResults, setTempChecklistResults] = useState([]);
   // Wizard index to show one question at a time
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-
+  const [progressData, setProgressData] = useState({
+    status: "initializing",
+    totalRecords: 0,
+    processedRecords: 0,
+    currentPhase: "",
+    completionPercentage: 0,
+    currentEquipment: "",
+    reportNumber: "",
+    isComplete: false,
+    messages: [],
+  });
   // Optionally load user info from localStorage
   const [userInfo, setUserInfo] = useState({
     firstName: "",
@@ -166,62 +176,52 @@ function InstallationSummary() {
   };
 
   const handleStreamingResponse = (data) => {
-    setProgressMessages((prev) => [
-      ...prev,
-      {
-        ...data,
-        timestamp: new Date().toLocaleTimeString(),
-      },
-    ]);
+    setProgressData((prev) => {
+      const newMessages = [
+        ...prev.messages,
+        {
+          ...data,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ];
 
-    // Update progress based on message type
-    switch (data.status) {
-      case "progress":
-        if (data.message.includes("Generating report number")) {
-          // Starting process
-          setCurrentProgress((prev) => ({
-            ...prev,
-            reportNumber: "",
-            isComplete: false,
-          }));
-        } else if (data.reportNo) {
-          // Report number generated
-          setCurrentProgress((prev) => ({
-            ...prev,
-            reportNumber: data.reportNo,
-          }));
-        } else if (data.message.includes("Processing equipment")) {
-          // Equipment processing started
-          setCurrentProgress((prev) => ({
-            ...prev,
-            currentEquipment: data.serialNumber,
-            total: installItems.length,
-          }));
-        }
-        break;
+      // Update progress based on message type
+      let updatedProgress = { ...prev, messages: newMessages };
 
-      case "success":
-        if (data.message.includes("Equipment processed successfully")) {
-          // Equipment completed
-          setCurrentProgress((prev) => ({
-            ...prev,
-            completed: data.completed,
-            total: data.total,
-          }));
-        }
-        break;
+      // Update phase
+      if (data.currentPhase) {
+        updatedProgress.currentPhase = data.currentPhase;
+      }
 
-      case "complete":
-        // All done
-        setCurrentProgress((prev) => ({
-          ...prev,
-          isComplete: true,
-        }));
-        break;
+      // Update counts
+      if (data.processedRecords !== undefined) {
+        updatedProgress.processedRecords = data.processedRecords;
+        updatedProgress.totalRecords = data.totalRecords;
+        updatedProgress.completionPercentage =
+          data.summary?.completionPercentage ||
+          Math.round((data.processedRecords / data.totalRecords) * 100);
+      }
 
-      default:
-        break;
-    }
+      // Update equipment being processed
+      if (data.equipmentResults?.length > 0) {
+        const lastEquipment =
+          data.equipmentResults[data.equipmentResults.length - 1];
+        updatedProgress.currentEquipment = lastEquipment.serialnumber;
+      }
+
+      // Update report number
+      if (data.reportNo) {
+        updatedProgress.reportNumber = data.reportNo;
+      }
+
+      // Update completion status
+      if (data.status === "completed") {
+        updatedProgress.isComplete = true;
+        updatedProgress.status = "completed";
+      }
+
+      return updatedProgress;
+    });
   };
 
   // ---------------------------------------
@@ -297,14 +297,17 @@ function InstallationSummary() {
       setIsLoading(false);
       setShowProgressModal(true);
 
-      // Reset progress states
-      setProgressMessages([]);
-      setCurrentProgress({
-        completed: 0,
-        total: installItems.length,
+      // Reset progress state
+      setProgressData({
+        status: "initializing",
+        totalRecords: installItems.length,
+        processedRecords: 0,
+        currentPhase: "",
+        completionPercentage: 0,
         currentEquipment: "",
         reportNumber: "",
         isComplete: false,
+        messages: [],
       });
 
       // Build payloads
@@ -509,11 +512,129 @@ function InstallationSummary() {
     setTempChecklistResults([]);
     setCurrentQuestionIndex(0);
   };
+  const ProgressModal = () => (
+    <div className="fixed inset-0 px-4 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Installation Progress</h2>
+          {progressData.reportNumber && (
+            <span className="text-sm bg-purple-100 text-purple-800 px-2 py-1 rounded">
+              Report: {progressData.reportNumber}
+            </span>
+          )}
+        </div>
+
+        {/* Progress Summary */}
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-semibold">Overall Progress</span>
+            <span className="text-lg font-bold text-primary">
+              {progressData.processedRecords}/{progressData.totalRecords}
+            </span>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+            <div
+              className="bg-primary h-3 rounded-full transition-all duration-300"
+              style={{
+                width: `${progressData.completionPercentage}%`,
+              }}
+            ></div>
+          </div>
+
+          {progressData.currentPhase && (
+            <p className="text-sm text-gray-600">
+              Current Phase: <strong>{progressData.currentPhase}</strong>
+            </p>
+          )}
+
+          {progressData.currentEquipment && !progressData.isComplete && (
+            <p className="text-sm text-gray-600">
+              Processing: <strong>{progressData.currentEquipment}</strong>
+            </p>
+          )}
+
+          {progressData.isComplete && (
+            <div className="flex items-center text-green-600">
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="font-semibold">Installation Completed!</span>
+            </div>
+          )}
+        </div>
+
+        {/* Status Messages */}
+        <div className="flex-1 overflow-y-auto mb-4">
+          <h3 className="font-semibold mb-2">Status Messages</h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {progressData.messages.map((message, index) => (
+              <div
+                key={index}
+                className="flex items-start space-x-3 p-2 bg-gray-50 rounded"
+              >
+                {getStatusIcon(message.status)}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">
+                    {message.message || message.currentPhase}
+                  </p>
+                  {message.serialNumber && (
+                    <p className="text-xs text-gray-500">
+                      Equipment: {message.serialNumber}
+                    </p>
+                  )}
+                  {message.processedRecords !== undefined && (
+                    <p className="text-xs text-green-600">
+                      Completed {message.processedRecords} of{" "}
+                      {message.totalRecords} machines
+                    </p>
+                  )}
+                </div>
+                <span className="text-xs text-gray-400 whitespace-nowrap">
+                  {message.timestamp}
+                </span>
+              </div>
+            ))}
+            {progressData.messages.length === 0 && (
+              <div className="text-center text-gray-500 py-4">
+                <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                <p>Initializing installation process...</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Close Button */}
+        {progressData.isComplete && (
+          <div className="flex justify-end">
+            <button
+              className="bg-primary text-white px-6 py-2 rounded-md hover:bg-blue-700"
+              onClick={() => {
+                setShowProgressModal(false);
+                setShowSuccessModal(true);
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   // Get status icon based on message type
   const getStatusIcon = (status) => {
     switch (status) {
-      case "complete":
+      case "completed":
       case "success":
         return (
           <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -530,7 +651,7 @@ function InstallationSummary() {
             </svg>
           </div>
         );
-      case "progress":
+      case "processing":
         return (
           <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
@@ -722,125 +843,8 @@ function InstallationSummary() {
       </div>
 
       {/* Progress Modal */}
-      {showProgressModal && (
-        <div className="fixed inset-0 px-4 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Installation Progress</h2>
-              {currentProgress.reportNumber && (
-                <span className="text-sm bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                  Report: {currentProgress.reportNumber}
-                </span>
-              )}
-            </div>
+      {showProgressModal && <ProgressModal />}
 
-            {/* Progress Summary */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold">Overall Progress</span>
-                <span className="text-lg font-bold text-primary">
-                  {currentProgress.completed}/{currentProgress.total}
-                </span>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                <div
-                  className="bg-primary h-3 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${
-                      currentProgress.total > 0
-                        ? (currentProgress.completed / currentProgress.total) *
-                          100
-                        : 0
-                    }%`,
-                  }}
-                ></div>
-              </div>
-
-              {currentProgress.currentEquipment &&
-                !currentProgress.isComplete && (
-                  <p className="text-sm text-gray-600">
-                    Currently processing:{" "}
-                    <strong>{currentProgress.currentEquipment}</strong>
-                  </p>
-                )}
-
-              {currentProgress.isComplete && (
-                <div className="flex items-center text-green-600">
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-semibold">Installation Completed!</span>
-                </div>
-              )}
-            </div>
-
-            {/* Status Messages */}
-            <div className="flex-1 overflow-y-auto mb-4">
-              <h3 className="font-semibold mb-2">Status Messages</h3>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {progressMessages.map((message, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start space-x-3 p-2 bg-gray-50 rounded"
-                  >
-                    {getStatusIcon(message.status)}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        {message.message}
-                      </p>
-                      {message.serialNumber && (
-                        <p className="text-xs text-gray-500">
-                          Equipment: {message.serialNumber}
-                        </p>
-                      )}
-                      {message.completed !== undefined && (
-                        <p className="text-xs text-green-600">
-                          Completed {message.completed} of {message.total}{" "}
-                          machines
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-400 whitespace-nowrap">
-                      {message.timestamp}
-                    </span>
-                  </div>
-                ))}
-                {progressMessages.length === 0 && (
-                  <div className="text-center text-gray-500 py-4">
-                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
-                    <p>Initializing installation process...</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Close Button */}
-            {currentProgress.isComplete && (
-              <div className="flex justify-end">
-                <button
-                  className="bg-primary text-white px-6 py-2 rounded-md hover:bg-blue-700"
-                  onClick={() => {
-                    setShowProgressModal(false);
-                    setShowSuccessModal(true);
-                  }}
-                >
-                  Continue
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
       {/* Checklist Modal */}
       {isChecklistModalOpen && (
         <div className="fixed inset-0 px-4 bg-black bg-opacity-50 flex justify-center items-center z-50">
