@@ -97,14 +97,23 @@ function ProposalRevision() {
   };
 
   const calculateNewAmounts = () => {
-    if (!proposal) return {};
+    if (!proposal)
+      return {
+        discountAmount: 0,
+        afterDiscount: 0,
+        tdsAmount: 0,
+        afterTds: 0,
+        gstAmount: 0,
+        finalAmount: 0,
+      };
 
-    const grandSubTotal = proposal.grandSubTotal;
+    // Handle null values by defaulting to 0
+    const grandSubTotal = proposal.grandSubTotal || 0;
     const discountAmount = grandSubTotal * (selectedDiscount / 100);
     const afterDiscount = grandSubTotal - discountAmount;
-    const tdsAmount = afterDiscount * (proposal.tdsPercentage / 100);
+    const tdsAmount = afterDiscount * ((proposal.tdsPercentage || 0) / 100);
     const afterTds = afterDiscount - tdsAmount;
-    const gstAmount = afterTds * (proposal.gstPercentage / 100);
+    const gstAmount = afterTds * ((proposal.gstPercentage || 0) / 100);
     const finalAmount = afterTds + gstAmount;
 
     return {
@@ -117,6 +126,7 @@ function ProposalRevision() {
     };
   };
 
+  // Initialize with default values
   const newAmounts = calculateNewAmounts();
 
   if (loading) {
@@ -251,39 +261,39 @@ function ProposalRevision() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Original Subtotal:</span>
-                  <span>₹{proposal.grandSubTotal.toFixed(2)}</span>
+                  <span>₹{(proposal.grandSubTotal || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>
                     Current Discount ({proposal.discountPercentage}%):
                   </span>
-                  <span>-₹{proposal.discountAmount.toFixed(2)}</span>
+                  <span>-₹{(proposal.discountAmount || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between font-medium text-blue-600">
                   <span>New Discount ({selectedDiscount}%):</span>
-                  <span>-₹{newAmounts.discountAmount.toFixed(2)}</span>
+                  <span>-₹{(newAmounts.discountAmount || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>After Discount:</span>
-                  <span>₹{newAmounts.afterDiscount.toFixed(2)}</span>
+                  <span>₹{(newAmounts.afterDiscount || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>TDS ({proposal.tdsPercentage}%):</span>
-                  <span>-₹{newAmounts.tdsAmount.toFixed(2)}</span>
+                  <span>-₹{(newAmounts.tdsAmount || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>After TDS:</span>
-                  <span>₹{newAmounts.afterTds.toFixed(2)}</span>
+                  <span>₹{(newAmounts.afterTds || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>GST ({proposal.gstPercentage}%):</span>
-                  <span>+₹{newAmounts.gstAmount.toFixed(2)}</span>
+                  <span>+₹{(newAmounts.gstAmount || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between font-bold border-t pt-2 mt-2">
@@ -296,7 +306,7 @@ function ProposalRevision() {
                 <div className="flex justify-between text-sm pt-2">
                   <span>Previous Final Amount:</span>
                   <span className="text-gray-500">
-                    ₹{proposal.finalAmount.toFixed(2)}
+                    ₹{(proposal.finalAmount || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
