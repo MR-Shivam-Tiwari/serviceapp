@@ -267,7 +267,10 @@ export default function ProposalDetails() {
   return (
     <div className=" ">
       <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
-        <button className="mr-2 text-white" onClick={() => navigate("/create-proposal")}>
+        <button
+          className="mr-2 text-white"
+          onClick={() => navigate("/create-proposal")}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="36"
@@ -557,13 +560,25 @@ export default function ProposalDetails() {
             Error: {submitError.message || "Failed to save proposal"}
           </div>
         )}
-
+        {(isNaN(calculation.finalAmount) || calculation.finalAmount <= 0) && (
+          <div className="text-red-600 text-sm text-center mb-4 font-medium">
+            Final amount must be greater than zero to submit the proposal.
+          </div>
+        )}
         <div className="flex justify-center">
           <button
             onClick={handleSubmit}
-            disabled={loading || !hasSelectedWarranty}
+            disabled={
+              loading ||
+              !hasSelectedWarranty ||
+              isNaN(calculation.finalAmount) ||
+              calculation.finalAmount <= 0
+            }
             className={`bg-primary text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ${
-              loading || !hasSelectedWarranty
+              loading ||
+              !hasSelectedWarranty ||
+              isNaN(calculation.finalAmount) ||
+              calculation.finalAmount <= 0
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:bg-primary-dark"
             }`}

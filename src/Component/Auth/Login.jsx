@@ -57,6 +57,10 @@ const Login = () => {
       // Handle specific device ID error
       if (error.response?.data?.errorCode === "DEVICE_MISMATCH") {
         toast.error("User already logged in on another device");
+      } else if (error?.response?.data?.errorCode === "ACCOUNT_DEACTIVATED") {
+        toast.error(
+          "Your account has been deactivated. Please contact administrator."
+        );
       } else {
         toast.error("Login failed. Please check your credentials.");
       }
@@ -182,5 +186,5 @@ const Login = () => {
     </div>
   );
 };
- 
+
 export default Login;
