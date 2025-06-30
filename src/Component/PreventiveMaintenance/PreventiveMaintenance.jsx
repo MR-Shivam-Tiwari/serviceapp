@@ -11,15 +11,40 @@ function PreventiveMaintenance() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedPms, setSelectedPms] = useState([]);
   const [viewMode, setViewMode] = useState("customers"); // 'customers' or 'pms'
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    employeeId: "",
+    userid: "",
+    email: "",
+    dealerEmail: "",
+  });
 
+  // Load user info on mount
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BASE_URL}/upload/allpms`)
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser) {
+      setUserInfo({
+        firstName: storedUser.firstname,
+        lastName: storedUser.lastname,
+        employeeId: storedUser.employeeid,
+        userid: storedUser.id,
+        email: storedUser.email,
+        dealerEmail: storedUser.dealerInfo?.dealerEmail,
+      });
+    }
+  }, []);
+  useEffect(() => {
+    if (!userInfo.employeeId) return;
+    fetch(
+      `${process.env.REACT_APP_BASE_URL}/upload/allpms/${userInfo.employeeId}`
+    )
       .then((res) => res.json())
       .then((data) => {
         setPms(data.pms);
       })
       .catch((err) => console.error("Error fetching PM data", err));
-  }, []);
+  }, [userInfo.employeeId]);
 
   // Get unique regions
   const uniqueRegions = [...new Set(pms.map((pm) => pm.region))];

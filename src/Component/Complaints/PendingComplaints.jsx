@@ -8,20 +8,47 @@ const PendingComplaintsPage = () => {
   const [problemTypeFilter, setProblemTypeFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    employeeId: "",
+    userid: "",
+    email: "",
+    dealerEmail: "",
+  });
 
+  // Load user info on mount
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BASE_URL}/collections/allpendingcomplaints`)
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser) {
+      setUserInfo({
+        firstName: storedUser.firstname,
+        lastName: storedUser.lastname,
+        employeeId: storedUser.employeeid,
+        userid: storedUser.id,
+        email: storedUser.email,
+        dealerEmail: storedUser.dealerInfo?.dealerEmail,
+      });
+    }
+  }, []);
+  useEffect(() => {
+    if (!userInfo.employeeId) return; // Don't fetch if employeeId is missing
+
+    fetch(
+      `${process.env.REACT_APP_BASE_URL}/collections/allpendingcomplaints/${userInfo.employeeId}`
+    )
       .then((response) => response.json())
       .then((data) => {
-        setComplaints(data.pendingComplaints);
-        setFilteredComplaints(data.pendingComplaints);
-        setIsLoading(false);
+        setComplaints(data.pendingComplaints || []);
+        setFilteredComplaints(data.pendingComplaints || []);
       })
       .catch((error) => {
         console.error("Error fetching complaints:", error);
+      })
+      .finally(() => {
         setIsLoading(false);
       });
-  }, []);
+  }, [userInfo.employeeId]);
 
   // Handle Search & Filter
   useEffect(() => {

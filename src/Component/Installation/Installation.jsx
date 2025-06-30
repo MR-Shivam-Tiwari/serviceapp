@@ -14,7 +14,30 @@ function Installation() {
     lgyb: "",
     ngbr: "",
   });
+  // User info
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    employeeId: "",
+    userid: "",
+    email: "",
+    dealerEmail: "",
+  });
 
+  // Load user info on mount
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser) {
+      setUserInfo({
+        firstName: storedUser.firstname,
+        lastName: storedUser.lastname,
+        employeeId: storedUser.employeeid,
+        userid: storedUser.id,
+        email: storedUser.email,
+        dealerEmail: storedUser.dealerInfo?.dealerEmail,
+      });
+    }
+  }, []);
   // ----------- Autocomplete + Serial Data -----------
   const [serialNumbers, setSerialNumbers] = useState([]);
   const [loadingSerialNumbers, setLoadingSerialNumbers] = useState(true);
@@ -60,12 +83,12 @@ function Installation() {
     return isValid;
   };
 
-  // ----------- Fetch Serial Number List on Mount -----------
   useEffect(() => {
     const fetchSerialList = async () => {
+      if (!userInfo?.employeeId) return; // Prevent API call if employeeId is missing
       try {
         const res = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/serialnumbers`
+          `${process.env.REACT_APP_BASE_URL}/collections/pendinginstallations/user-serialnumbers/${userInfo.employeeId}`
         );
         setSerialNumbers(res.data || []);
       } catch (err) {
@@ -75,7 +98,7 @@ function Installation() {
       }
     };
     fetchSerialList();
-  }, []);
+  }, [userInfo?.employeeId]); // ✅ Add as dependency
 
   // ----------- Handle Selecting Serial -----------
   // As soon as the user picks a serial, we remove it from `serialNumbers` so they can't pick it again
@@ -255,8 +278,29 @@ function Installation() {
           <label className="block text-sm font-medium mb-1">
             Search & Select Serial Number
           </label>
+
           {loadingSerialNumbers ? (
             <p>Loading serial numbers...</p>
+          ) : serialNumbers.length === 0 ? (
+            <>
+              <Autocomplete
+                placeholder="Search by Serial Number..."
+                options={[]}
+                getOptionLabel={(option) => option}
+                value={selectedSerial}
+                onChange={(event, newValue) => handleSerialChange(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    label="Search by Serial Number..."
+                  />
+                )}
+              />
+              <p className="text-red-600 text-sm mt-1">
+                No installations found matching user skills.
+              </p>
+            </>
           ) : (
             <Autocomplete
               placeholder="Search by Serial Number..."
@@ -273,9 +317,10 @@ function Installation() {
               )}
             />
           )}
+
           <button
             className="mt-2 w-full px-4 py-2 text-white bg-primary rounded 
-              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             onClick={() => alert("Scan barcode not implemented!")}
           >
             Scan Barcode
@@ -338,9 +383,10 @@ function Installation() {
             {typeof currentSerialData.palnumber === "string" ? (
               currentSerialData.palnumber === "" ? (
                 <div className="mt-2">
-                  <label className="font-medium">Add Pal Number:</label>
+                  <label className="font-medium">Enter Procurement No:</label>
                   <input
                     type="text"
+                    placeholder="Enter Procurement No"
                     className="h-10 w-full p-2 bg-gray-100 rounded"
                     value={palNumber}
                     onChange={(e) => handlePalNumberChange(e.target.value)}
@@ -440,7 +486,9 @@ function Installation() {
 
         {/* Abnormal Site Condition (one for all) */}
         <div className="mb-4">
-          <label className="block font-medium">Abnormal Site Condition</label>
+          <label className="block font-medium">
+            Abnormal Site Condition <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             placeholder="Enter abnormal condition..."
@@ -463,7 +511,9 @@ function Installation() {
 
         {/* Voltage (one for all) */}
         <div className="mb-10">
-          <p className="font-medium mb-1">Voltage</p>
+          <p className="font-medium mb-1">
+            Voltage <span className="text-red-500">*</span>
+          </p>
           <input
             type="text"
             placeholder="L-N / R-Y"
