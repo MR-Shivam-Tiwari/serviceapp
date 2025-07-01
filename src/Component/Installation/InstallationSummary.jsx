@@ -58,6 +58,7 @@ function InstallationSummary() {
     userid: "",
     email: "",
     dealerEmail: "",
+    manageremail: [],
   });
 
   // Load user info on mount
@@ -71,6 +72,11 @@ function InstallationSummary() {
         userid: storedUser.id,
         email: storedUser.email,
         dealerEmail: storedUser.dealerInfo?.dealerEmail,
+        manageremail: Array.isArray(storedUser.manageremail)
+          ? storedUser.manageremail
+          : storedUser.manageremail
+          ? [storedUser.manageremail]
+          : [],
       });
     }
   }, []);

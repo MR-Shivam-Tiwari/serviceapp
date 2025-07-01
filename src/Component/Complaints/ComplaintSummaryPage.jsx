@@ -91,18 +91,29 @@ const ComplaintSummaryPage = () => {
   const [userInfo, setUserInfo] = useState({
     firstName: "",
     lastName: "",
+    employeeId: "",
+    userid: "",
     email: "",
-    mobilenumber: "",
+    dealerEmail: "",
+    manageremail: [],
   });
 
+  // Load user info on mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
       setUserInfo({
         firstName: storedUser.firstname,
         lastName: storedUser.lastname,
+        employeeId: storedUser.employeeid,
+        userid: storedUser.id,
         email: storedUser.email,
-        mobilenumber: storedUser.mobilenumber,
+        dealerEmail: storedUser.dealerInfo?.dealerEmail,
+        manageremail: Array.isArray(storedUser.manageremail)
+          ? storedUser.manageremail
+          : storedUser.manageremail
+          ? [storedUser.manageremail]
+          : [],
       });
     }
   }, []);
@@ -155,91 +166,84 @@ const ComplaintSummaryPage = () => {
 
   // 3) Verify OTP & Send Final Email
   // 3) Verify OTP & Send Final Email
-const handleVerifyOtp = async (enteredOtp) => {
-  try {
-    setLoading(true);
-    setOtpError("");
+  const handleVerifyOtp = async (enteredOtp) => {
+    try {
+      setLoading(true);
+      setOtpError("");
 
-    // Create a new variable for the current date (date attended)
-    const dateAttended = new Date().toISOString();
+      // Create a new variable for the current date (date attended)
+      const dateAttended = new Date().toISOString();
 
-    // Prepare a comprehensive payload with ALL details, including new fields:
-    const payload = {
-      // OTP data
-      customerEmail, // Same email used to send OTP
-      otp: enteredOtp,
+      // Prepare a comprehensive payload with ALL details, including new fields:
+      const payload = {
+        // OTP data
+        customerEmail, // Same email used to send OTP
+        otp: enteredOtp,
 
-      // Complaint Fields
-      complaintNumber: complaint?.notification_complaintid,
-      partNumber: complaint?.materialcode,
-      notificationType: complaint?.notificationtype, // New field
-      customerCode: complaint?.customercode,         // New field
-      dateAttended,                                  // New field with today's date
-      serialNumber: complaint?.serialnumber,
-      productCode: complaint?.productCode,
-      description: complaint?.materialdescription,
-      productGroup: complaint?.productgroup,
-      productType: complaint?.problemtype,
-      problemName: complaint?.problemname,
-      reportedProblem: complaint?.reportedproblem,
-      notificationDate: complaint?.notificationdate,
+        // Complaint Fields
+        complaintNumber: complaint?.notification_complaintid,
+        partNumber: complaint?.materialcode,
+        notificationType: complaint?.notificationtype, // New field
+        customerCode: complaint?.customercode, // New field
+        dateAttended, // New field with today's date
+        serialNumber: complaint?.serialnumber,
+        productCode: complaint?.productCode,
+        description: complaint?.materialdescription,
+        productGroup: complaint?.productgroup,
+        productType: complaint?.problemtype,
+        problemName: complaint?.problemname,
+        reportedProblem: complaint?.reportedproblem,
+        notificationDate: complaint?.notificationdate,
 
-      // User Inputs (Action, Instruction, Voltage Readings)
-      actionTaken,
-      instructionToCustomer: instruction,
-      voltageLN_RY,
-      voltageLG_YB,
-      voltageNG_BR,
+        // User Inputs (Action, Instruction, Voltage Readings)
+        actionTaken,
+        instructionToCustomer: instruction,
+        voltageLN_RY,
+        voltageLG_YB,
+        voltageNG_BR,
 
-      // Spare Parts (send the entire array)
-      sparesReplaced: selectedSpares,
+        // Spare Parts (send the entire array)
+        sparesReplaced: selectedSpares,
 
-      // Injury Details (send the complete object)
-      injuryDetails, // This includes device users, exposureProtocol, outcomeAttributed, description, etc.
+        // Injury Details (send the complete object)
+        injuryDetails, // This includes device users, exposureProtocol, outcomeAttributed, description, etc.
 
-      // Customer Details
-      customerDetails: {
-        hospitalName: customer?.hospitalname,
-        email: customer?.email,
-        phone: customer?.telephone,
-        street: customer?.street,
-        city: customer?.city,
-        postalCode: customer?.postalcode,
-      },
+        // Customer Details
+        customerDetails: {
+          hospitalName: customer?.hospitalname,
+          email: customer?.email,
+          phone: customer?.telephone,
+          street: customer?.street,
+          city: customer?.city,
+          postalCode: customer?.postalcode,
+        },
 
-      // Service Engineer (user) Details
-      serviceEngineer: {
-        firstName: userInfo.firstName,
-        lastName: userInfo.lastName,
-        email: userInfo.email,
-        mobileNumber: userInfo.mobilenumber,
-      },
-    };
+        userInfo,
+      };
 
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/collections/verifyOtpAndSendFinalEmail`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/collections/verifyOtpAndSendFinalEmail`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to verify OTP");
       }
-    );
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to verify OTP");
+      toast.success("OTP verified and final email sent successfully!");
+      setShowOtpModal(false);
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      setOtpError(error.message);
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("OTP verified and final email sent successfully!");
-    setShowOtpModal(false);
-  } catch (error) {
-    console.error("Error verifying OTP:", error);
-    setOtpError(error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="">
