@@ -27,7 +27,7 @@ function ContractProposal() {
       <div className="space-y-4 px-4">
         <button
           onClick={() => navigate("/create-proposal")}
-          className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100"
+          className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
         >
           <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
             <svg
@@ -49,7 +49,7 @@ function ContractProposal() {
 
         <button
           onClick={() => navigate("/pending-proposal")}
-          className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100"
+          className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
         >
           <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
             <svg
@@ -75,7 +75,7 @@ function ContractProposal() {
         </button>
         <button
           onClick={() => navigate("/quote-generation")}
-          className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100"
+          className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
         >
           <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
             <svg
@@ -102,7 +102,7 @@ function ContractProposal() {
         <div className="pb-5">
           <button
             onClick={() => navigate("/completed-order")}
-            className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100"
+            className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
           >
             <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
               <svg

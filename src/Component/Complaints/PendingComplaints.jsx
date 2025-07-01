@@ -157,7 +157,7 @@ const PendingComplaintsPage = () => {
               </div>
 
               <button
-                className="bg-orange-500 text-white p-1 px-2 pt-1.5 text-md rounded-md hover:bg-orange-600"
+                className="bg-blue-500 text-white p-1 px-2 pt-1.5 text-md rounded-md hover:bg-blue-600"
                 onClick={() => handleDetailsClick(complaint._id)}
               >
                 DETAILS

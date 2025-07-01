@@ -31,35 +31,39 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Make API request to login (replace with your backend API endpoint)
       const response = await axios.post(
-        `${process.env.REACT_APP_BASE_URL}/collections/login`, // Your login API
+        `${process.env.REACT_APP_BASE_URL}/collections/login`,
         {
           employeeid: employeeId,
           password: password,
-          deviceid: deviceId, // Send device ID to backend
+          deviceid: deviceId,
         }
       );
 
-      // If login is successful, store the token in localStorage
+      // If login is successful, store the token and user
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
       localStorage.setItem("deviceId", deviceId);
-      // Display success toast
       toast.success("Login Successful!");
 
-      // Reset form fields
+      // Clear form
       setEmployeeId("");
       setPassword("");
 
       navigate("/");
     } catch (error) {
-      // Handle specific device ID error
-      if (error.response?.data?.errorCode === "DEVICE_MISMATCH") {
+      const errorCode = error?.response?.data?.errorCode;
+      const errorMessage = error?.response?.data?.message;
+
+      if (errorCode === "DEVICE_MISMATCH") {
         toast.error("User already logged in on another device");
-      } else if (error?.response?.data?.errorCode === "ACCOUNT_DEACTIVATED") {
+      } else if (errorCode === "ACCOUNT_DEACTIVATED") {
         toast.error(
           "Your account has been deactivated. Please contact administrator."
+        );
+      } else if (errorCode === "MOBILE_ACCESS_DENIED") {
+        toast.error(
+          errorMessage || "Access denied to mobile app. Contact admin."
         );
       } else {
         toast.error("Login failed. Please check your credentials.");

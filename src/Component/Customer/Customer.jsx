@@ -24,13 +24,13 @@ function Customer() {
                 />
               </svg>
             </button>
-            <h2 className="text-xl font-bold">Complaints</h2>
+            <h2 className="text-xl font-bold">Customer</h2>
           </div>
 
           <div className="space-y-4 px-4">
             <button
               onClick={() => navigate("/searchcustomer")}
-              className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100"
+              className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
             >
               <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
                 <svg
@@ -53,7 +53,7 @@ function Customer() {
 
             <button
               onClick={() => navigate("/addnewcustomer")}
-              className="flex items-center justify-center  w-full px-4 py-6 text-orange-600 bg-white-200 rounded-lg shadow-lg border hover:bg-orange-100"
+              className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
             >
               <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
                 <svg
