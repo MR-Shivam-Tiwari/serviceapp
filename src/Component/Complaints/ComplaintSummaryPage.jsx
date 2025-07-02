@@ -237,6 +237,7 @@ const ComplaintSummaryPage = () => {
 
       toast.success("OTP verified and final email sent successfully!");
       setShowOtpModal(false);
+      navigate("/pendingcomplaints");
     } catch (error) {
       console.error("Error verifying OTP:", error);
       setOtpError(error.message);

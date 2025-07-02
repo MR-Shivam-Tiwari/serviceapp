@@ -12,7 +12,6 @@ const componentConfig = {
         enable-background="new 0 0 62 62"
         height="512"
         viewBox="0 0 62 62"
-        
         xmlns="http://www.w3.org/2000/svg"
       >
         <g>
@@ -805,7 +804,6 @@ const componentConfig = {
         id="fi_6417617"
         height="512"
         viewBox="0 0 64 64"
-        
         xmlns="http://www.w3.org/2000/svg"
       >
         <g id="Color">
@@ -1082,14 +1080,17 @@ function Home() {
           </div>
         )}
         {/* User Info */}
-        <div className="flex items-center py-2 mx-4 bg-gray-100 rounded-lg shadow hover:bg-gray-200 gap-5 px-3 mb-4">
+        <div
+          onClick={() => navigate("/user-profile")}
+          className="flex items-center py-2 mx-4 bg-gray-100 rounded-lg shadow hover:bg-gray-200 gap-5 px-3 mb-4"
+        >
           <img
             src={
               userData.profileimage ||
               "https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3383.jpg?w=740"
             }
             alt="User"
-            className="w-20 rounded-full h-20 "
+            className="w-20 rounded-full h-20 object-cover "
           />
           <div>
             <p className="text-lg font-medium text-gray-700">

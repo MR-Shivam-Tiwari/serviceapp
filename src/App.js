@@ -41,6 +41,7 @@ import ProposalRevision from './Component/ContractProposal/ProposalRevision';
 import QuoteGeneration from './Component/ContractProposal/QuoteGeneration';
 import CNoteGen from './Component/ContractProposal/CNoteGen';
 import OnCallService from './Component/OnCallService/OnCallService';
+import UserProfile from './Component/Home/UserProfile';
 const platform = Capacitor.getPlatform();
 
 
@@ -139,6 +140,10 @@ function App() {
           <Route
             path="/complaints"
             element={<PrivateRoute element={Complaints} />}
+          />
+          <Route
+            path="/user-profile"
+            element={<PrivateRoute element={UserProfile} />}
           />
           <Route
             path="/closecomplaint"
