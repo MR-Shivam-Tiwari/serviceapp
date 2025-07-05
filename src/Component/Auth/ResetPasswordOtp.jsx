@@ -1,56 +1,88 @@
 "use client";
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 
-const ResetPassword = () => {
+const ResetPasswordOtp = () => {
   const navigate = useNavigate();
-  const [showOldPassword, setShowOldPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const location = useLocation();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetToken] = useState(location.state?.resetToken || "");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    employeeId: "",
-    oldPassword: "",
-    newPassword: "",
-  });
   const [formErrors, setFormErrors] = useState({});
 
-  const toggleOldPasswordVisibility = () =>
-    setShowOldPassword(!showOldPassword);
-  const toggleNewPasswordVisibility = () =>
-    setShowNewPassword(!showNewPassword);
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () =>
+    setShowConfirmPassword(!showConfirmPassword);
+
+  // Password strength checker
+  const getPasswordStrength = (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+  };
+
+  const getPasswordStrengthText = (strength) => {
+    switch (strength) {
+      case 0:
+      case 1:
+        return { text: "Very Weak", color: "text-red-500", bg: "bg-red-500" };
+      case 2:
+        return { text: "Weak", color: "text-orange-500", bg: "bg-orange-500" };
+      case 3:
+        return { text: "Fair", color: "text-yellow-500", bg: "bg-yellow-500" };
+      case 4:
+        return { text: "Good", color: "text-blue-500", bg: "bg-blue-500" };
+      case 5:
+        return { text: "Strong", color: "text-green-500", bg: "bg-green-500" };
+      default:
+        return { text: "", color: "", bg: "" };
+    }
+  };
 
   // Handle input changes
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({ ...prev, [field]: "" }));
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+    if (formErrors.password) {
+      setFormErrors((prev) => ({ ...prev, password: "" }));
+    }
+  };
+
+  const handleConfirmPasswordChange = (value) => {
+    setConfirmPassword(value);
+    if (formErrors.confirmPassword) {
+      setFormErrors((prev) => ({ ...prev, confirmPassword: "" }));
     }
   };
 
   // Validate form
   const validateForm = () => {
     const errors = {};
-    if (!formData.employeeId.trim()) {
-      errors.employeeId = "Employee ID is required";
+
+    if (!password.trim()) {
+      errors.password = "New password is required";
+    } else if (password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
     }
-    if (!formData.oldPassword.trim()) {
-      errors.oldPassword = "Current password is required";
+
+    if (!confirmPassword.trim()) {
+      errors.confirmPassword = "Please confirm your password";
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = "Passwords don't match";
     }
-    if (!formData.newPassword.trim()) {
-      errors.newPassword = "New password is required";
-    } else if (formData.newPassword.length < 6) {
-      errors.newPassword = "New password must be at least 6 characters";
+
+    if (!resetToken) {
+      errors.general = "Invalid reset token. Please start the process again.";
     }
-    if (
-      formData.oldPassword === formData.newPassword &&
-      formData.oldPassword.trim()
-    ) {
-      errors.newPassword =
-        "New password must be different from current password";
-    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -66,16 +98,16 @@ const ResetPassword = () => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/collections/reset-password`,
+        `${process.env.REACT_APP_BASE_URL}/collections/reset-password-otp`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            employeeid: formData.employeeId,
-            oldPassword: formData.oldPassword,
-            newPassword: formData.newPassword,
+            resetToken,
+            newPassword: password,
+            confirmPassword,
           }),
         }
       );
@@ -85,7 +117,8 @@ const ResetPassword = () => {
       if (response.ok) {
         toast.success("Password reset successfully!");
         // Clear form
-        setFormData({ employeeId: "", oldPassword: "", newPassword: "" });
+        setPassword("");
+        setConfirmPassword("");
         navigate("/login");
       } else {
         toast.error(`Error: ${data.message}`);
@@ -106,13 +139,16 @@ const ResetPassword = () => {
     </div>
   );
 
+  const passwordStrength = getPasswordStrength(password);
+  const strengthInfo = getPasswordStrengthText(passwordStrength);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
       {/* Enhanced Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-4 shadow-lg">
         <div className="flex items-center text-white">
           <button
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(-1)}
             className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all duration-200 transform hover:scale-110 active:scale-95"
             disabled={isLoading}
           >
@@ -168,157 +204,61 @@ const ResetPassword = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="2"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
-                Reset Your Password
+                Create New Password
               </h3>
               <p className="text-gray-600 text-sm">
-                Enter your current password and create a new secure password.
+                Your identity has been verified. Please create a new secure
+                password.
               </p>
             </div>
 
+            {/* General Error */}
+            {formErrors.general && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-red-600 text-sm text-center">
+                  {formErrors.general}
+                </p>
+              </div>
+            )}
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Employee ID */}
-              <div className="space-y-1">
-                <label
-                  htmlFor="employeeId"
-                  className="text-xs font-medium text-gray-700 block"
-                >
-                  Employee ID
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="employeeId"
-                    value={formData.employeeId}
-                    onChange={(e) =>
-                      handleInputChange("employeeId", e.target.value)
-                    }
-                    placeholder="Enter your Employee ID"
-                    className={`w-full px-4 py-3 rounded-xl bg-gray-50 border-2 transition-all duration-200 focus:outline-none focus:bg-white text-sm ${
-                      formErrors.employeeId
-                        ? "border-red-300 focus:border-red-500"
-                        : "border-transparent focus:border-blue-500"
-                    }`}
-                    disabled={isLoading}
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <svg
-                      className="w-4 h-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                {formErrors.employeeId && (
-                  <p className="text-red-500 text-xs">
-                    {formErrors.employeeId}
-                  </p>
-                )}
-              </div>
-
-              {/* Current Password */}
-              <div className="space-y-1">
-                <label
-                  htmlFor="oldPassword"
-                  className="text-xs font-medium text-gray-700 block"
-                >
-                  Current Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showOldPassword ? "text" : "password"}
-                    id="oldPassword"
-                    value={formData.oldPassword}
-                    onChange={(e) =>
-                      handleInputChange("oldPassword", e.target.value)
-                    }
-                    placeholder="Enter your current password"
-                    className={`w-full px-4 py-3 rounded-xl bg-gray-50 border-2 transition-all duration-200 focus:outline-none focus:bg-white pr-12 text-sm ${
-                      formErrors.oldPassword
-                        ? "border-red-300 focus:border-red-500"
-                        : "border-transparent focus:border-blue-500"
-                    }`}
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={toggleOldPasswordVisibility}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
-                    disabled={isLoading}
-                  >
-                    {showOldPassword ? (
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 16 16"
-                      >
-                        <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z" />
-                        <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829" />
-                        <path d="m2.854 2.146a.5.5 0 1 0-.708.708l10.5 10.5a.5.5 0 0 0 .708-.708l-10.5-10.5z" />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 16 16"
-                      >
-                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
-                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                {formErrors.oldPassword && (
-                  <p className="text-red-500 text-xs">
-                    {formErrors.oldPassword}
-                  </p>
-                )}
-              </div>
-
               {/* New Password */}
               <div className="space-y-1">
                 <label
-                  htmlFor="newPassword"
+                  htmlFor="password"
                   className="text-xs font-medium text-gray-700 block"
                 >
                   New Password
                 </label>
                 <div className="relative">
                   <input
-                    type={showNewPassword ? "text" : "password"}
-                    id="newPassword"
-                    value={formData.newPassword}
-                    onChange={(e) =>
-                      handleInputChange("newPassword", e.target.value)
-                    }
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    value={password}
+                    onChange={(e) => handlePasswordChange(e.target.value)}
                     placeholder="Enter your new password"
                     className={`w-full px-4 py-3 rounded-xl bg-gray-50 border-2 transition-all duration-200 focus:outline-none focus:bg-white pr-12 text-sm ${
-                      formErrors.newPassword
+                      formErrors.password
                         ? "border-red-300 focus:border-red-500"
                         : "border-transparent focus:border-blue-500"
                     }`}
                     disabled={isLoading}
+                    required
+                    minLength="6"
                   />
                   <button
                     type="button"
-                    onClick={toggleNewPasswordVisibility}
+                    onClick={togglePasswordVisibility}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
                     disabled={isLoading}
                   >
-                    {showNewPassword ? (
+                    {showPassword ? (
                       <svg
                         className="w-4 h-4"
                         fill="currentColor"
@@ -340,9 +280,128 @@ const ResetPassword = () => {
                     )}
                   </button>
                 </div>
-                {formErrors.newPassword && (
+
+                {/* Password Strength Indicator */}
+                {password && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-600">
+                        Password Strength:
+                      </span>
+                      <span
+                        className={`text-xs font-medium ${strengthInfo.color}`}
+                      >
+                        {strengthInfo.text}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${strengthInfo.bg}`}
+                        style={{ width: `${(passwordStrength / 5) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {formErrors.password && (
+                  <p className="text-red-500 text-xs">{formErrors.password}</p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="confirmPassword"
+                  className="text-xs font-medium text-gray-700 block"
+                >
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) =>
+                      handleConfirmPasswordChange(e.target.value)
+                    }
+                    placeholder="Confirm your new password"
+                    className={`w-full px-4 py-3 rounded-xl bg-gray-50 border-2 transition-all duration-200 focus:outline-none focus:bg-white pr-12 text-sm ${
+                      formErrors.confirmPassword
+                        ? "border-red-300 focus:border-red-500"
+                        : confirmPassword && password === confirmPassword
+                        ? "border-green-300 focus:border-green-500"
+                        : "border-transparent focus:border-blue-500"
+                    }`}
+                    disabled={isLoading}
+                    required
+                    minLength="6"
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleConfirmPasswordVisibility}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                    disabled={isLoading}
+                  >
+                    {showConfirmPassword ? (
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z" />
+                        <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829" />
+                        <path d="m2.854 2.146a.5.5 0 1 0-.708.708l10.5 10.5a.5.5 0 0 0 .708-.708l-10.5-10.5z" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Match Indicator */}
+                  {confirmPassword && (
+                    <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                      {password === confirmPassword ? (
+                        <svg
+                          className="w-4 h-4 text-green-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4 text-red-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {formErrors.confirmPassword && (
                   <p className="text-red-500 text-xs">
-                    {formErrors.newPassword}
+                    {formErrors.confirmPassword}
                   </p>
                 )}
               </div>
@@ -361,28 +420,14 @@ const ResetPassword = () => {
               </button>
             </form>
 
-            {/* Back to Login */}
+            {/* Password Requirements */}
+
+            {/* Success Message */}
             <div className="mt-6 text-center">
-              <button
-                onClick={() => navigate("/login")}
-                className="text-gray-600 hover:text-blue-600 text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1 mx-auto"
-                disabled={isLoading}
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                <span>Back to Login</span>
-              </button>
+              <p className="text-xs text-gray-500">
+                After resetting your password, you'll be redirected to the login
+                page.
+              </p>
             </div>
           </div>
         </div>
@@ -394,10 +439,10 @@ const ResetPassword = () => {
           <div className="bg-white rounded-2xl p-6 flex flex-col items-center space-y-3 shadow-2xl mx-4">
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent"></div>
             <p className="text-gray-700 font-medium text-sm">
-              Resetting Password...
+              Updating Password...
             </p>
             <p className="text-gray-500 text-xs text-center">
-              Please wait while we update your password
+              Please wait while we secure your new password
             </p>
           </div>
         </div>
@@ -406,4 +451,4 @@ const ResetPassword = () => {
   );
 };
 
-export default ResetPassword;
+export default ResetPasswordOtp;

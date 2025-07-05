@@ -110,7 +110,7 @@ export default function UserProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-6">
+    <div className="  bg-gradient-to-br   pb-6">
       {/* Header with Back Button */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-b-3xl shadow-lg">
         <div className="flex items-center mb-4">
@@ -127,7 +127,7 @@ export default function UserProfile() {
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
             {userData.profileimage ? (
               <img
-                src={userData.profileimage}
+                src={`${process.env.REACT_APP_BASE_URL}${userData.profileimage}`}
                 alt={`${userData.firstname} ${userData.lastname}`}
                 className="w-full h-full rounded-full object-cover"
               />
@@ -135,6 +135,7 @@ export default function UserProfile() {
               <User className="w-8 h-8 text-white" />
             )}
           </div>
+
           <div className="flex-1">
             <h1 className="text-2xl font-bold">
               {userData.firstname} {userData.lastname}
@@ -404,15 +405,6 @@ export default function UserProfile() {
                       <p className="text-xs text-purple-600 uppercase tracking-wide font-medium">
                         {demo.type}
                       </p>
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          demo.selectionType === "multiple"
-                            ? "bg-purple-200 text-purple-800"
-                            : "bg-gray-200 text-gray-800"
-                        }`}
-                      >
-                        {demo.selectionType}
-                      </span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {getDemographicValues(demo).map((value, valueIndex) => (

@@ -42,6 +42,8 @@ import QuoteGeneration from './Component/ContractProposal/QuoteGeneration';
 import CNoteGen from './Component/ContractProposal/CNoteGen';
 import OnCallService from './Component/OnCallService/OnCallService';
 import UserProfile from './Component/Home/UserProfile';
+import ResetPasswordOtp from './Component/Auth/ResetPasswordOtp';
+import OTPVerification from './Component/Auth/OTPVerification';
 const platform = Capacitor.getPlatform();
 
 
@@ -127,6 +129,8 @@ function App() {
           <Route path="/login" element={<PublicRoute element={Login} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<OTPVerification />} />
+          <Route path="/reset-password-otp" element={<ResetPasswordOtp />} />
 
           {/* Protected Routes */}
           <Route
@@ -158,6 +162,7 @@ function App() {
             path="/preventive-maintenance"
             element={<PrivateRoute element={PreventiveMaintenance} />}
           />
+
           <Route
             path="/pm-details"
             element={<PrivateRoute element={PmDetails} />}

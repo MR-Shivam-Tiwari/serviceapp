@@ -1086,7 +1086,7 @@ function Home() {
         >
           <img
             src={
-              userData.profileimage ||
+              `${process.env.REACT_APP_BASE_URL}${userData.profileimage}` ||
               "https://img.freepik.com/premium-vector/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-vector-illustration_561158-3383.jpg?w=740"
             }
             alt="User"
