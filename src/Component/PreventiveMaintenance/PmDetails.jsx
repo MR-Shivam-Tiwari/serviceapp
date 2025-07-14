@@ -388,22 +388,29 @@ function PmDetails() {
   const [userInfo, setUserInfo] = useState({
     firstName: "",
     lastName: "",
+    employeeId: "",
+    userid: "",
     email: "",
-    mobilenumber: "",
-    branch: "",
-    employeeid: "",
+    dealerEmail: "",
+    manageremail: [],
   });
 
+  // Load user info on mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
       setUserInfo({
-        firstName: storedUser.firstname || "",
-        lastName: storedUser.lastname || "",
-        email: storedUser.email || "",
-        mobilenumber: storedUser.mobilenumber || "",
-        branch: storedUser.branch?.[0] || "",
-        employeeid: storedUser.employeeid || "",
+        firstName: storedUser.firstname,
+        lastName: storedUser.lastname,
+        employeeId: storedUser.employeeid,
+        userid: storedUser.id,
+        email: storedUser.email,
+        dealerEmail: storedUser.dealerInfo?.dealerEmail,
+        manageremail: Array.isArray(storedUser.manageremail)
+          ? storedUser.manageremail
+          : storedUser.manageremail
+          ? [storedUser.manageremail]
+          : [],
       });
     }
   }, []);
@@ -457,6 +464,7 @@ function PmDetails() {
         checklistData: responses,
         customerCode: pm.customerCode,
         globalRemark,
+        userInfo,
       };
 
       try {
@@ -492,9 +500,13 @@ function PmDetails() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ customerCode: selectedPms[0].customerCode }),
+          body: JSON.stringify({
+            customerCode: selectedPms[0].customerCode,
+            ...userInfo, // spread the userInfo directly into the payload
+          }),
         }
       );
+
       const sendData = await sendRes.json();
       if (
         sendData.message &&

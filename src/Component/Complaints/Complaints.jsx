@@ -1,206 +1,111 @@
-import React from "react";
+"use client";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Clock, Plus, AlertTriangle, FileText } from "lucide-react";
 
 const Complaints = () => {
   const navigate = useNavigate();
+
   return (
-    <div className=" ">
-      <div className="w-full  ">
-        <div className="flex items-center bg-primary p-3 py-5 text-white mb-4  ">
-          <button className="mr-2 text-white" onClick={() => navigate("/")}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="currentColor"
-              className="bi bi-arrow-left-short"
-              viewBox="0 0 16 16"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="w-full">
+        {/* Enhanced Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-6 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              onClick={() => navigate("/")}
             >
-              <path
-                fillRule="evenodd"
-                d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-              />
-            </svg>
-          </button>
-          <h2 className="text-xl font-bold">Complaints</h2>
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div className="flex items-center ">
+              <div>
+                <h2 className="text-xl text-nowrap font-bold tracking-wide">
+                  Complaints Management
+                </h2>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Complaint Options */}
-        <div className="space-y-4 px-4">
-          <button
-            onClick={() => navigate("/pendingcomplaints")}
-            className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
-          >
-            <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
-              <svg
-                id="fi_6520475"
-                enable-background="new 0 0 512 512"
-                viewBox="0 0 512 512"
-                className="w-16 h-16"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g>
-                  <path
-                    d="m197.841 55.126-184.39 275.437c-15.396 22.998 1.087 53.868 28.763 53.868h368.779c27.675 0 44.159-30.87 28.763-53.868l-184.389-275.437c-13.709-20.477-43.818-20.477-57.526 0z"
-                    fill="#ffe177"
-                  ></path>
-                  <path
-                    d="m354.516 203.233c-69.49 13.965-121.993 75.468-121.993 149.009 0 11.042 1.195 21.809 3.442 32.189h175.028c27.676 0 44.159-30.87 28.763-53.868z"
-                    fill="#ffd15b"
-                  ></path>
-                  <g>
-                    <g>
-                      <g>
-                        <g>
-                          <path
-                            d="m226.603 265.48c-8.836 0-15.999-7.163-15.999-15.999v-138.757c0-8.836 7.162-15.999 15.999-15.999s15.999 7.163 15.999 15.999v138.757c0 8.836-7.163 15.999-15.999 15.999z"
-                            fill="#fe76a8"
-                          ></path>
-                        </g>
-                      </g>
-                    </g>
-                    <circle
-                      cx="226.604"
-                      cy="313.476"
-                      fill="#fe76a8"
-                      r="15.999"
-                    ></circle>
-                  </g>
-                  <g>
-                    <circle
-                      cx="384.511"
-                      cy="352.242"
-                      fill="#6cf5c2"
-                      r="119.99"
-                    ></circle>
+        <div className="p-4">
+          {/* Action Cards */}
+          <div className="space-y-6">
+            {/* Pending Complaints Card */}
+            <div
+              onClick={() => navigate("/pendingcomplaints")}
+              className="group relative bg-gradient-to-br from-white to-orange-50 hover:from-orange-50 hover:to-red-50 rounded-2xl shadow-lg hover:shadow-2xl border border-orange-200 hover:border-orange-300 p-8 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1"
+            >
+              <div className="flex items-center space-x-6">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                    <AlertTriangle className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                    <Clock className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-orange-700 transition-colors">
+                    Pending Complaints
+                  </h3>
+                </div>
+                <div className="text-orange-600 group-hover:text-orange-700 transition-colors">
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
-                      d="m442.594 247.231c9.54 17.211 14.979 37.011 14.979 58.083 0 66.269-53.721 119.99-119.99 119.99-21.072 0-40.872-5.439-58.083-14.979 20.462 36.914 59.815 61.907 105.011 61.907 66.269 0 119.99-53.721 119.99-119.99 0-45.196-24.993-84.549-61.907-105.011z"
-                      fill="#00f2a6"
-                    ></path>
-                    <circle
-                      cx="384.511"
-                      cy="352.242"
-                      fill="#f2fbff"
-                      r="87.993"
-                    ></circle>
-                    <path
-                      d="m457.539 303.206c.012.703.034 1.403.034 2.109 0 66.269-53.721 119.99-119.99 119.99-.706 0-1.406-.022-2.108-.034 14.021 9.445 30.896 14.964 49.036 14.964 48.519 0 87.993-39.473 87.993-87.993-.001-18.14-5.52-35.015-14.965-49.036z"
-                      fill="#dff6fd"
-                    ></path>
-                  </g>
-                  <g>
-                    <path d="m113.524 376.93h-71.314c-10.18 0-19.119-5.362-23.914-14.344-4.795-8.98-4.276-19.391 1.389-27.851l184.383-275.436c5.119-7.646 13.332-12.031 22.536-12.031 9.202 0 17.417 4.385 22.535 12.031l46.477 69.424c2.303 3.442 6.961 4.364 10.403 2.06s4.365-6.962 2.06-10.404l-46.477-69.424c-7.832-11.701-20.917-18.686-34.999-18.686-14.083 0-27.167 6.985-35 18.686l-184.383 275.436c-8.797 13.139-9.604 29.311-2.156 43.259 7.448 13.95 21.334 22.278 37.145 22.278h71.314c4.142 0 7.499-3.358 7.499-7.499s-3.356-7.499-7.498-7.499z"></path>
-                    <path d="m250.101 249.481v-138.757c0-12.957-10.541-23.498-23.498-23.498s-23.498 10.541-23.498 23.498v138.757c0 12.957 10.541 23.498 23.498 23.498s23.498-10.541 23.498-23.498zm-31.997 0v-138.757c0-4.687 3.813-8.499 8.499-8.499s8.499 3.813 8.499 8.499v138.757c0 4.687-3.813 8.499-8.499 8.499s-8.499-3.812-8.499-8.499z"></path>
-                    <path d="m226.604 336.974c12.957 0 23.498-10.541 23.498-23.498s-10.541-23.498-23.498-23.498-23.498 10.541-23.498 23.498 10.541 23.498 23.498 23.498zm0-31.998c4.686 0 8.499 3.813 8.499 8.499s-3.813 8.499-8.499 8.499-8.499-3.813-8.499-8.499 3.813-8.499 8.499-8.499z"></path>
-                    <path d="m384.511 224.753c-2.163 0-4.313.055-6.45.162l-50.513-75.458c-2.303-3.441-6.959-4.363-10.403-2.06-3.442 2.304-4.365 6.962-2.06 10.403l46.238 69.072c-59.264 10.936-104.301 62.989-104.301 125.37 0 8.445.833 16.698 2.408 24.688h-110.909c-4.142 0-7.499 3.358-7.499 7.499s3.357 7.499 7.499 7.499h114.833c16.723 50.925 64.71 87.803 121.157 87.803 70.298 0 127.489-57.191 127.489-127.489s-57.191-127.489-127.489-127.489zm0 239.979c-62.027 0-112.49-50.463-112.49-112.49s50.464-112.49 112.49-112.49 112.491 50.463 112.491 112.49-50.464 112.49-112.491 112.49z"></path>
-                    <path d="m466.02 302.539c-2.163-3.532-6.783-4.641-10.312-2.479-3.532 2.163-4.642 6.78-2.478 10.312 7.702 12.578 11.774 27.056 11.774 41.87 0 44.384-36.109 80.493-80.493 80.493s-80.493-36.109-80.493-80.493 36.109-80.493 80.493-80.493c17.008 0 33.277 5.268 47.049 15.235 3.354 2.428 8.043 1.678 10.473-1.678 2.428-3.356 1.677-8.044-1.679-10.472-16.346-11.83-35.656-18.083-55.843-18.083-52.655 0-95.492 42.838-95.492 95.492s42.837 95.492 95.492 95.492 95.492-42.838 95.492-95.492c0-17.581-4.836-34.768-13.983-49.704z"></path>
-                    <path d="m384.511 288.747c-4.142 0-7.499 3.358-7.499 7.499v55.995c0 4.142 3.357 7.499 7.499 7.499h35.997c4.142 0 7.499-3.358 7.499-7.499 0-4.142-3.357-7.499-7.499-7.499h-28.498v-48.496c0-4.141-3.357-7.499-7.499-7.499z"></path>
-                  </g>
-                </g>
-              </svg>
-              Pending Complaints
-            </div>
-          </button>
-
-          <button
-            onClick={() => navigate("/createcomplaint")}
-            className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
-          >
-            <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
-              <svg
-                viewBox="0 0 512 512"
-                xmlns="http://www.w3.org/2000/svg"
-                id="fi_14293171"
-                className="h-16 w-16"
-              >
-                <linearGradient
-                  id="linear-gradient"
-                  gradientUnits="userSpaceOnUse"
-                  x1="124.91"
-                  x2="446.18"
-                  y1="106.59"
-                  y2="427.85"
-                >
-                  <stop offset="0" stop-color="#9cc5d8"></stop>
-                  <stop
-                    offset=".92"
-                    stop-color="#9cc5d8"
-                    stop-opacity="0"
-                  ></stop>
-                </linearGradient>
-                <g id="Layer_2" data-name="Layer 2">
-                  <g id="Layer_1_copy_7" data-name="Layer 1 copy 7">
-                    <g id="_64" data-name="64">
-                      <circle
-                        id="background"
-                        cx="256"
-                        cy="256"
-                        fill="#def3ff"
-                        r="256"
-                      ></circle>
-                      <path
-                        d="m510.73 230.38-107.25-107.25a31.37 31.37 0 0 0 -23.93-11h-247.1a31.45 31.45 0 0 0 -31.45 31.39v156.48a31.36 31.36 0 0 0 10.21 23.19l39.44 39.44v28.05a9.19 9.19 0 0 0 1.53 5.13 9.24 9.24 0 0 0 2.55 2.55l113.39 113.35c135.75-6.32 243.88-118.39 243.88-255.71q0-13-1.27-25.62z"
-                        fill="url(#linear-gradient)"
-                      ></path>
-                      <path
-                        d="m165 401.5a17.89 17.89 0 0 1 -17.88-17.86v-47.09h-8.2a38.92 38.92 0 0 1 -38.92-38.87v-148.31a38.92 38.92 0 0 1 38.87-38.87h234.26a38.92 38.92 0 0 1 38.87 38.87v148.31a38.92 38.92 0 0 1 -38.87 38.87h-117.08l-80.32 61.28a17.67 17.67 0 0 1 -10.73 3.67z"
-                        fill="#293e55"
-                      ></path>
-                      <path
-                        d="m372.38 120.43h-232.76a29.63 29.63 0 0 0 -29.62 29.63v147.35a29.62 29.62 0 0 0 29.62 29.59h17.15v55.79a8.73 8.73 0 0 0 14 6.94l82.23-62.73h119.38a29.62 29.62 0 0 0 29.62-29.59v-147.35a29.63 29.63 0 0 0 -29.62-29.63z"
-                        fill="#84c9fe"
-                      ></path>
-                      <path
-                        d="m256 294.62a25.91 25.91 0 0 1 -25.88-25.88v-21h-21a25.89 25.89 0 0 1 0-51.77h21v-20.97a25.88 25.88 0 0 1 51.76 0v21h21a25.89 25.89 0 0 1 0 51.77h-21v21a25.91 25.91 0 0 1 -25.88 25.85z"
-                        fill="#293e55"
-                      ></path>
-                      <path
-                        d="m272.72 268.65v-29.87h29.87a16.72 16.72 0 0 0 0-33.43h-29.87v-29.87a16.73 16.73 0 0 0 -16.72-16.72 16.73 16.73 0 0 0 -16.72 16.72v29.87h-29.87a16.72 16.72 0 0 0 0 33.43h29.87v29.87a16.72 16.72 0 0 0 16.72 16.72 16.72 16.72 0 0 0 16.72-16.72z"
-                        fill="#fff"
-                      ></path>
-                      <path
-                        id="border"
-                        d="m256 9a247.06 247.06 0 0 1 96.14 474.59 247.06 247.06 0 0 1 -192.28-455.18 245.37 245.37 0 0 1 96.14-19.41m0-9c-141.38 0-256 114.62-256 256s114.62 256 256 256 256-114.62 256-256-114.62-256-256-256z"
-                        fill="#293e55"
-                      ></path>
-                    </g>
-                  </g>
-                </g>
-              </svg>
-              Create Complaint
-            </div>
-          </button>
-
-          {/* <button onClick={()=> navigate('/createclosecomplaint')} className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100">
-            <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
-              <div className="flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="36"
-                  height="36"
-                  fill="currentColor"
-                  class="bi bi-clipboard2-plus-fill"
-                  viewBox="0 0 16 16"
-                >
-                  <path d="M10 .5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5.5.5 0 0 1-.5.5.5.5 0 0 0-.5.5V2a.5.5 0 0 0 .5.5h5A.5.5 0 0 0 11 2v-.5a.5.5 0 0 0-.5-.5.5.5 0 0 1-.5-.5" />
-                  <path d="M4.085 1H3.5A1.5 1.5 0 0 0 2 2.5v12A1.5 1.5 0 0 0 3.5 16h9a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 12.5 1h-.585q.084.236.085.5V2a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 2v-.5q.001-.264.085-.5M8.5 6.5V8H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V9H6a.5.5 0 0 1 0-1h1.5V6.5a.5.5 0 0 1 1 0" />
-                </svg>
-                <span className="text-sm">&</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="36"
-                  height="36"
-                  fill="currentColor"
-                  class="bi bi-clipboard2-x-fill"
-                  viewBox="0 0 16 16"
-                >
-                  <path d="M10 .5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5.5.5 0 0 1-.5.5.5.5 0 0 0-.5.5V2a.5.5 0 0 0 .5.5h5A.5.5 0 0 0 11 2v-.5a.5.5 0 0 0-.5-.5.5.5 0 0 1-.5-.5" />
-                  <path d="M4.085 1H3.5A1.5 1.5 0 0 0 2 2.5v12A1.5 1.5 0 0 0 3.5 16h9a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 12.5 1h-.585q.084.236.085.5V2a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 2v-.5q.001-.264.085-.5M8 8.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 9l1.147 1.146a.5.5 0 0 1-.708.708L8 9.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 9 6.146 7.854a.5.5 0 1 1 .708-.708z" />
-                </svg>
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
               </div>
-              Create & Close
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-600/0 via-orange-600/5 to-red-600/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
-          </button> */}
+
+            {/* Create Complaint Card */}
+            <div
+              onClick={() => navigate("/createcomplaint")}
+              className="group relative bg-gradient-to-br from-white to-green-50 hover:from-green-50 hover:to-emerald-50 rounded-2xl shadow-lg hover:shadow-2xl border border-green-200 hover:border-green-300 p-8 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1"
+            >
+              <div className="flex items-center space-x-6">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                    <Plus className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <FileText className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-green-700 transition-colors">
+                    Create Complaint
+                  </h3>
+                </div>
+                <div className="text-green-600 group-hover:text-green-700 transition-colors">
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 via-green-600/5 to-emerald-600/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

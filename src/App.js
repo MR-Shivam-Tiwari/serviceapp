@@ -122,7 +122,7 @@ function App() {
         }}
       />
       {/* Safe area container */}
-      <div className="safe-area-container  varela-round">
+      <div className="safe-area-container   varela-round">
         <BackButtonHandler />
         <Routes>
           {/* Public Routes */}

@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
@@ -50,139 +51,253 @@ const CustomerDetails = () => {
   if (!customer) {
     return (
       <div className="flex mt-20 items-center justify-center">
-        <span className="loader"></span>
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <span className="text-gray-600">Loading...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
-        <button
-          className="mr-2 text-white"
-          onClick={() => navigate("/searchcustomer")}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="36"
-            height="36"
-            fill="currentColor"
-            className="bi bi-arrow-left-short"
-            viewBox="0 0 16 16"
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+        <div className="flex items-center p-4 py-6 text-white">
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            onClick={() => navigate("/searchcustomer")}
           >
-            <path
-              fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-            />
-          </svg>
-        </button>
-        <h2 className="text-xl font-bold">Customer Details</h2>
-      </div>
-
-      <div className="p-4 space-y-2">
-        <p>
-          <strong>Customer Code:</strong> {customer.customercodeid || "N/A"}
-        </p>
-        <p>
-          <strong>Customer Name:</strong> {customer.customername || "N/A"}
-        </p>
-        <p>
-          <strong>Hospital Name:</strong> {customer.hospitalname || "N/A"}
-        </p>
-        <p>
-          <strong>Street:</strong> {customer.street || "N/A"}
-        </p>
-        <p>
-          <strong>City:</strong> {customer.city || "N/A"}
-        </p>
-        <p>
-          <strong>District:</strong> {customer.district || "N/A"}
-        </p>
-        <p>
-          <strong>Postal Code:</strong> {customer.postalcode || "N/A"}
-        </p>
-        <p>
-          <strong>Region:</strong> {customer.region || "N/A"}
-        </p>
-        <p>
-          <strong>Country:</strong> {customer.country || "N/A"}
-        </p>
-        <p>
-          <strong>PAN Number:</strong> {customer.pannumber || "N/A"}
-        </p>
-        <p>
-          <strong>GST Number:</strong> {customer.gstnumber || "N/A"}
-        </p>
-        <p>
-          <strong>Telephone:</strong> {customer.telephone || "N/A"}
-        </p>
-        <p>
-          <strong>Email:</strong> {customer.email || "N/A"}
-        </p>
-
-        <button
-          className="mt-6 w-full bg-primary text-white py-2 px-4 rounded-md shadow-md hover:bg-blue-800 transition"
-          onClick={fetchEquipment}
-        >
-          CHECK EQUIPMENTS
-        </button>
-      </div>
-
-      {/* Equipment List */}
-      {showEquipment && (
-        <div className="px-3 mb-7">
-          {loading ? (
-            <div className="flex justify-center mt-4">
-              <span className="loader"></span>
-            </div>
-          ) : equipment.length > 0 ? (
-            <div className="overflow-x-auto mt-4 rounded-sm">
-              <table className="min-w-full bg-white border rounded border-gray-300 shadow-md">
-                <thead className="rounded">
-                  <tr className="bg-gray-200 text-gray-700">
-                    <th className="py-1 px-6 border text-center">
-                      Serial No
-                    </th>
-                    <th className="py-1 px-6 border text-center">Part No</th>
-                    <th className="py-1 px-6 border text-center">Product</th>
-                  </tr>
-                </thead>
-                <tbody className="rounded">
-                  {equipment.map((item, index) => (
-                    <tr
-                      key={item._id}
-                      className={`border ${
-                        index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                      }`}
-                    >
-                      <td className="py-2 px-6 border text-center">
-                        {/* Link to EquipmentDetail with serial number in state */}
-                        <Link
-                          to="/equipmentdetail"
-                          state={{ serialNumber: item.serialnumber }}
-                          className="text-blue-600 underline"
-                        >
-                          {item.serialnumber}
-                        </Link>
-                      </td>
-                      <td className="py-2 px-6 border text-center">
-                        {item.materialcode}
-                      </td>
-                      <td className="py-2 px-6 border text-center">
-                        {item.materialdescription}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="mt-4 text-gray-500">
-              No equipment found for this customer.
-            </p>
-          )}
+            <ArrowLeft className="h-6 w-6 text-white" />
+          </button>
+          <h2 className="text-xl font-bold text-white">Customer Details</h2>
         </div>
-      )}
+      </div>
+
+      {/* Customer Information */}
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="space-y-4">
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Customer Code:</strong>{" "}
+                {customer.customercodeid || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Customer Name:</strong>{" "}
+                {customer.customername || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Hospital Name:</strong>{" "}
+                {customer.hospitalname || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Street:</strong>{" "}
+                {customer.street || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-teal-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">City:</strong>{" "}
+                {customer.city || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-pink-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">District:</strong>{" "}
+                {customer.district || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Postal Code:</strong>{" "}
+                {customer.postalcode || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Region:</strong>{" "}
+                {customer.region || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Country:</strong>{" "}
+                {customer.country || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-cyan-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">PAN Number:</strong>{" "}
+                {customer.pannumber || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-emerald-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">GST Number:</strong>{" "}
+                {customer.gstnumber || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center pb-2 border-b border-gray-200">
+              <div className="w-3 h-3 bg-violet-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Telephone:</strong>{" "}
+                {customer.telephone || "N/A"}
+              </p>
+            </div>
+
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-rose-500 rounded-full mr-3"></div>
+              <p className="text-gray-600">
+                <strong className="text-gray-800">Email:</strong>{" "}
+                {customer.email || "N/A"}
+              </p>
+            </div>
+          </div>
+
+          {/* Check Equipment Button */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <button
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+              onClick={fetchEquipment}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                <span>CHECK EQUIPMENTS</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Equipment Section */}
+        {showEquipment && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-4 h-4 bg-teal-500 rounded-full mr-3"></div>
+              <h3 className="text-lg font-semibold text-gray-800">
+                Equipment List
+              </h3>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+                  <span className="text-gray-600">Loading equipment...</span>
+                </div>
+              </div>
+            ) : equipment.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <thead className="bg-gradient-to-r from-gray-100 to-gray-200">
+                    <tr>
+                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-700 border-b">
+                        Serial No
+                      </th>
+                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-700 border-b">
+                        Part No
+                      </th>
+                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-700 border-b">
+                        Product
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equipment.map((item, index) => (
+                      <tr
+                        key={item._id}
+                        className={`border-b hover:bg-gray-50 transition-colors duration-200 ${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                        }`}
+                      >
+                        <td className="py-3 px-6">
+                          <button
+                            onClick={() =>
+                              navigate("/equipmentdetail", {
+                                state: { serialNumber: item.serialnumber },
+                              })
+                            }
+                            className="text-blue-600 hover:text-blue-800 font-semibold hover:underline transition-colors duration-200"
+                          >
+                            {item.serialnumber}
+                          </button>
+                        </td>
+                        <td className="py-3 px-6 text-gray-700">
+                          {item.materialcode}
+                        </td>
+                        <td className="py-3 px-6 text-gray-700">
+                          {item.materialdescription}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-gray-500">
+                  No equipment found for this customer.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

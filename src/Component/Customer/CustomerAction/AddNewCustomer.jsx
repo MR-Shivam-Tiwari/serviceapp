@@ -1,6 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import {
+  ArrowLeft,
+  User,
+  MapPin,
+  Phone,
+  CreditCard,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 
 function AddNewCustomer() {
   const navigate = useNavigate();
@@ -139,330 +148,379 @@ function AddNewCustomer() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Fixed Header */}
-      <header className="bg-primary p-3 py-5 flex items-center text-white">
-        <button
-          className="mr-2 text-white"
-          onClick={() => navigate("/customer")}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="36"
-            height="36"
-            fill="currentColor"
-            className="bi bi-arrow-left-short"
-            viewBox="0 0 16 16"
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Enhanced Header */}
+      <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg shadow-lg sticky top-0 z-40">
+        <div className="flex items-center p-4 py-6 text-white">
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            onClick={() => navigate("/customer")}
           >
-            <path
-              fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-            />
-          </svg>
-        </button>
-        <h2 className="text-xl font-bold">Add New Customer</h2>
+            <ArrowLeft size={24} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Add New Customer</h1>
+          </div>
+        </div>
       </header>
 
-      {/* Scrollable Form Area */}
-      <main className="flex-1 overflow-y-auto px-3 py-4 mb-20">
-        <form id="customerForm" onSubmit={handleSubmit} className="space-y-4">
-          {/* Customer Type */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              Customer Type <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="customertype"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.customertype}
-              onChange={handleInputChange}
-            >
-              <option value="">Select Customer Type*</option>
-              <option value="Government">Government</option>
-              <option value="Private">Private</option>
-            </select>
-            {errors.customertype && (
-              <p className="text-red-500 text-sm mt-1">{errors.customertype}</p>
-            )}
-          </div>
+      {/* Main Content */}
+      <div className="max-w-4xl mx-auto p-3 pb-32">
+        <form id="customerForm" onSubmit={handleSubmit} className="space-y-8">
+          {/* Customer Type Section */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                <User className="mr-2" size={20} />
+                Customer Information
+              </h3>
+            </div>
+            <div className="p-4">
+              <div className="space-y-6">
+                {/* Customer Type */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Customer Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="customertype"
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200"
+                    value={formData.customertype}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Select Customer Type</option>
+                    <option value="Government">Government</option>
+                    <option value="Private">Private</option>
+                  </select>
+                  {errors.customertype && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <AlertCircle size={16} className="mr-1" />
+                      {errors.customertype}
+                    </p>
+                  )}
+                </div>
 
-          {/* Customer Name */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              Customer Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="customername"
-              placeholder="Enter Customer Name*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.customername}
-              onChange={handleInputChange}
-            />
-            {errors.customername && (
-              <p className="text-red-500 text-sm mt-1">{errors.customername}</p>
-            )}
-          </div>
+                {/* Customer Name */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Customer Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="customername"
+                    placeholder="Enter Customer Name"
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200"
+                    value={formData.customername}
+                    onChange={handleInputChange}
+                  />
+                  {errors.customername && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <AlertCircle size={16} className="mr-1" />
+                      {errors.customername}
+                    </p>
+                  )}
+                </div>
 
-          {/* Hospital Name */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              Hospital Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="hospitalname"
-              placeholder="Enter Hospital Name*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.hospitalname}
-              onChange={handleInputChange}
-            />
-            {errors.hospitalname && (
-              <p className="text-red-500 text-sm mt-1">{errors.hospitalname}</p>
-            )}
-          </div>
+                {/* Hospital Name */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Hospital Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="hospitalname"
+                    placeholder="Enter Hospital Name"
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200"
+                    value={formData.hospitalname}
+                    onChange={handleInputChange}
+                  />
+                  {errors.hospitalname && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <AlertCircle size={16} className="mr-1" />
+                      {errors.hospitalname}
+                    </p>
+                  )}
+                </div>
 
-          {/* Street */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              Street <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="street"
-              placeholder="Enter Street*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.street}
-              onChange={handleInputChange}
-            />
-            {errors.street && (
-              <p className="text-red-500 text-sm mt-1">{errors.street}</p>
-            )}
-          </div>
+                {/* Street */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Street Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="street"
+                    placeholder="Enter Street Address"
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200"
+                    value={formData.street}
+                    onChange={handleInputChange}
+                  />
+                  {errors.street && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <AlertCircle size={16} className="mr-1" />
+                      {errors.street}
+                    </p>
+                  )}
+                </div>
 
-          {/* City */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              City <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="city"
-              placeholder="Enter City*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.city}
-              onChange={handleInputChange}
-            />
-            {errors.city && (
-              <p className="text-red-500 text-sm mt-1">{errors.city}</p>
-            )}
-          </div>
+                {/* City and Postal Code Row */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      City <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      placeholder="Enter City"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                    />
+                    {errors.city && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.city}
+                      </p>
+                    )}
+                  </div>
 
-          {/* Postal Code */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              Postal Code <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="postalcode"
-              placeholder="Enter Postal Code*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.postalcode}
-              onChange={(e) => {
-                if (/^\d*$/.test(e.target.value)) {
-                  handleInputChange(e);
-                }
-              }}
-              onBlur={(e) => {
-                if (e.target.value.length < 5) {
-                  setErrors((prevErrors) => ({
-                    ...prevErrors,
-                    postalcode: "Postal Code must be at least 5 digits",
-                  }));
-                } else {
-                  setErrors((prevErrors) => ({
-                    ...prevErrors,
-                    postalcode: "",
-                  }));
-                }
-              }}
-            />
-            {errors.postalcode && (
-              <p className="text-red-500 text-sm mt-1">{errors.postalcode}</p>
-            )}
-          </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Postal Code <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="postalcode"
+                      placeholder="Enter Postal Code"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200"
+                      value={formData.postalcode}
+                      onChange={(e) => {
+                        if (/^\d*$/.test(e.target.value)) {
+                          handleInputChange(e);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value.length < 5) {
+                          setErrors((prevErrors) => ({
+                            ...prevErrors,
+                            postalcode: "Postal Code must be at least 5 digits",
+                          }));
+                        } else {
+                          setErrors((prevErrors) => ({
+                            ...prevErrors,
+                            postalcode: "",
+                          }));
+                        }
+                      }}
+                    />
+                    {errors.postalcode && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.postalcode}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-          {/* District */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              District <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="district"
-              placeholder="Enter District*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.district}
-              onChange={handleInputChange}
-            />
-            {errors.district && (
-              <p className="text-red-500 text-sm mt-1">{errors.district}</p>
-            )}
-          </div>
+                {/* District and State Row */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      District <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="district"
+                      placeholder="Enter District"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200"
+                      value={formData.district}
+                      onChange={handleInputChange}
+                    />
+                    {errors.district && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.district}
+                      </p>
+                    )}
+                  </div>
 
-          {/* state (State) */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              State <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="state"
-              placeholder="Enter State*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.state}
-              onChange={handleInputChange}
-            />
-            {errors.state && (
-              <p className="text-red-500 text-sm mt-1">{errors.state}</p>
-            )}
-          </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      State <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="state"
+                      placeholder="Enter State"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                    />
+                    {errors.state && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.state}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-          {/* Country (Not Mandatory) */}
-          <div>
-            <label className="block text-gray-700 mb-1">Country</label>
-            <input
-              type="text"
-              name="country"
-              placeholder="Enter Country"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.country}
-              onChange={handleInputChange}
-            />
-          </div>
+                {/* Country */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    name="country"
+                    placeholder="Enter Country (Optional)"
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-200"
+                    value={formData.country}
+                    onChange={handleInputChange}
+                  />
+                </div>
 
-          {/* Telephone */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              Telephone <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="telephone"
-              placeholder="Enter Telephone*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.telephone}
-              onChange={handleInputChange}
-            />
-            {errors.telephone && (
-              <p className="text-red-500 text-sm mt-1">{errors.telephone}</p>
-            )}
-          </div>
+                {/* Telephone and Email Row */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Telephone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="telephone"
+                      placeholder="Enter Telephone Number"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                      value={formData.telephone}
+                      onChange={handleInputChange}
+                    />
+                    {errors.telephone && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.telephone}
+                      </p>
+                    )}
+                  </div>
 
-          {/* PAN Number */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              PAN Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="taxnumber1"
-              placeholder="Enter PAN Number*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.taxnumber1}
-              onChange={handleInputChange}
-            />
-            {errors.taxnumber1 && (
-              <p className="text-red-500 text-sm mt-1">{errors.taxnumber1}</p>
-            )}
-          </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Enter Email Address"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-          {/* GST Number */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              GST Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="taxnumber2"
-              placeholder="Enter GST Number*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.taxnumber2}
-              onChange={handleInputChange}
-            />
-            {errors.taxnumber2 && (
-              <p className="text-red-500 text-sm mt-1">{errors.taxnumber2}</p>
-            )}
-          </div>
+                {/* PAN and GST Row */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      PAN Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="taxnumber1"
+                      placeholder="Enter PAN Number"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200"
+                      value={formData.taxnumber1}
+                      onChange={handleInputChange}
+                    />
+                    {errors.taxnumber1 && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.taxnumber1}
+                      </p>
+                    )}
+                  </div>
 
-          {/* Email */}
-          <div>
-            <label className="block text-gray-700 mb-1">
-              Email <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter Email*"
-              className="w-full px-4 py-2 border rounded focus:outline-none"
-              value={formData.email}
-              onChange={handleInputChange}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-            )}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      GST Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="taxnumber2"
+                      placeholder="Enter GST Number"
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-200"
+                      value={formData.taxnumber2}
+                      onChange={handleInputChange}
+                    />
+                    {errors.taxnumber2 && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle size={16} className="mr-1" />
+                        {errors.taxnumber2}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </form>
-      </main>
-      <footer className="bg-white fixed bottom-0 w-full z-10 p-4 pb-10 border-t shadow-sm">
-        <div className="flex flex-col space-y-2">
+      </div>
+
+      {/* Enhanced Fixed Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg z-30">
+        <div className="max-w-4xl mx-auto p-6">
           <button
             type="submit"
             form="customerForm"
-            className="w-full px-4 py-2 text-white bg-primary rounded hover:bg-blue-700 focus:outline-none flex items-center justify-center"
+            className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
+              isLoading ? "cursor-wait opacity-75 transform-none" : ""
+            }`}
             disabled={isLoading}
           >
-            {isLoading && (
-              <svg
-                className="animate-spin mr-2 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8z"
-                />
-              </svg>
+            {isLoading ? (
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Creating Customer...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center space-x-2">
+                <User size={20} />
+                <span>Add Customer</span>
+              </div>
             )}
-            {isLoading ? "Sending..." : "Add Customer"}
           </button>
         </div>
       </footer>
-     
 
-      {/* SUCCESS MODAL */}
+      {/* Enhanced Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 px-5 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Success!</h2>
-            <p className="mb-4">Email has been sent to CIC successfully.</p>
-            <div className="flex justify-end">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-8 text-center">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Success!</h2>
+              <p className="text-green-100">
+                Customer has been created successfully
+              </p>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 text-center mb-6 leading-relaxed">
+                Email has been sent to CIC successfully. The customer profile
+                has been created and is now available in the system.
+              </p>
               <button
-                className="bg-primary text-white px-4 py-2 rounded-md"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-3 rounded-xl hover:shadow-lg transition-all duration-200"
                 onClick={() => setShowSuccessModal(false)}
               >
-                Close
+                Continue
               </button>
             </div>
           </div>

@@ -1,163 +1,169 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
-import toast from "react-hot-toast"
+import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const OTPVerification = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [otp, setOtp] = useState(["", "", "", ""])
-  const [employeeid] = useState(location.state?.employeeid || "")
-  const [email] = useState(location.state?.email || "")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isResending, setIsResending] = useState(false)
-  const [resendTimer, setResendTimer] = useState(0)
-  const [formErrors, setFormErrors] = useState({})
-  const inputRefs = useRef([])
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [employeeid] = useState(location.state?.employeeid || "");
+  const [email] = useState(location.state?.email || "");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [formErrors, setFormErrors] = useState({});
+  const inputRefs = useRef([]);
 
   // Timer for resend OTP
   useEffect(() => {
-    let interval = null
+    let interval = null;
     if (resendTimer > 0) {
       interval = setInterval(() => {
-        setResendTimer((timer) => timer - 1)
-      }, 1000)
+        setResendTimer((timer) => timer - 1);
+      }, 1000);
     } else if (resendTimer === 0) {
-      clearInterval(interval)
+      clearInterval(interval);
     }
-    return () => clearInterval(interval)
-  }, [resendTimer])
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   // Set initial timer
   useEffect(() => {
-    setResendTimer(60) // 60 seconds initial timer
-  }, [])
+    setResendTimer(60); // 60 seconds initial timer
+  }, []);
 
   const handleChange = (element, index) => {
-    if (isNaN(element.value)) return false
+    if (isNaN(element.value)) return false;
 
-    const newOtp = [...otp]
-    newOtp[index] = element.value
-    setOtp(newOtp)
+    const newOtp = [...otp];
+    newOtp[index] = element.value;
+    setOtp(newOtp);
 
     // Clear errors when user starts typing
     if (formErrors.otp) {
-      setFormErrors((prev) => ({ ...prev, otp: "" }))
+      setFormErrors((prev) => ({ ...prev, otp: "" }));
     }
 
     // Focus next input
     if (element.nextSibling && element.value) {
-      element.nextSibling.focus()
+      element.nextSibling.focus();
     }
 
     // Focus previous input on backspace
     if (!element.value && element.previousSibling) {
-      element.previousSibling.focus()
+      element.previousSibling.focus();
     }
-  }
+  };
 
   const handleKeyDown = (e, index) => {
     // Handle backspace
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1].focus()
+      inputRefs.current[index - 1].focus();
     }
-  }
+  };
 
   const handlePaste = (e) => {
-    e.preventDefault()
-    const paste = e.clipboardData.getData("text")
+    e.preventDefault();
+    const paste = e.clipboardData.getData("text");
     if (paste.length === 4 && /^\d+$/.test(paste)) {
-      const newOtp = paste.split("")
-      setOtp(newOtp)
-      inputRefs.current[3].focus()
+      const newOtp = paste.split("");
+      setOtp(newOtp);
+      inputRefs.current[3].focus();
     }
-  }
+  };
 
   // Validate form
   const validateForm = () => {
-    const errors = {}
-    const enteredOtp = otp.join("")
+    const errors = {};
+    const enteredOtp = otp.join("");
     if (enteredOtp.length !== 4) {
-      errors.otp = "Please enter complete 4-digit OTP"
+      errors.otp = "Please enter complete 4-digit OTP";
     }
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
-    const enteredOtp = otp.join("")
+    setIsLoading(true);
+    const enteredOtp = otp.join("");
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/collections/verify-otp-pass`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          employeeid,
-          otp: enteredOtp,
-        }),
-      })
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/collections/verify-otp-pass`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            employeeid,
+            otp: enteredOtp,
+          }),
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        toast.success("OTP verified successfully!")
+        toast.success("OTP verified successfully!");
         navigate("/reset-password-otp", {
           state: { resetToken: data.resetToken },
-        })
+        });
       } else {
-        toast.error(`Error: ${data.message}`)
+        toast.error(`Error: ${data.message}`);
         // Clear OTP on error
-        setOtp(["", "", "", ""])
-        inputRefs.current[0].focus()
+        setOtp(["", "", "", ""]);
+        inputRefs.current[0].focus();
       }
     } catch (error) {
-      console.error("Error:", error)
-      toast.error("Failed to verify OTP. Please try again.")
+      console.error("Error:", error);
+      toast.error("Failed to verify OTP. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // For resend OTP
   const handleResendOTP = async () => {
-    setIsResending(true)
+    setIsResending(true);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/collections/resend-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ employeeid }),
-      })
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/collections/resend-otp`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ employeeid }),
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        toast.success(`New OTP sent to ${data.email || email}`)
-        setResendTimer(60) // Reset timer
-        setOtp(["", "", "", ""]) // Clear current OTP
-        inputRefs.current[0].focus()
+        toast.success(`New OTP sent to ${data.email || email}`);
+        setResendTimer(60); // Reset timer
+        setOtp(["", "", "", ""]); // Clear current OTP
+        inputRefs.current[0].focus();
       } else {
-        toast.error(`Error: ${data.message}`)
+        toast.error(`Error: ${data.message}`);
       }
     } catch (error) {
-      console.error("Error:", error)
-      toast.error("Failed to resend OTP. Please try again.")
+      console.error("Error:", error);
+      toast.error("Failed to resend OTP. Please try again.");
     } finally {
-      setIsResending(false)
+      setIsResending(false);
     }
-  }
+  };
 
   // Loading Spinner Component
   const LoadingSpinner = () => (
@@ -165,14 +171,14 @@ const OTPVerification = () => {
       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
       <span>Verifying...</span>
     </div>
-  )
+  );
 
   // Format timer display
   const formatTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, "0")}`
-  }
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   return (
     <div className="h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
@@ -184,8 +190,18 @@ const OTPVerification = () => {
             className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all duration-200 transform hover:scale-110 active:scale-95"
             disabled={isLoading || isResending}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <h2 className="text-lg font-bold">Verify OTP</h2>
@@ -199,9 +215,15 @@ const OTPVerification = () => {
           <div className="px-6 py-5 text-center border-b border-gray-100">
             <div className="flex flex-col items-center">
               <div className="bg-blue-50 rounded-full p-3 mb-3 shadow-sm">
-                <img src="/Skanray-logo.png" alt="Skanray Logo" className="w-10 h-10 object-contain" />
+                <img
+                  src="/Skanray-logo.png"
+                  alt="Skanray Logo"
+                  className="w-10 h-10 object-contain"
+                />
               </div>
-              <h2 className="text-sm font-bold text-gray-600 tracking-wide">SKANRAY SERVICE PORTAL</h2>
+              <h2 className="text-sm font-bold text-gray-600 tracking-wide">
+                SKANRAY SERVICE PORTAL
+              </h2>
             </div>
           </div>
 
@@ -210,7 +232,12 @@ const OTPVerification = () => {
             {/* Title and Description */}
             <div className="text-center mb-6">
               <div className="bg-purple-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-8 h-8 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -219,7 +246,9 @@ const OTPVerification = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Enter Verification Code</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                Enter Verification Code
+              </h3>
               <p className="text-gray-600 text-sm leading-relaxed">
                 We've sent a 4-digit verification code to
                 {email && (
@@ -234,7 +263,9 @@ const OTPVerification = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* OTP Input */}
               <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700 block text-center">Enter 4-Digit Code</label>
+                <label className="text-sm font-medium text-gray-700 block text-center">
+                  Enter 4-Digit Code
+                </label>
                 <div className="flex justify-center space-x-3">
                   {otp.map((data, index) => (
                     <input
@@ -257,7 +288,11 @@ const OTPVerification = () => {
                     />
                   ))}
                 </div>
-                {formErrors.otp && <p className="text-red-500 text-xs text-center">{formErrors.otp}</p>}
+                {formErrors.otp && (
+                  <p className="text-red-500 text-xs text-center">
+                    {formErrors.otp}
+                  </p>
+                )}
               </div>
 
               {/* Verify Button */}
@@ -280,7 +315,10 @@ const OTPVerification = () => {
                 <div className="text-gray-500 text-sm">
                   <p>Didn't receive the code?</p>
                   <p className="font-medium mt-1">
-                    Resend in <span className="text-blue-600 font-bold">{formatTimer(resendTimer)}</span>
+                    Resend in{" "}
+                    <span className="text-blue-600 font-bold">
+                      {formatTimer(resendTimer)}
+                    </span>
                   </p>
                 </div>
               ) : (
@@ -298,7 +336,12 @@ const OTPVerification = () => {
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -313,30 +356,6 @@ const OTPVerification = () => {
               )}
             </div>
 
-            {/* Help Section */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-blue-800 mb-1">Having trouble?</h4>
-                  <ul className="text-xs text-blue-700 space-y-1">
-                    <li>• Check your spam/junk folder</li>
-                    <li>• Make sure you entered the correct Employee ID</li>
-                    <li>• Contact support if issues persist</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
             {/* Back Button */}
             <div className="mt-6 text-center">
               <button
@@ -344,8 +363,18 @@ const OTPVerification = () => {
                 className="text-gray-600 hover:text-blue-600 text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1 mx-auto"
                 disabled={isLoading || isResending}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 <span>Go Back</span>
               </button>
@@ -363,13 +392,15 @@ const OTPVerification = () => {
               {isLoading ? "Verifying OTP..." : "Sending new code..."}
             </p>
             <p className="text-gray-500 text-xs text-center">
-              {isLoading ? "Please wait while we verify your code" : "Please wait while we send a new code"}
+              {isLoading
+                ? "Please wait while we verify your code"
+                : "Please wait while we send a new code"}
             </p>
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default OTPVerification
+export default OTPVerification;

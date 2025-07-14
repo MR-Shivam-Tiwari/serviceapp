@@ -6,7 +6,21 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import ChecklistModal from "./InstallationChecklistModal";
 import ProgressModal from "./ProgressModal";
-
+import {
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  MapPin,
+  Phone,
+  Mail,
+  Building,
+  Hash,
+  Zap,
+  Settings,
+  AlertTriangle,
+  Loader2,
+  X,
+} from "lucide-react";
 function InstallationSummary() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,7 +46,6 @@ function InstallationSummary() {
   const [globalChecklistRemark, setGlobalChecklistRemark] = useState("");
 
   // Checklist states
-  const [allINChecklists, setAllINChecklists] = useState([]);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
   const [activeMachineIndex, setActiveMachineIndex] = useState(null);
   const [tempChecklistResults, setTempChecklistResults] = useState([]);
@@ -87,7 +100,20 @@ function InstallationSummary() {
     const equipmentListForPdf = [];
 
     installItems.forEach((item) => {
-      const { serialNumber, pendingInstallationData, palNumber } = item;
+      const {
+        serialNumber,
+        pendingInstallationData,
+        palNumber,
+        checklistResults = [],
+      } = item;
+
+      // Get equipment info from first checklist item
+      let equipmentUsed = "";
+      let calibrationDate = "";
+      if (checklistResults.length > 0) {
+        equipmentUsed = checklistResults[0].equipmentUsedSerial || "";
+        calibrationDate = checklistResults[0].calibrationDueDate || "";
+      }
 
       const warrantyStartDate = new Date();
       let warrantyEndDate = null;
@@ -113,16 +139,19 @@ function InstallationSummary() {
           ? warrantyEndDate.toISOString()
           : "",
         palnumber: pendingInstallationData?.palnumber || palNumber || "",
+        equipmentUsedSerial: equipmentUsed,
+        calibrationDueDate: calibrationDate,
       };
 
       equipmentPayloads.push(equipPayload);
-
       equipmentListForPdf.push({
         materialdescription: pendingInstallationData?.description || "",
         serialnumber: serialNumber,
         custWarrantyenddate: warrantyEndDate
           ? warrantyEndDate.toISOString()
           : "",
+        equipmentUsedSerial: equipmentUsed,
+        calibrationDueDate: calibrationDate,
       });
     });
 
@@ -342,21 +371,30 @@ function InstallationSummary() {
       }
 
       const existingResults = machine.checklistResults || [];
+      let initialEquipment = "";
+      let initialCalibrationDate = "";
+
       if (existingResults.length > 0) {
-        setTempChecklistResults(existingResults);
-      } else {
-        const fresh = fetchedChecklists.map((c) => ({
-          ...c,
-          result: "",
-          remark: "",
-          voltageData: {
-            lnry: voltageData.lnry,
-            lgyb: voltageData.lgyb,
-            ngbr: voltageData.ngbr,
-          },
-        }));
-        setTempChecklistResults(fresh);
+        // Get equipment info from first checklist item
+        initialEquipment = existingResults[0].equipmentUsedSerial || "";
+        initialCalibrationDate = existingResults[0].calibrationDueDate || "";
       }
+
+      const updatedChecklists = fetchedChecklists.map((c, idx) => ({
+        ...c,
+        result: existingResults[idx]?.result || "",
+        remark: existingResults[idx]?.remark || "",
+        voltageData: {
+          lnry: voltageData.lnry,
+          lgyb: voltageData.lgyb,
+          ngbr: voltageData.ngbr,
+        },
+        // Only set on first item
+        equipmentUsedSerial: idx === 0 ? initialEquipment : undefined,
+        calibrationDueDate: idx === 0 ? initialCalibrationDate : undefined,
+      }));
+
+      setTempChecklistResults(updatedChecklists);
     } catch (error) {
       console.error("Error fetching checklists by material code:", error);
       toast.error("Checklists not Found by Part No.");
@@ -398,154 +436,300 @@ function InstallationSummary() {
 
       <div className="px-4 space-y-4">
         {/* Machines List */}
-        <div className=" ">
-          <h3 className="font-bold text-lg mb-2">Selected Machines</h3>
-          {installItems.map((item, idx) => {
-            const {
-              serialNumber,
-              pendingInstallationData,
-              palNumber,
-              checklistResults = [],
-            } = item;
+        <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
+            <h2 className="flex items-center gap-2 text-blue-900 text-xl font-semibold">
+              <Settings className="h-5 w-5" />
+              Selected Machines ({installItems.length})
+            </h2>
+          </div>
+          <div>
+            {installItems.map((item, idx) => {
+              const {
+                serialNumber,
+                pendingInstallationData,
+                palNumber,
+                checklistResults = [],
+              } = item;
+              const warrantyStartDate = new Date();
+              let warrantyEndDate = null;
 
-            const warrantyStartDate = new Date();
-            let warrantyEndDate = null;
-            if (pendingInstallationData?.warrantyMonths) {
-              warrantyEndDate = new Date(
-                new Date().setMonth(
-                  new Date().getMonth() + pendingInstallationData.warrantyMonths
-                )
-              );
-            }
+              if (pendingInstallationData?.warrantyMonths) {
+                warrantyEndDate = new Date(
+                  new Date().setMonth(
+                    new Date().getMonth() +
+                      pendingInstallationData.warrantyMonths
+                  )
+                );
+              }
 
-            return (
-              <div
-                key={idx}
-                className="border border-gray-300 p-3 rounded mb-4"
-              >
-                <p>
-                  <strong>Machine #{idx + 1}</strong>
-                </p>
-                <p>
-                  <strong>Serial No:</strong> {serialNumber}
-                </p>
-                <p>
-                  <strong>Part No:</strong>{" "}
-                  {pendingInstallationData?.material || "N/A"}
-                </p>
-                <p>
-                  <strong>Material Description:</strong>{" "}
-                  {pendingInstallationData?.description || "N/A"}
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  {pendingInstallationData?.status || "N/A"}
-                </p>
-                <p>
-                  <strong>Warranty Description:</strong>{" "}
-                  {pendingInstallationData?.mtl_grp4 || "N/A"}
-                </p>
-                <p>
-                  <strong>Warranty Start:</strong>{" "}
-                  {warrantyStartDate.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-                <p>
-                  <strong>Warranty End:</strong>{" "}
-                  {warrantyEndDate
-                    ? warrantyEndDate.toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "N/A"}
-                </p>
-
-                {/* Checklist */}
-                <button
-                  className="px-3 py-2 mt-3 w-full text-white bg-primary rounded hover:bg-blue-700"
-                  onClick={() => handleOpenChecklist(idx)}
+              return (
+                <div
+                  key={idx}
+                  className="p-6 border-b last:border-b-0 hover:bg-slate-50/50 transition-colors"
                 >
-                  Checklist
-                </button>
-
-                {checklistResults.length > 0 && (
-                  <div className="mt-3">
-                    <h4 className="font-semibold">Checklist Results:</h4>
-                    {checklistResults.map((res) => (
-                      <p key={res._id} className="text-sm">
-                        {res.checkpoint} = <strong>{res.result}</strong>
-                        {res.result === "No" && res.remark && (
-                          <>
-                            {" "}
-                            | Remark: <em>{res.remark}</em>
-                          </>
-                        )}
-                      </p>
-                    ))}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-700 font-bold">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg text-gray-900">
+                          {pendingInstallationData?.description || "N/A"}
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          Serial: {serialNumber}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        pendingInstallationData?.status === "Ready"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {pendingInstallationData?.status || "N/A"}
+                    </span>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Hash className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-600">Part No:</span>
+                        <span className="font-medium">
+                          {pendingInstallationData?.material || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-600">Warranty:</span>
+                        <span className="font-medium">
+                          {pendingInstallationData?.mtl_grp4 || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <span className="text-gray-600">Warranty Period:</span>
+                        <div className="font-medium text-green-700">
+                          {warrantyStartDate.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}{" "}
+                          -{" "}
+                          {warrantyEndDate
+                            ? warrantyEndDate.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
+                            : "N/A"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Checklist Results */}
+                  {checklistResults.length > 0 && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Checklist Results
+                      </h4>
+                      <div className="space-y-1">
+                        {checklistResults.map((res) => (
+                          <div
+                            key={res._id}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <span className="text-gray-600">
+                              {res.checkpoint}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium ${
+                                  res.result === "Yes"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {res.result}
+                              </span>
+                              {res.result === "No" && res.remark && (
+                                <span className="text-red-600 italic text-xs">
+                                  ({res.remark})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleOpenChecklist(idx)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Open Checklist
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Global Site Data */}
-        <div className="border border-gray-200 p-4 rounded">
-          <p>
-            <strong>Abnormal Site Condition:</strong>{" "}
-            {abnormalCondition || "N/A"}
-          </p>
-          <strong>Voltage</strong>
-          <p>
-            <strong>L-N / R-Y:</strong> {voltageData.lnry || "N/A"}
-          </p>
-          <p>
-            <strong>L-G / Y-B:</strong> {voltageData.lgyb || "N/A"}
-          </p>
-          <p>
-            <strong>N-G / B-R:</strong> {voltageData.ngbr || "N/A"}
-          </p>
+        <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6">
+            <h2 className="flex items-center gap-2 text-amber-900 text-xl font-semibold">
+              <Zap className="h-5 w-5" />
+              Site Conditions
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Abnormal Conditions
+                </h4>
+                <p className="text-gray-700 bg-amber-50 p-3 rounded-lg">
+                  {abnormalCondition || "None reported"}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-blue-500" />
+                  Voltage Readings
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                    <span className="text-gray-600">L-N / R-Y:</span>
+                    <span className="font-medium text-blue-700">
+                      {voltageData.lnry || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                    <span className="text-gray-600">L-G / Y-B:</span>
+                    <span className="font-medium text-blue-700">
+                      {voltageData.lgyb || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                    <span className="text-gray-600">N-G / B-R:</span>
+                    <span className="font-medium text-blue-700">
+                      {voltageData.ngbr || "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Customer Details */}
-        <div className="border border-gray-200 p-4 rounded">
-          <h3 className="font-bold text-lg mb-2">Customer Details</h3>
-          <p>
-            <strong>Hospital Name:</strong> {customer?.hospitalname || "N/A"}
-          </p>
-          <p>
-            <strong>Customer Code:</strong> {customer?.customercodeid || "N/A"}
-          </p>
-          <p>
-            <strong>Phone:</strong> {customer?.telephone || "N/A"}
-          </p>
-          <p>
-            <strong>Email:</strong> {customer?.email || "N/A"}
-          </p>
-          <p>
-            <strong>City:</strong> {customer?.city || "N/A"}
-          </p>
-          <p>
-            <strong>Postal Code:</strong> {customer?.postalcode || "N/A"}
-          </p>
+        <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6">
+            <h2 className="flex items-center gap-2 text-green-900 text-xl font-semibold">
+              <Building className="h-5 w-5" />
+              Customer Information
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Building className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-600">Hospital Name</p>
+                    <p className="font-medium text-gray-900">
+                      {customer?.hospitalname || "N/A"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Hash className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-600">Customer Code</p>
+                    <p className="font-medium text-gray-900">
+                      {customer?.customercodeid || "N/A"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="font-medium text-gray-900">
+                      {customer?.telephone || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium text-gray-900">
+                      {customer?.email || "N/A"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-600">Location</p>
+                    <p className="font-medium text-gray-900">
+                      {customer?.city || "N/A"}, {customer?.postalcode || "N/A"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-600">Address</p>
+                    <p className="font-medium text-gray-900">
+                      {customer?.street || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Buttons */}
-        <div>
+        <div className="flex flex-col sm:flex-row gap-4">
           <button
-            className="w-full px-4 mb-3 h-10 text-white bg-primary rounded"
             onClick={handleConfirmAndCompleteInstallation}
+            className="flex-1 text-nowrap bg-gradient-to-r  from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-6 rounded-lg text-lg font-medium shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
           >
-            Confirm & Complete Installation
+            {isLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-5 w-5" />
+                Confirm & Complete Installation
+              </>
+            )}
           </button>
           <button
-            className="w-full px-4 h-10 text-white bg-red-600 rounded"
             onClick={() => setShowAbortModal(true)}
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg text-lg font-medium shadow-lg transition-colors flex items-center justify-center gap-2"
           >
+            <X className="h-5 w-5" />
             Abort Installation
           </button>
         </div>
@@ -579,116 +763,120 @@ function InstallationSummary() {
 
       {/* OTP Verification Modal */}
       {showOtpModal && (
-        <div className="fixed inset-0 px-4 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-bold mb-4">OTP Verification</h2>
-            <p className="mb-4">
-              An OTP has been sent to <strong>{customer?.email}</strong>. Please
-              enter it below.
-            </p>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="Enter OTP"
-              className="w-full p-2 border border-gray-300 rounded mb-4"
-            />
-            <div className="flex justify-end space-x-3">
-              <button
-                className="bg-gray-300 text-black px-4 py-2 rounded-md"
-                onClick={() => setShowOtpModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-primary text-white px-4 py-2 rounded-md"
-                disabled={isVerifyingOtp}
-                onClick={verifyOtpAndSubmit}
-              >
-                {isVerifyingOtp ? "Verifying..." : "Verify OTP"}
-              </button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 text-center border-b">
+              <h2 className="text-xl font-semibold mb-2">OTP Verification</h2>
+              <p className="text-gray-600">
+                An OTP has been sent to <strong>{customer?.email}</strong>
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter 6-digit OTP"
+                className="w-full p-3 border border-gray-300 rounded-lg text-center text-lg tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                maxLength={6}
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowOtpModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={verifyOtpAndSubmit}
+                  disabled={isVerifyingOtp || otp.length !== 6}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isVerifyingOtp ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify OTP"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Success Modal */}
+
+      {/* Abort Confirmation Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 px-4 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Installation Complete!</h2>
-            <p className="mb-4">
-              All selected machines have been installed successfully.
-            </p>
-            <div className="flex justify-end">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-green-800 mb-2">
+                Installation Complete!
+              </h2>
+              <p className="text-gray-600 mb-6">
+                All selected machines have been installed successfully.
+              </p>
               <button
-                className="bg-primary text-white px-4 py-2 rounded-md"
                 onClick={() => {
                   setShowSuccessModal(false);
                   navigate("/installation");
                 }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
               >
-                Close
+                Continue
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Abort Confirmation Modal */}
       {showAbortModal && (
-        <div className="fixed inset-0 px-4 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Abort Installation</h2>
-            <p className="mb-4">
-              Are you sure you want to abort this installation?
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                className="bg-gray-300 text-black px-4 py-2 rounded-md"
-                onClick={() => setShowAbortModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-primary text-white px-4 py-2 rounded-md"
-                onClick={() => {
-                  setShowAbortModal(false);
-                  navigate("/installation");
-                }}
-              >
-                OK
-              </button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-red-800 mb-2">
+                Abort Installation
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to abort this installation? This action
+                cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAbortModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAbortModal(false);
+                    navigate("/installation");
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Yes, Abort
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-
       {/* Global Spinner Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg flex items-center space-x-3">
-            <svg
-              className="animate-spin h-6 w-6 text-primary"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8z"
-              ></path>
-            </svg>
-            <span className="font-medium">{loadingMessage}</span>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+          <div className="bg-white p-6 rounded-xl shadow-2xl flex items-center space-x-3">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <span className="font-medium text-gray-900">{loadingMessage}</span>
           </div>
         </div>
       )}

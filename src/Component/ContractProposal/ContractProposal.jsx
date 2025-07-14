@@ -1,251 +1,139 @@
-import React from "react";
+"use client";
 import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  FileEdit,
+  Clock,
+  Calculator,
+  CheckCircle,
+} from "lucide-react";
 
 function ContractProposal() {
   const navigate = useNavigate();
+
   return (
-    <div className=" ">
-      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
-        <button className="mr-2 text-white" onClick={() => navigate("/")}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="36"
-            height="36"
-            fill="currentColor"
-            className="bi bi-arrow-left-short"
-            viewBox="0 0 16 16"
-          >
-            <path
-              fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-            />
-          </svg>
-        </button>
-        <h2 className="text-xl font-bold">Contract Proposal</h2>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <div className="relative">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-6 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              onClick={() => navigate("/")}
+            >
+              <ArrowLeft className="h-6 w-6 text-white" />
+            </button>
+            <h1 className="text-2xl font-bold text-white">Contract Proposal</h1>
+          </div>
+        </div>
 
-      <div className="space-y-4 px-4">
-        <button
-          onClick={() => navigate("/create-proposal")}
-          className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
-        >
-          <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
-            <svg
-              id="fi_10747218"
-              viewBox="0 0 24 24"
-              className="h-12 w-12"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="m21.41 6.12c.78-.78.78-2.05 0-2.83l-.71-.71c-.78-.78-2.05-.78-2.83 0l-10.31 10.33c-.17.17-.27.38-.29.62l-.27 2.93c-.03.31.23.57.54.54l2.93-.27c.23-.02.45-.12.62-.29z"
-                fill="#fcbf49"
-              ></path>
-              <path
-                d="m21.41 6.12-1.41 1.41-3.53-3.53 1.41-1.41c.78-.79 2.05-.79 2.83 0l.7.7c.79.78.79 2.05 0 2.83z"
-                fill="#e63946"
-              ></path>
-              <path
-                d="m21.94 2.76-.71-.71c-1.07-1.07-2.82-1.07-3.89 0l-10.31 10.33c-.29.29-.47.67-.51 1.08l-.27 2.93c-.03.37.1.73.36 1 .24.24.55.37.88.37h.11l2.93-.27c.41-.04.79-.22 1.08-.51l10.32-10.32c.52-.52.81-1.21.81-1.94s-.29-1.43-.81-1.94zm-11.38 13.15s-.1.07-.15.07l-2.63.24.24-2.63c0-.06.03-.11.07-.16l8.38-8.38 2.47 2.47-8.38 8.38zm10.32-10.32-.88.88-2.47-2.47.88-.88c.24-.24.56-.37.88-.37s.64.12.88.37l.71.71c.24.24.37.55.37.88s-.13.65-.37.88zm-.13 7.6v5.81c0 2.07-1.68 3.75-3.75 3.75h-12c-2.07 0-3.75-1.68-3.75-3.75v-12c0-2.07 1.68-3.75 3.75-3.75h5.81c.41 0 .75.34.75.75s-.34.75-.75.75h-5.81c-1.24 0-2.25 1.01-2.25 2.25v12c0 1.24 1.01 2.25 2.25 2.25h12c1.24 0 2.25-1.01 2.25-2.25v-5.81c0-.41.34-.75.75-.75s.75.34.75.75z"
-                fill="#050819"
-              ></path>
-            </svg>
-            Create CMC/NCMC
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate("/pending-proposal")}
-          className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
-        >
-          <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              version="1.1"
-              width="50"
-              height="50"
-              x="0"
-              y="0"
-              viewBox="0 0 512 512"
-              class=""
-            >
-              <g>
-                <g fill="#ffd859">
-                  <path
-                    d="M344.526 489.405a19.145 19.145 0 0 1-19.077 19.105H27.613a19.169 19.169 0 0 1-19.106-19.105V64.293a19.164 19.164 0 0 1 19.106-19.077h15.619v409.493a19.139 19.139 0 0 0 19.077 19.077h282.217zM472.227 279.443a70 70 0 1 1-69.987-69.988 70 70 0 0 1 69.987 69.988z"
-                    fill="#ffc708"
-                    opacity="1"
-                    data-original="#ffd859"
-                    class=""
-                  ></path>
-                  <path
-                    d="M79.572 109.846h69.194v69.194H79.572zM79.572 231.225h69.194v69.194H79.572zM79.572 352.605h69.194v69.165H79.572z"
-                    fill="#ffc708"
-                    opacity="1"
-                    data-original="#ffd859"
-                    class=""
-                  ></path>
-                </g>
-                <path
-                  fill="#282828"
-                  d="M386.252 391.837v62.872a26.123 26.123 0 0 1-26.107 26.079H62.309a26.109 26.109 0 0 1-26.079-26.079V29.6A26.123 26.123 0 0 1 62.309 3.49h241.455a7 7 0 0 1 0 14H62.309A12.1 12.1 0 0 0 50.233 29.6v425.109a12.089 12.089 0 0 0 12.076 12.075h297.836a12.1 12.1 0 0 0 12.1-12.075v-62.872a7 7 0 1 1 14 0zm-7-217.757a7 7 0 0 0 7-7v-81.1a7 7 0 1 0-14 0v81.1a7 7 0 0 0 6.999 7zM205.4 118.1h79.4a7 7 0 1 0 0-14h-79.4a7 7 0 1 0 0 14zm62.391 26.986a7 7 0 0 0 7 7h68.088a7 7 0 0 0 0-14h-68.085a7 7 0 0 0-7.001 6.995zm-62.391 7h45.751a7 7 0 0 0 0-14H205.4a7 7 0 1 0 0 14zm144.483 26.954a7 7 0 0 0-7-7H205.4a7 7 0 1 0 0 14h137.48a7 7 0 0 0 7.003-7zm-75.089 80.389a7 7 0 0 0 0 14H288a7 7 0 0 0 0-14zm-69.392 14h45.751a7 7 0 0 0 0-14H205.4a7 7 0 1 0 0 14zm83.792 19.984H205.4a7 7 0 1 0 0 14h83.792a7 7 0 0 0 0-14zM284.8 225.47h-79.4a7 7 0 1 0 0 14h79.4a7 7 0 0 0 0-14zm-79.4 135.384h79.4a7 7 0 1 0 0-14h-79.4a7 7 0 1 0 0 14zm0 33.959h45.751a7 7 0 0 0 0-14H205.4a7 7 0 0 0 0 14zm137.48-14h-68.086a7 7 0 0 0 0 14h68.088a7 7 0 0 0 0-14zM205.4 428.772h137.48a7 7 0 0 0 0-14H205.4a7 7 0 1 0 0 14zm298.093-149.329A101.622 101.622 0 1 1 401.871 177.82a101.738 101.738 0 0 1 101.622 101.623zm-14 0a87.619 87.619 0 1 0-87.619 87.618 87.718 87.718 0 0 0 87.616-87.618zm-59.031 8.421L408.873 275.4v-44.884a7 7 0 1 0-14 0v48.927a7 7 0 0 0 3.5 6.063l25.087 14.485a7 7 0 0 0 7-12.127zM112.978 158.993a7 7 0 0 0 9.9 0l49.55-49.55a7 7 0 0 0-9.9-9.9l-44.6 44.6-10.781-10.761a7 7 0 1 0-9.893 9.91zM97.246 264.669l15.732 15.7a7 7 0 0 0 9.9-.006l49.549-49.578a7 7 0 1 0-9.9-9.9l-44.6 44.629-10.78-10.761a7 7 0 0 0-9.893 9.911zm0 121.347 15.732 15.732a7 7 0 0 0 9.9 0l49.549-49.577a7 7 0 1 0-9.9-9.9l-44.6 44.623-10.78-10.779a7 7 0 1 0-9.9 9.9z"
-                  opacity="1"
-                  data-original="#282828"
-                  class=""
-                ></path>
-                <path
-                  fill="#ffc708"
-                  d="m315.754 5.588 68.429 68.456a6.988 6.988 0 0 1-4.932 11.934h-56.126a19.355 19.355 0 0 1-19.361-19.332V10.491a7 7 0 0 1 11.99-4.9z"
-                  opacity="1"
-                  data-original="#ffd859"
-                  class=""
-                ></path>
-              </g>
-            </svg>
-            Pending Proposal
-          </div>
-        </button>
-        <button
-          onClick={() => navigate("/quote-generation")}
-          className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
-        >
-          <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              version="1.1"
-              width="50"
-              height="50"
-              x="0"
-              y="0"
-              viewBox="0 0 66 66"
-              class=""
-            >
-              <g>
-                <path
-                  fill="#101f2d"
-                  d="M45.5 65H11.3c-2.9 0-5.2-2.3-5.2-5.2V11.3C6.1 8.4 8.4 6 11.3 6h34.2c2.9 0 5.2 2.3 5.2 5.2v.2c0 .6-.4 1-1 1s-1-.4-1-1v-.2c0-1.8-1.4-3.2-3.2-3.2H11.3c-1.8 0-3.2 1.5-3.2 3.2v48.5c0 1.8 1.5 3.2 3.2 3.2h34.2c1.8 0 3.2-1.5 3.2-3.2V38.5c0-.6.4-1 1-1s1 .4 1 1v21.3c0 2.9-2.3 5.2-5.2 5.2z"
-                  opacity="1"
-                  data-original="#101f2d"
-                  class=""
-                ></path>
-                <path
-                  fill="#ffc708"
-                  d="M42.7 7v-.8c0-2.3-1.9-4.2-4.2-4.2h-32C4.1 2 2.2 3.9 2.2 6.2v47.4c0 2.3 1.9 4.2 4.2 4.2H7V11.3C7.1 8.9 8.9 7 11.3 7z"
-                  opacity="1"
-                  data-original="#ef6561"
-                  class=""
-                ></path>
-                <path
-                  fill="#101f2d"
-                  d="M7.1 58.9h-.7c-2.9 0-5.2-2.3-5.2-5.2V6.2C1.2 3.3 3.6 1 6.4 1h32c2.9 0 5.2 2.3 5.2 5.2V7c0 .6-.4 1-1 1H11.3c-1.8 0-3.2 1.5-3.2 3.2v46.6c0 .6-.5 1.1-1 1.1zM6.4 3C4.7 3 3.2 4.5 3.2 6.2v47.4c0 1.7 1.2 3 2.8 3.2V11.3C6.1 8.4 8.4 6 11.3 6h30.4c-.1-1.7-1.5-3-3.2-3z"
-                  opacity="1"
-                  data-original="#101f2d"
-                  class=""
-                ></path>
-                <circle
-                  cx="51.3"
-                  cy="52.3"
-                  r="8.8"
-                  fill="#ffc708"
-                  transform="rotate(-76.77 51.317 52.28)"
-                  opacity="1"
-                  data-original="#ef6561"
-                  class=""
-                ></circle>
-                <path
-                  fill="#101f2d"
-                  d="M51.3 62.2c-5.4 0-9.8-4.4-9.8-9.8s4.4-9.8 9.8-9.8 9.8 4.4 9.8 9.8-4.3 9.8-9.8 9.8zm0-17.7c-4.3 0-7.8 3.5-7.8 7.8s3.5 7.8 7.8 7.8 7.8-3.5 7.8-7.8-3.4-7.8-7.8-7.8z"
-                  opacity="1"
-                  data-original="#101f2d"
-                  class=""
-                ></path>
-                <path
-                  fill="#ffc708"
-                  d="M49.5 56.4c-.4 0-.8-.2-1-.4l-1.7-1.7c-.6-.6-.6-1.5 0-2.1s1.5-.6 2.1 0l.7.7 3.7-3.7c.6-.6 1.5-.6 2.1 0s.6 1.5 0 2.1L50.6 56c-.3.2-.7.4-1.1.4z"
-                  opacity="1"
-                  data-original="#ffffff"
-                  class=""
-                ></path>
-                <path
-                  fill="#101f2d"
-                  d="M50.3 39.5c-1.3 0-2.6-.2-3.9-.5-.5-.1-.8-.6-.7-1.1.2-1-.1-1.8-.7-2.1-.5-.3-1.4 0-2 .7-.3.4-.9.4-1.3.1-1.7-1.2-3-2.8-4-4.6-.2-.4-.1-1 .3-1.3.8-.6 1.2-1.3 1-1.9s-1-.9-2-.9c-.5.1-.9-.3-1-.9-.3-2-.2-4.1.4-6.1.1-.5.6-.8 1.1-.7 1 .2 1.8-.1 2.1-.7s0-1.4-.7-2c-.4-.3-.4-.9-.1-1.3 1.2-1.7 2.8-3 4.6-4 .4-.2 1-.1 1.3.3.6.8 1.3 1.2 1.9 1s.9-1 .9-2c0-.5.3-.9.9-1 2-.3 4.1-.2 6.1.4.5.1.8.6.7 1.1-.2 1 .1 1.8.7 2.1.5.3 1.4 0 2-.8.3-.4.9-.4 1.3-.1 1.7 1.2 3 2.8 4 4.6.2.4.1 1-.3 1.3-.8.6-1.2 1.3-1 1.9s1 .9 2 .9c.5 0 .9.3 1 .9.3 2 .2 4.1-.4 6.1-.1.5-.6.8-1.1.7-1-.1-1.8.1-2.1.7-.3.5 0 1.4.8 2 .4.3.4.9.1 1.3-1.2 1.7-2.8 3-4.6 4-.4.2-1 .1-1.3-.3-.6-.8-1.3-1.2-1.9-1s-.9 1-.9 2c0 .5-.3.9-.9 1-.9.1-1.6.2-2.3.2zm-2.6-2.3c1.2.3 2.4.3 3.6.2.2-1.5 1-2.6 2.2-3s2.5 0 3.6 1c1-.7 1.9-1.5 2.7-2.4-.9-1.2-1.1-2.5-.6-3.7.6-1.1 1.8-1.8 3.2-1.8.3-1.2.3-2.4.2-3.6-1.5-.2-2.6-1-3-2.2s0-2.5 1-3.6c-.7-1-1.5-1.9-2.4-2.7-1.2.9-2.5 1.1-3.7.6-1.1-.6-1.8-1.8-1.8-3.2-1.2-.3-2.4-.3-3.6-.2-.2 1.5-1 2.6-2.2 3s-2.5 0-3.6-1c-1 .7-1.9 1.5-2.7 2.4.9 1.2 1.1 2.5.6 3.7s-1.8 1.8-3.2 1.8c-.3 1.2-.3 2.4-.2 3.6 1.5.2 2.6 1 3 2.2s0 2.5-1 3.6c.7 1 1.5 1.9 2.4 2.7 1.2-.9 2.5-1.1 3.7-.6 1.1.5 1.8 1.7 1.8 3.2z"
-                  opacity="1"
-                  data-original="#101f2d"
-                  class=""
-                ></path>
-                <path
-                  fill="#ffc708"
-                  d="M54 29.8h-7.4c-.7 0-1.3-.6-1.3-1.3v-7.4c0-.7.6-1.3 1.3-1.3H54c.7 0 1.3.6 1.3 1.3v7.4c-.1.7-.6 1.3-1.3 1.3z"
-                  opacity="1"
-                  data-original="#64c4f6"
-                  class=""
-                ></path>
-                <path
-                  fill="#101f2d"
-                  d="M54 30.8h-7.4c-1.3 0-2.3-1-2.3-2.3v-7.4c0-1.3 1-2.3 2.3-2.3H54c1.3 0 2.3 1 2.3 2.3v7.4c-.1 1.2-1.1 2.3-2.3 2.3zm-7.4-10c-.2 0-.3.1-.3.3v7.4c0 .2.1.3.3.3H54c.2 0 .3-.1.3-.3v-7.4c0-.2-.1-.3-.3-.3z"
-                  opacity="1"
-                  data-original="#101f2d"
-                  class=""
-                ></path>
-                <path
-                  fill="#ffc708"
-                  d="M52.238 22.805v4h-4v-4z"
-                  opacity="1"
-                  data-original="#ffffff"
-                  class=""
-                ></path>
-                <path
-                  fill="#101f2d"
-                  d="M47.2 20.8c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .5-.5 1-1 1zM50.3 20.8c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .5-.5 1-1 1zM53.3 20.8c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .5-.4 1-1 1zM47.2 33.1c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .6-.5 1-1 1zM50.3 33.1c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .6-.5 1-1 1zM53.3 33.1c-.6 0-1-.4-1-1v-2c0-.6.4-1 1-1s1 .4 1 1v2c0 .6-.4 1-1 1zM45.1 29h-2c-.6 0-1-.4-1-1s.4-1 1-1h2c.6 0 1 .4 1 1s-.5 1-1 1zM45.1 26h-2c-.6 0-1-.4-1-1s.4-1 1-1h2c.6 0 1 .4 1 1s-.5 1-1 1zM45.1 22.9h-2c-.6 0-1-.4-1-1s.4-1 1-1h2c.6 0 1 .4 1 1s-.5 1-1 1zM57.4 29h-2c-.6 0-1-.4-1-1s.4-1 1-1h2c.6 0 1 .4 1 1s-.4 1-1 1zM57.4 26h-2c-.6 0-1-.4-1-1s.4-1 1-1h2c.6 0 1 .4 1 1s-.4 1-1 1zM57.4 22.9h-2c-.6 0-1-.4-1-1s.4-1 1-1h2c.6 0 1 .4 1 1s-.4 1-1 1z"
-                  opacity="1"
-                  data-original="#101f2d"
-                  class=""
-                ></path>
-                <path
-                  fill="#ffc708"
-                  d="M31.2 21.1H13.8c-1 0-1.7-.8-1.7-1.7V14c0-1 .8-1.7 1.7-1.7h17.3c1 0 1.7.8 1.7 1.7v5.4c.1.9-.7 1.7-1.6 1.7z"
-                  opacity="1"
-                  data-original="#64c4f6"
-                  class=""
-                ></path>
-                <path
-                  fill="#101f2d"
-                  d="M31.2 22.1H13.8c-1.5 0-2.7-1.2-2.7-2.7V14c0-1.5 1.2-2.7 2.7-2.7h17.3c1.5 0 2.7 1.2 2.7 2.7v5.4c.1 1.5-1.1 2.7-2.6 2.7zm-17.4-8.8c-.4 0-.7.3-.7.7v5.4c0 .4.3.7.7.7h17.3c.4 0 .7-.3.7-.7V14c0-.4-.3-.7-.7-.7zM31.9 27.7H18.5c-.6 0-1-.4-1-1s.4-1 1-1h13.4c.6 0 1 .4 1 1s-.5 1-1 1zM14.5 27.7h-2.4c-.6 0-1-.4-1-1s.4-1 1-1h2.4c.6 0 1 .4 1 1s-.4 1-1 1zM33.9 33.1H18.5c-.6 0-1-.4-1-1s.4-1 1-1h15.4c.6 0 1 .4 1 1s-.5 1-1 1zM14.5 33.1h-2.4c-.6 0-1-.4-1-1s.4-1 1-1h2.4c.6 0 1 .4 1 1s-.4 1-1 1zM36.9 38.4H18.5c-.6 0-1-.4-1-1s.4-1 1-1h18.4c.6 0 1 .4 1 1s-.5 1-1 1zM14.5 38.4h-2.4c-.6 0-1-.4-1-1s.4-1 1-1h2.4c.6 0 1 .4 1 1s-.4 1-1 1zM40.9 43.7H18.5c-.6 0-1-.4-1-1s.4-1 1-1h22.4c.6 0 1 .4 1 1s-.5 1-1 1zM14.5 43.7h-2.4c-.6 0-1-.4-1-1s.4-1 1-1h2.4c.6 0 1 .4 1 1s-.4 1-1 1zM37.9 49.1H18.5c-.6 0-1-.4-1-1s.4-1 1-1h19.4c.6 0 1 .4 1 1s-.5 1-1 1zM14.5 49.1h-2.4c-.6 0-1-.4-1-1s.4-1 1-1h2.4c.6 0 1 .4 1 1s-.4 1-1 1zM37.9 54.4H18.5c-.6 0-1-.4-1-1s.4-1 1-1h19.4c.6 0 1 .4 1 1s-.5 1-1 1zM14.5 54.4h-2.4c-.6 0-1-.4-1-1s.4-1 1-1h2.4c.6 0 1 .4 1 1s-.4 1-1 1zM38.9 59.8H18.5c-.6 0-1-.4-1-1s.4-1 1-1h20.4c.6 0 1 .4 1 1s-.5 1-1 1zM14.5 59.8h-2.4c-.6 0-1-.4-1-1s.4-1 1-1h2.4c.6 0 1 .4 1 1s-.4 1-1 1z"
-                  opacity="1"
-                  data-original="#101f2d"
-                  class=""
-                ></path>
-              </g>
-            </svg>
-            Quote Generation
-          </div>
-        </button>
-        <div className="pb-5">
-          <button
-            onClick={() => navigate("/completed-order")}
-            className="flex items-center justify-center  w-full px-4 py-6 text-blue-600 bg-white-200 rounded-lg shadow-lg border hover:bg-blue-100"
-          >
-            <div className="flex flex-col justify-center text-2xl font-bold gap-5 items-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                shape-rendering="geometricPrecision"
-                text-rendering="geometricPrecision"
-                image-rendering="optimizeQuality"
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                viewBox="0 0 512 511.97"
-                width="40"
-                height="40"
-                fill="currentColor"
-                class="bi bi-plus-lg"
+        {/* Main Content */}
+        <div className="px-4 py-5 relative z-10">
+          <div className="max-w-lg mx-auto space-y-6">
+            {/* Create CMC/NCMC Card */}
+            <div className="group">
+              <button
+                onClick={() => navigate("/create-proposal")}
+                className="w-full bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative"
               >
-                <path
-                  fill-rule="nonzero"
-                  d="m138.85 214.68 61.34-.82 4.57 1.19c21.52 12.41 40.78 27.9 57.46 46.31 22.01-35.41 45.45-67.92 70.22-97.82 27.13-32.77 55.92-62.49 86.16-89.62l5.99-2.3h66.93l-13.49 14.99c-41.48 46.09-79.11 93.72-113.11 142.84-34.02 49.17-64.43 99.92-91.47 152.16l-8.41 16.24-7.74-16.54c-28.23-60.59-68.03-112.19-123.45-150.24l5-16.39zM255.98 0c38.45 0 76.18 8.56 110.84 25.2 2.23 1.07 3.19 3.78 2.12 6.02-.31.64-.75 1.18-1.28 1.6l-37.54 30.72a4.565 4.565 0 0 1-4.67.72c-22.26-8.06-45.75-12.11-69.42-12.11-54.27 0-105.78 21.29-144.14 59.69-38.39 38.41-59.7 89.83-59.7 144.14 0 54.28 21.29 105.75 59.69 144.13 38.42 38.4 89.83 59.71 144.15 59.71 54.22 0 105.79-21.31 144.12-59.7 38.41-38.39 59.7-89.84 59.7-144.14 0-13.2-1.21-26.19-3.75-39.16-.27-1.41.15-2.82 1.03-3.83l33.11-41.96c1.56-1.94 4.42-2.23 6.36-.67.73.59 1.22 1.36 1.48 2.2 9.25 26.83 13.92 55.05 13.92 83.42 0 68.03-26.87 132.89-74.98 181-48.1 48.09-112.98 74.99-180.99 74.99-68.03 0-132.89-26.89-181-74.99l-.18-.2C26.81 388.67 0 323.97 0 255.98 0 187.96 26.87 123.1 74.98 74.99l.2-.18C123.29 26.81 188.02 0 255.98 0z"
-                />
-              </svg>
-              Proposal Completed
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="p-8 relative z-10">
+                  <div className="flex flex-col items-center space-y-5">
+                    <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <FileEdit className="h-8 w-8 text-white" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">
+                        Create CMC/NCMC
+                      </h3>
+                      <p className="text-gray-500 text-sm">
+                        Draft new contract proposals
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+              </button>
             </div>
-          </button>
+
+            {/* Pending Proposal Card */}
+            <div className="group">
+              <button
+                onClick={() => navigate("/pending-proposal")}
+                className="w-full bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="p-8 relative z-10">
+                  <div className="flex flex-col items-center space-y-5">
+                    <div className="p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300 relative">
+                      <Clock className="h-8 w-8 text-white" />
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">
+                        Pending Proposal
+                      </h3>
+                      <p className="text-gray-500 text-sm">
+                        Review awaiting proposals
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+              </button>
+            </div>
+
+            {/* Quote Generation Card */}
+            <div className="group">
+              <button
+                onClick={() => navigate("/quote-generation")}
+                className="w-full bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="p-8 relative z-10">
+                  <div className="flex flex-col items-center space-y-5">
+                    <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <Calculator className="h-8 w-8 text-white" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">
+                        Quote Generation
+                      </h3>
+                      <p className="text-gray-500 text-sm">
+                        Generate pricing quotes
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+              </button>
+            </div>
+
+            {/* Proposal Completed Card */}
+            <div className="group pb-5">
+              <button
+                onClick={() => navigate("/completed-order")}
+                className="w-full bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="p-8 relative z-10">
+                  <div className="flex flex-col items-center space-y-5">
+                    <div className="p-4 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <CheckCircle className="h-8 w-8 text-white" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">
+                        Proposal Completed
+                      </h3>
+                      <p className="text-gray-500 text-sm">
+                        View completed proposals
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
