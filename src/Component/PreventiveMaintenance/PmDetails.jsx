@@ -448,17 +448,43 @@ function PmDetails() {
     let processedCount = 0;
 
     for (let i = 0; i < selectedPms.length; i++) {
-      const pm = { ...selectedPms[i] };
-      const partNumber = "PM" + String(i + 1).padStart(5, "0");
-      pm.partNumber = partNumber;
+      const pm = { ...selectedPms[i] }; // This already contains the original partNumber
+      // Remove the auto-generated partNumber and use the existing one
       pm.pmDoneDate = formatDate(new Date());
       pm.pmEngineerCode = userInfo.employeeid || "UNKNOWN";
       pm.pmStatus = "Completed";
 
+      // ✅ Fetch chlNo and revNo from /upload/pmdoc/by-part/:partNumber
+      let chlNo = "";
+      let revNo = "";
+      try {
+        const pmdocRes = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/upload/pmdoc/by-part/${pm.partNumber}`
+        );
+        const pmdocData = await pmdocRes.json();
+        console.log("pm.partNumber", pm.partNumber);
+        if (pmdocData.pmDocs && pmdocData.pmDocs.length > 0) {
+          chlNo = pmdocData.pmDocs[0].chlNo;
+          revNo = pmdocData.pmDocs[0].revNo;
+        } else {
+          details.push(`⚠️ No PM Doc found for part number ${pm.partNumber}`);
+        }
+      } catch (err) {
+        details.push(
+          `❌ Error fetching PM Doc for ${pm.partNumber}: ${err.message}`
+        );
+      }
+
+      // ✅ Add chlNo and revNo to pm object
+      pm.chlNo = chlNo;
+      pm.revNo = revNo;
+
+      // Prepare checklist data
       const pmChecklist = checklistData[pm._id];
       const responses = pmChecklist?.items || [];
       const globalRemark = pmChecklist?.globalRemark || "N/A";
 
+      // ✅ Final payload
       const payload = {
         pmData: pm,
         checklistData: responses,
@@ -467,6 +493,7 @@ function PmDetails() {
         userInfo,
       };
 
+      // ✅ Send to /upload/reportAndUpdate
       try {
         const res = await fetch(
           `${process.env.REACT_APP_BASE_URL}/upload/reportAndUpdate`,
@@ -478,13 +505,14 @@ function PmDetails() {
         );
         const data = await res.json();
         if (data.message && data.message.includes("successfully")) {
-          details.push(`✔️ Created PDF for ${partNumber}`);
+          details.push(`✔️ Created PDF for ${pm.partNumber}`);
         } else {
-          details.push(`❌ Failed for ${partNumber}: ${data.message}`);
+          details.push(`❌ Failed for ${pm.partNumber}: ${data.message}`);
         }
       } catch (err) {
-        details.push(`❌ Error for ${partNumber}: ${err.message}`);
+        details.push(`❌ Error for ${pm.partNumber}: ${err.message}`);
       }
+
       processedCount++;
       setProgressStatus({
         current: processedCount,
@@ -493,6 +521,8 @@ function PmDetails() {
       });
     }
 
+    // Rest of the function remains the same...
+    // ✅ Send Combined Email
     setSendingEmail(true);
     try {
       const sendRes = await fetch(
@@ -502,7 +532,7 @@ function PmDetails() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             customerCode: selectedPms[0].customerCode,
-            ...userInfo, // spread the userInfo directly into the payload
+            ...userInfo,
           }),
         }
       );
@@ -518,6 +548,7 @@ function PmDetails() {
         details.push("❌ Emailing PDFs failed: " + sendData.message);
         toast.error("Combined email failed: " + sendData.message);
       }
+
       setProgressStatus({
         current: processedCount,
         total: selectedPms.length,
@@ -532,6 +563,7 @@ function PmDetails() {
       });
       toast.error("Error in sending combined email: " + err.message);
     }
+
     setSendingEmail(false);
     setProgressModalVisible(false);
     toast.success("All PMs processed & email sent. Redirecting...");

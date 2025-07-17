@@ -231,17 +231,6 @@ const EquipmentDetail = () => {
                   </h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  <div className="flex items-center p-3 bg-green-50 rounded-xl border border-green-200">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                    <div>
-                      <p className="text-xs text-green-600 uppercase tracking-wide font-medium">
-                        Equipment Name
-                      </p>
-                      <p className="font-bold text-green-800">
-                        {equipmentDetails.equipment?.name || "N/A"}
-                      </p>
-                    </div>
-                  </div>
                   <div className="flex items-center p-3 bg-gray-50 rounded-xl">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                     <div>

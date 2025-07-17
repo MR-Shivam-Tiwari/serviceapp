@@ -159,6 +159,9 @@ const ComplaintDetailsPage = () => {
       </div>
     );
   }
+  const handleCreateEstimation = () => {
+    navigate("/create-oncall-estimation", { state: { complaint, customer } });
+  };
 
   const handleCloseComplaint = () => {
     // Navigate to CloseComplaintPage and pass both complaint and customer data as "state"
@@ -265,11 +268,17 @@ const ComplaintDetailsPage = () => {
                 Close Complaint
               </button>
             </div>
-            <div className=" w-full mt-3">
-              <button className="bg-primary w-full text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                On Call Estimation
-              </button>
-            </div>
+            {(complaint.notificationtype === "NW" ||
+              complaint.notificationtype === "NC") && (
+              <div className="w-full mt-3">
+                <button
+                  className="bg-primary w-full text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                  onClick={handleCreateEstimation}
+                >
+                  On Call Estimation
+                </button>
+              </div>
+            )}
           </div>
         </>
       ) : (
