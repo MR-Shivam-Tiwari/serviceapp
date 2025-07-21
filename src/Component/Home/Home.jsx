@@ -1203,7 +1203,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-white/80">
-      <div className="w-full  backdrop-blur-sm  ">
+      <div className="w-full backdrop-blur-sm">
         {/* Enhanced Header Section */}
         <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
           <div className="flex items-center justify-between px-6 py-5 text-white">
@@ -1229,9 +1229,9 @@ function Home() {
           </div>
         </div>
 
-        {/* Enhanced Logout Modal */}
+        {/* Logout Modal */}
         {showModal && (
-          <div className="fixed  inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="fixed inset-0 mb-24 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1262,11 +1262,12 @@ function Home() {
           </div>
         )}
 
-        {/* Enhanced User Info Section */}
+        {/* User Info Section */}
         <div className="p-3">
+          {/* User Profile Card (isolated click) */}
           <div
             onClick={() => navigate("/user-profile")}
-            className="bg-gradient-to-r from-white  to-blue-50 rounded-xl shadow-md hover:shadow-lg border border-blue-100 p-2 cursor-pointer transition-all duration-300 transform hover:scale-[1.01] mb-4"
+            className="bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-md hover:shadow-lg border border-blue-100 p-2 cursor-pointer transition-all duration-300 transform hover:scale-[1.01] mb-4"
           >
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -1288,7 +1289,7 @@ function Home() {
                   <User className="w-4 h-4 text-blue-600" />
                   <h3 className="text-md font-semibold text-gray-800 truncate max-w-[180px]">
                     Hello,{" "}
-                    {`${userData.firstname}  ${userData.lastname}`.length > 20
+                    {`${userData.firstname} ${userData.lastname}`.length > 20
                       ? `${userData.firstname} ${userData.lastname}`.slice(
                           0,
                           20
@@ -1304,7 +1305,7 @@ function Home() {
                 </div>
                 <div className="flex items-center space-x-1">
                   <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                  <p className="text-gray-500 text-sm  truncate max-w-[160px]">
+                  <p className="text-gray-500 text-sm truncate max-w-[160px]">
                     {new Date().toLocaleDateString("en-US", {
                       weekday: "short",
                       month: "short",
@@ -1331,8 +1332,7 @@ function Home() {
               </div>
             </div>
           </div>
-
-          {/* Enhanced Action Buttons Grid */}
+          {/* Quick Actions Grid (outside profile card) */}
           <div className="mb-4">
             <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full mr-3"></div>
@@ -1345,7 +1345,10 @@ function Home() {
                   return (
                     <button
                       key={component.componentId}
-                      onClick={() => navigate(config.path)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevents bubbling to any parent (e.g. profile card)
+                        navigate(config.path);
+                      }}
                       className="group relative bg-gradient-to-br from-white to-gray-50 hover:from-blue-50 hover:to-indigo-50 rounded-2xl shadow-md hover:shadow-xl border border-gray-200 hover:border-blue-300 p-6 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
                     >
                       <div className="flex flex-col items-center space-y-3">

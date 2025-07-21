@@ -6,6 +6,178 @@ import toast from "react-hot-toast";
 import { Autocomplete, Divider, IconButton, TextField } from "@mui/joy";
 import { EndOfSupportError } from "./EndOfSupportError";
 
+// --- Service Charge Component ---
+const ServiceChargeExtra = ({ materialCode, selectedTds }) => {
+  const [serviceChargeData, setServiceChargeData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [serviceType, setServiceType] = useState("withinCity");
+  const [inputCharge, setInputCharge] = useState("");
+  const [maxCharge, setMaxCharge] = useState(null);
+
+  const gstPercent = 18;
+
+  useEffect(() => {
+    if (!materialCode) return;
+    async function fetchServiceCharge() {
+      try {
+        setLoading(true);
+        const res = await axios.get(
+          `${process.env.REACT_APP_BASE_URL}/admin/service-charge/${materialCode}`
+        );
+        if (res.data.success && res.data.serviceCharge) {
+          setServiceChargeData(res.data.serviceCharge);
+          setMaxCharge(res.data.serviceCharge.onCallVisitCharge.withinCity);
+          setInputCharge("");
+        } else {
+          setServiceChargeData(null);
+          setMaxCharge(null);
+          setInputCharge("");
+        }
+      } catch (err) {
+        setServiceChargeData(null);
+        setMaxCharge(null);
+        setInputCharge("");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchServiceCharge();
+  }, [materialCode]);
+
+  useEffect(() => {
+    if (!serviceChargeData) return;
+    const maxVal =
+      serviceType === "withinCity"
+        ? serviceChargeData.onCallVisitCharge.withinCity
+        : serviceChargeData.onCallVisitCharge.outsideCity;
+    setMaxCharge(maxVal);
+    if (inputCharge && Number(inputCharge) > maxVal) setInputCharge("");
+  }, [serviceType, serviceChargeData]);
+
+  const handleChargeInputChange = (e) => {
+    const val = e.target.value;
+    if (val === "" || (/^\d+(\.\d{0,2})?$/.test(val) && Number(val) >= 0)) {
+      if (maxCharge !== null && Number(val) > maxCharge) {
+        toast.error(
+          `Charge cannot exceed maximum allowed value of ₹${maxCharge}`
+        );
+        return;
+      }
+      setInputCharge(val);
+    }
+  };
+
+  const chargeNum = Number(inputCharge) || 0;
+  const gstAmount = (chargeNum * gstPercent) / 100;
+  const tdsPercent = selectedTds?.tds ? Number(selectedTds.tds) : 0;
+  const tdsAmount = ((chargeNum + gstAmount) * tdsPercent) / 100;
+  const finalTotal = chargeNum + gstAmount + tdsAmount;
+
+  // Return values for parent use in summary/submission
+  return {
+    render: (
+      <div className="bg-white p-4 rounded shadow-md max-w-md mx-auto mt-6">
+        <h3 className="text-lg font-semibold mb-4">
+          Additional Service Charge
+        </h3>
+        {loading && <p>Loading service charge data...</p>}
+        {!loading && !serviceChargeData && (
+          <p className="text-red-600">No service charge data available</p>
+        )}
+        {!loading && serviceChargeData && (
+          <>
+            <div className="mb-4">
+              <p>
+                <strong>Part Number:</strong> {serviceChargeData.partNumber}
+              </p>
+            </div>
+            <div className="mb-4">
+              <label className="block font-medium mb-2">
+                Select Service Location:
+              </label>
+              <div className="flex space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="serviceType"
+                    value="withinCity"
+                    checked={serviceType === "withinCity"}
+                    onChange={() => setServiceType("withinCity")}
+                    className="mr-2"
+                  />
+                  Within City (Max ₹
+                  {serviceChargeData.onCallVisitCharge.withinCity.toLocaleString(
+                    "en-IN"
+                  )}
+                  )
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="serviceType"
+                    value="outsideCity"
+                    checked={serviceType === "outsideCity"}
+                    onChange={() => setServiceType("outsideCity")}
+                    className="mr-2"
+                  />
+                  Outside City (Max ₹
+                  {serviceChargeData.onCallVisitCharge.outsideCity.toLocaleString(
+                    "en-IN"
+                  )}
+                  )
+                </label>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label
+                htmlFor="serviceChargeInput"
+                className="block font-medium mb-2"
+              >
+                Enter Service Charge (Max ₹{maxCharge?.toLocaleString("en-IN")})
+              </label>
+              <input
+                id="serviceChargeInput"
+                type="number"
+                min="0"
+                max={maxCharge}
+                step="0.01"
+                value={inputCharge}
+                onChange={handleChargeInputChange}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                placeholder={`Enter amount up to ₹${maxCharge}`}
+              />
+            </div>
+            <div className="bg-gray-50 p-4 rounded border border-gray-200">
+              <p>
+                <strong>GST (18%):</strong> ₹
+                {gstAmount.toFixed(2).toLocaleString("en-IN")}
+              </p>
+              <p>
+                <strong>TDS ({tdsPercent}%):</strong> ₹
+                {tdsAmount.toFixed(2).toLocaleString("en-IN")}
+              </p>
+              <Divider className="my-2" />
+              <p className="font-semibold">
+                <strong>Final Total:</strong> ₹
+                {finalTotal.toFixed(2).toLocaleString("en-IN")}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    ),
+    chargeNum,
+    gstAmount,
+    tdsAmount,
+    finalTotal,
+    valid: !!(inputCharge && !loading && serviceChargeData),
+    info: {
+      serviceType,
+    },
+  };
+};
+
+// --- Main Page Component ---
 const CreateOnCallEstimationPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -62,8 +234,6 @@ const CreateOnCallEstimationPage = () => {
     dealerEmail: "",
     manageremail: [],
   });
-
-  // Load user info on mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
@@ -90,7 +260,6 @@ const CreateOnCallEstimationPage = () => {
     : [];
 
   useEffect(() => {
-    // Initialize form data with complaint and customer
     if (complaint && customer) {
       setFormData((prev) => ({
         ...prev,
@@ -132,23 +301,18 @@ const CreateOnCallEstimationPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
-        // Fetch TDS options
         const tdsResponse = await axios.get(
           `${process.env.REACT_APP_BASE_URL}/admin/cmc-ncmc-tds`
         );
         setTdsOptions(tdsResponse.data.records || []);
-
-        // Fetch GST options
         const gstResponse = await axios.get(
           `${process.env.REACT_APP_BASE_URL}/admin/gst`
         );
         setGstOptions(gstResponse.data.records || []);
       } catch (error) {
-        console.error("Error fetching TDS/GST data:", error);
+        // Ignore for now
       }
     };
-
     fetchData();
   }, []);
 
@@ -156,13 +320,10 @@ const CreateOnCallEstimationPage = () => {
     const fetchSpares = async () => {
       try {
         if (!complaint?.materialcode) return;
-
         const response = await axios.get(
           `${process.env.REACT_APP_BASE_URL}/collections/spare-by-partno/${complaint.materialcode}`
         );
-
         setAllSpares(response.data.spares);
-
         if (existingSpareRequests.length > 0) {
           const existingSpares = response.data.spares.filter((spare) =>
             existingSpareRequests.includes(spare.PartNumber)
@@ -174,13 +335,11 @@ const CreateOnCallEstimationPage = () => {
           setEndOfSupportError(err.response.data);
         } else {
           setError("Failed to fetch spares");
-          console.error(err);
         }
       } finally {
         setLoading(false);
       }
     };
-
     fetchSpares();
   }, [complaint?.materialcode]);
 
@@ -197,26 +356,30 @@ const CreateOnCallEstimationPage = () => {
     );
   };
 
+  // --- Service Charge Logic
+  const serviceCharge = ServiceChargeExtra({
+    materialCode: complaint?.materialcode,
+    selectedTds,
+  });
+  // ---
+
   const handleGenerateEstimate = async () => {
     try {
       setIsSubmitting(true);
-
-      // Validate required fields
-      if (selectedSpares.length === 0) {
-        toast.error("Please select at least one spare part");
+      if (selectedSpares.length === 0 && !serviceCharge.valid) {
+        toast.error(
+          "Please select at least one spare part or enter service charge"
+        );
         return;
       }
-
       if (!selectedTds) {
         toast.error("Please select TDS percentage");
         return;
       }
-
       if (!selectedGst) {
         toast.error("Please select GST percentage");
         return;
       }
-
       // Prepare product groups for the OnCall
       const productGroups = [
         {
@@ -227,11 +390,19 @@ const CreateOnCallEstimationPage = () => {
           existingSpares: existingSpare ? [existingSpare] : [],
         },
       ];
-
-      // Calculate financials
       const totals = calculateTotals();
 
-      // Prepare the complete OnCall data
+      // ---- NEW: Prepare additionalServiceCharge with only the required fields
+      let additionalServiceCharge = undefined;
+      if (serviceCharge.valid && serviceCharge.chargeNum > 0) {
+        additionalServiceCharge = {
+          enteredCharge: serviceCharge.chargeNum,
+          location: serviceCharge.info.serviceType,
+          gstAmount: serviceCharge.gstAmount,
+          totalAmount: serviceCharge.finalTotal,
+        };
+      }
+
       const onCallData = {
         customer: {
           customercodeid: customer.customercodeid,
@@ -265,9 +436,8 @@ const CreateOnCallEstimationPage = () => {
         },
         productGroups,
         tdsPercentage: parseFloat(selectedTds.tds),
-        discountPercentage: 0, // Can be modified if needed
+        discountPercentage: 0,
         gstPercentage: parseFloat(selectedGst.gst),
-        remark: `On Call Estimate generated with ${selectedSpares.length} spares`,
         grandSubTotal: totals.subtotal,
         discountAmount: totals.discountAmount,
         afterDiscount: totals.afterDiscount,
@@ -276,11 +446,12 @@ const CreateOnCallEstimationPage = () => {
         gstAmount: totals.gstAmount,
         finalAmount: totals.total,
         status: "submitted",
-        createdBy: userInfo?.employeeId, // Replace with actual user ID from auth context
+        createdBy: userInfo?.employeeId,
+        // Only include 'additionalServiceCharge' if set
+        ...(additionalServiceCharge && { additionalServiceCharge }),
       };
 
-      // Create the OnCall
-      const response = await axios.post(
+      await axios.post(
         `${process.env.REACT_APP_BASE_URL}/phone/oncall`,
         onCallData,
         {
@@ -289,14 +460,9 @@ const CreateOnCallEstimationPage = () => {
           },
         }
       );
-
       toast.success("OnCall estimate created successfully!");
     } catch (error) {
-      console.error("Error creating OnCall:", error);
-
-      // Enhanced error handling
       if (error.response) {
-        // Server responded with error status
         if (error.response.status === 400) {
           toast.error(
             "Validation error: " +
@@ -304,17 +470,14 @@ const CreateOnCallEstimationPage = () => {
           );
         } else if (error.response.status === 401) {
           toast.error("Unauthorized - Please login again");
-          // Optionally redirect to login
         } else {
           toast.error(
             error.response.data.message || "Failed to create OnCall estimate"
           );
         }
       } else if (error.request) {
-        // Request was made but no response
         toast.error("Network error - Please check your connection");
       } else {
-        // Other errors
         toast.error("An unexpected error occurred");
       }
     } finally {
@@ -334,18 +497,15 @@ const CreateOnCallEstimationPage = () => {
       (sum, spare) => sum + (spare.Rate || 0),
       0
     );
-
     const tdsValue = selectedTds ? parseFloat(selectedTds.tds) : 0;
     const gstValue = selectedGst ? parseFloat(selectedGst.gst) : 0;
-    const discountValue = 0; // You can add discount functionality if needed
-
+    const discountValue = 0;
     const discountAmount = (subtotal * discountValue) / 100;
     const afterDiscount = subtotal - discountAmount;
     const tdsAmount = (afterDiscount * tdsValue) / 100;
-    const afterTds = afterDiscount - tdsAmount;
+    const afterTds = afterDiscount + tdsAmount; // note: add tds!
     const gstAmount = (afterTds * gstValue) / 100;
     const total = afterTds + gstAmount;
-
     return {
       subtotal,
       discountAmount,
@@ -381,7 +541,6 @@ const CreateOnCallEstimationPage = () => {
           </div>
         </div>
       </div>
-
       <div className="p-4 space-y-6">
         {/* Complaint Details Card */}
         <div className="bg-white rounded-lg shadow p-4">
@@ -417,13 +576,11 @@ const CreateOnCallEstimationPage = () => {
             </div>
           </div>
         </div>
-
         {/* Spare Search Section */}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3 text-gray-800">
             Add Spares
           </h2>
-
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
@@ -469,7 +626,6 @@ const CreateOnCallEstimationPage = () => {
             />
           </div>
         </div>
-
         {/* Tax Selection Section */}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3 text-gray-800">
@@ -500,7 +656,6 @@ const CreateOnCallEstimationPage = () => {
                 ))}
               </select>
             </div>
-
             {/* GST */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -527,7 +682,6 @@ const CreateOnCallEstimationPage = () => {
             </div>
           </div>
         </div>
-
         {/* Selected Spares Section */}
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex justify-between items-center mb-3">
@@ -542,7 +696,6 @@ const CreateOnCallEstimationPage = () => {
               selected
             </span>
           </div>
-
           {existingSpare && (
             <div className="border rounded-md p-3 flex justify-between items-center bg-blue-50 border-blue-200">
               <div>
@@ -564,7 +717,6 @@ const CreateOnCallEstimationPage = () => {
               </IconButton>
             </div>
           )}
-
           {selectedSpares.length === 0 && !existingSpare ? (
             <div className="text-center py-6 text-gray-500">
               No spares selected. Search below to add spares.
@@ -599,7 +751,8 @@ const CreateOnCallEstimationPage = () => {
             </div>
           )}
         </div>
-
+        {/* Service Charge NEW SECTION */}
+        {serviceCharge.render}
         {/* Summary Card */}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3 text-gray-800">
@@ -618,7 +771,7 @@ const CreateOnCallEstimationPage = () => {
               </span>
               <span className="font-medium text-red-600">
                 {selectedTds
-                  ? `-₹${tdsAmount.toLocaleString("en-IN")}`
+                  ? `+₹${tdsAmount.toLocaleString("en-IN")}`
                   : "Not selected"}
               </span>
             </div>
@@ -634,19 +787,34 @@ const CreateOnCallEstimationPage = () => {
             </div>
             <Divider />
             <div className="flex justify-between text-lg font-semibold">
-              <span>Total Amount:</span>
+              <span>Total Amount (Spares):</span>
               <span>₹{total.toLocaleString("en-IN")}</span>
             </div>
+            {serviceCharge.valid && (
+              <>
+                <Divider />
+                <div className="flex justify-between text-lg font-semibold text-blue-800">
+                  <span>Total incl. Service Charge:</span>
+                  <span>
+                    ₹
+                    {(total + serviceCharge.finalTotal).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
-
         {/* Action Button */}
         <div className="flex justify-center mt-6">
           <button
             onClick={handleGenerateEstimate}
-            disabled={selectedSpares.length === 0 || isSubmitting}
+            disabled={
+              (selectedSpares.length === 0 && !serviceCharge.valid) ||
+              isSubmitting
+            }
             className={`px-6 py-3 rounded-md text-white font-medium transition-colors ${
-              selectedSpares.length === 0 || isSubmitting
+              (selectedSpares.length === 0 && !serviceCharge.valid) ||
+              isSubmitting
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
             }`}

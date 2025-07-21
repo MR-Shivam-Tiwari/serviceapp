@@ -7,12 +7,12 @@ function OnCallRevision() {
 
   const [onCall, setOnCall] = useState(null);
   const [discountOptions, setDiscountOptions] = useState([]);
-  const [discountType, setDiscountType] = useState("percentage"); // 'percentage' or 'fixed'
+  const [discountType, setDiscountType] = useState("percentage");
   const [discountValue, setDiscountValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(false);
-  const [roeSelections, setRoeSelections] = useState([]); // Track ROE selections for each spare
+  const [pricingMode, setPricingMode] = useState("rate");
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -20,24 +20,15 @@ function OnCallRevision() {
       try {
         setLoading(true);
 
-        // Fetch oncall data
         const onCallResponse = await fetch(
           `${process.env.REACT_APP_BASE_URL}/phone/oncall/${id}`
         );
         if (!onCallResponse.ok) throw new Error("Failed to fetch oncall data");
         const onCallData = await onCallResponse.json();
         setOnCall(onCallData);
-        
-        // Initialize discount based on existing data
-        setDiscountValue(onCallData.discountPercentage || 0);
-        
-        // Initialize ROE selections (false for all spares)
-        const initialRoeSelections = onCallData.productGroups.map(group => 
-          group.spares.map(() => false)
-        );
-        setRoeSelections(initialRoeSelections);
 
-        // Fetch discount options
+        setDiscountValue(onCallData.discountPercentage || 0);
+
         const discountResponse = await fetch(
           `${process.env.REACT_APP_BASE_URL}/admin/discount`
         );
@@ -55,19 +46,18 @@ function OnCallRevision() {
   }, [id]);
 
   useEffect(() => {
-    // Check for changes whenever discount or ROE selections change
     if (onCall) {
       const originalDiscount = onCall.discountPercentage || 0;
-      const hasDiscountChanged = discountType === "percentage" 
-        ? discountValue !== originalDiscount
-        : discountValue > 0;
+      const hasDiscountChanged =
+        discountType === "percentage"
+          ? discountValue !== originalDiscount
+          : discountValue > 0;
 
-      const hasRoeChanged = onCall.currentRevision > 0 && 
-        roeSelections.some(group => group.some(selected => selected));
+      const hasPricingModeChanged = pricingMode !== "rate";
 
-      setHasChanges(hasDiscountChanged || hasRoeChanged);
+      setHasChanges(hasDiscountChanged || hasPricingModeChanged);
     }
-  }, [discountValue, discountType, roeSelections, onCall]);
+  }, [discountValue, discountType, pricingMode, onCall]);
 
   const extractPercentageValue = (discountStr) => {
     const match = discountStr.match(/(\d+)%/);
@@ -76,51 +66,92 @@ function OnCallRevision() {
 
   const handleDiscountTypeChange = (type) => {
     setDiscountType(type);
-    // Reset discount value when switching types
     setDiscountValue(0);
+    setError(null);
   };
 
   const handleDiscountValueChange = (e) => {
     const value = parseFloat(e.target.value) || 0;
+    const maxDiscount = getMaxDiscountAmount();
+
+    if (value > maxDiscount) {
+      setError(`Maximum discount allowed is ₹${maxDiscount.toFixed(2)}`);
+      return;
+    }
+
+    setError(null);
     setDiscountValue(value);
   };
 
-  const handleRoeChange = (groupIndex, spareIndex) => (e) => {
-    const newRoeSelections = [...roeSelections];
-    newRoeSelections[groupIndex] = [...roeSelections[groupIndex]];
-    newRoeSelections[groupIndex][spareIndex] = e.target.checked;
-    setRoeSelections(newRoeSelections);
+  const getMaxDiscountAmount = () => {
+    if (!onCall) return 0;
+
+    let maxDiscount = 0;
+
+    onCall.productGroups.forEach((group) => {
+      group.spares.forEach((spare) => {
+        const chargesValue = parseFloat(spare.Charges) || 0;
+        const dpValue = spare.DP || 0;
+
+        if (onCall.currentRevision === 0) {
+          // For currentRevision = 0, max discount is Rate - DP
+          maxDiscount += Math.max(0, spare.Rate - dpValue);
+        } else {
+          // For currentRevision > 0, max discount is Rate - Charges
+          maxDiscount += Math.max(0, spare.Rate - chargesValue);
+        }
+      });
+    });
+
+    return maxDiscount;
   };
 
   const calculateNewAmounts = () => {
     if (!onCall) return zeroAmounts();
 
-    // Calculate new subtotal based on ROE selections
     let grandSubTotal = 0;
-    onCall.productGroups.forEach((group, groupIndex) => {
-      group.spares.forEach((spare, spareIndex) => {
-        if (roeSelections[groupIndex]?.[spareIndex] && spare.Charges) {
-          // Use Charges value if ROE is selected and available
-          grandSubTotal += parseFloat(spare.Charges) || 0;
-        } else {
-          // Use original Rate if ROE not selected or no Charges available
+    let applicableDiscountBase = 0;
+
+    onCall.productGroups.forEach((group) => {
+      group.spares.forEach((spare) => {
+        const chargesValue = parseFloat(spare.Charges) || 0;
+        const dpValue = spare.DP || 0;
+
+        if (onCall.currentRevision === 0) {
+          // For currentRevision = 0
+          // Subtotal: Rate
+          // Max discount: Rate - DP
           grandSubTotal += spare.Rate;
+          applicableDiscountBase += Math.max(0, spare.Rate - dpValue);
+        } else {
+          // For currentRevision > 0
+          if (pricingMode === "rate") {
+            // Rate mode: Subtotal = Rate, Max discount = Rate - Charges
+            grandSubTotal += spare.Rate;
+            applicableDiscountBase += Math.max(0, spare.Rate - chargesValue);
+          } else if (pricingMode === "exchange") {
+            // Exchange mode: Subtotal = Charges (if available), Max discount = Rate - Charges
+            if (chargesValue > 0) {
+              grandSubTotal += chargesValue;
+            } else {
+              grandSubTotal += spare.Rate;
+            }
+            applicableDiscountBase += Math.max(0, spare.Rate - chargesValue);
+          }
         }
       });
     });
 
-    // Calculate discount amount based on type
     let discountAmount = 0;
     if (discountType === "percentage") {
-      discountAmount = grandSubTotal * (discountValue / 100);
+      discountAmount = applicableDiscountBase * (discountValue / 100);
     } else {
-      // For fixed amount, cap at grandSubTotal to avoid negative amounts
-      discountAmount = Math.min(discountValue, grandSubTotal);
+      discountAmount = Math.min(discountValue, applicableDiscountBase);
     }
 
     const afterDiscount = grandSubTotal - discountAmount;
     const tdsAmount = afterDiscount * ((onCall.tdsPercentage || 0) / 100);
-    const afterTds = afterDiscount - tdsAmount;
+    const afterTds = afterDiscount + tdsAmount;
     const gstAmount = afterTds * ((onCall.gstPercentage || 0) / 100);
     const finalAmount = afterTds + gstAmount;
 
@@ -132,6 +163,7 @@ function OnCallRevision() {
       afterTds,
       gstAmount,
       finalAmount,
+      applicableDiscountBase,
     };
   };
 
@@ -143,14 +175,25 @@ function OnCallRevision() {
     afterTds: 0,
     gstAmount: 0,
     finalAmount: 0,
+    applicableDiscountBase: 0,
   });
+
+  const convertFixedToPercentage = (fixedAmount, base) => {
+    if (base === 0) return 0;
+    return (fixedAmount / base) * 100;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate discount value
-    if (discountType === "fixed" && discountValue > calculateNewAmounts().grandSubTotal) {
-      setError("Discount amount cannot be greater than subtotal");
+
+    const newAmounts = calculateNewAmounts();
+
+    if (newAmounts.discountAmount > newAmounts.applicableDiscountBase) {
+      setError(
+        `Discount cannot exceed maximum allowed amount of ₹${newAmounts.applicableDiscountBase.toFixed(
+          2
+        )}`
+      );
       return;
     }
 
@@ -158,7 +201,13 @@ function OnCallRevision() {
     setError(null);
 
     try {
-      const newAmounts = calculateNewAmounts();
+      const discountPercentage =
+        discountType === "percentage"
+          ? discountValue
+          : convertFixedToPercentage(
+              discountValue,
+              newAmounts.applicableDiscountBase
+            );
 
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/phone/oncall/${id}/revision`,
@@ -168,18 +217,21 @@ function OnCallRevision() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            discountPercentage: discountType === "percentage" ? discountValue : 0,
+            discountPercentage,
             discountAmount: newAmounts.discountAmount,
             afterDiscount: newAmounts.afterDiscount,
             tdsAmount: newAmounts.tdsAmount,
             afterTds: newAmounts.afterTds,
             gstAmount: newAmounts.gstAmount,
             finalAmount: newAmounts.finalAmount,
-            remark: `OnCall revised with ${
-              discountType === "percentage" 
-                ? `${discountValue}% discount` 
-                : `₹${discountValue} fixed discount`
-            }${onCall.currentRevision > 0 ? " (ROE applied)" : ""}`,
+            pricingMode,
+            remark: `OnCall revised with ${pricingMode} pricing - ${
+              discountType === "percentage"
+                ? `${discountValue}% discount`
+                : `₹${discountValue} fixed discount (${discountPercentage.toFixed(
+                    2
+                  )}%)`
+            }`,
           }),
         }
       );
@@ -190,11 +242,6 @@ function OnCallRevision() {
       }
 
       const updatedOnCall = await response.json();
-      navigate("/pending-oncall", {
-        state: {
-          success: `OnCall revised successfully (Revision ${updatedOnCall.currentRevision})`,
-        },
-      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -202,70 +249,87 @@ function OnCallRevision() {
     }
   };
 
+  const shouldShowExchangeMode = onCall?.currentRevision > 0;
+  const hasExchangeOptions = onCall?.productGroups.some((group) =>
+    group.spares.some((spare) => parseFloat(spare.Charges) > 0)
+  );
+
   const newAmounts = calculateNewAmounts();
 
   if (loading) {
     return (
-      <div className="">
-        <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-          <button className="mr-2 text-white" onClick={() => navigate(-1)}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white">
+          <button
+            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
+            onClick={() => navigate(-1)}
+          >
             <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="currentColor"
-              className="bi bi-arrow-left-short"
-              viewBox="0 0 16 16"
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
               <path
-                fillRule="evenodd"
-                d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
-                0 0 1-.708.708l-3-3a.5.5 
-                0 0 1 0-.708l3-3a.5.5 
-                0 1 1 .708.708L5.707 7.5H11.5a.5.5 
-                0 0 1 .5.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
               />
             </svg>
           </button>
-          <h2 className="text-xl font-bold">OnCall Revision</h2>
+          <h1 className="text-lg font-semibold">OnCall Revision</h1>
         </div>
-        <div className="mt-20 flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !onCall) {
     return (
-      <div className="">
-        <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-          <button className="mr-2 text-white" onClick={() => navigate(-1)}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white">
+          <button
+            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
+            onClick={() => navigate(-1)}
+          >
             <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="currentColor"
-              className="bi bi-arrow-left-short"
-              viewBox="0 0 16 16"
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
               <path
-                fillRule="evenodd"
-                d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
-                0 0 1-.708.708l-3-3a.5.5 
-                0 0 1 0-.708l3-3a.5.5 
-                0 1 1 .708.708L5.707 7.5H11.5a.5.5 
-                0 0 1 .5.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
               />
             </svg>
           </button>
-          <h2 className="text-xl font-bold">OnCall Revision</h2>
+          <h1 className="text-lg font-semibold">OnCall Revision</h1>
         </div>
-        <div className="mt-20 p-4 text-red-500 text-center">Error: {error}</div>
-        <div className="px-4">
+        <div className="p-3">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+            <div className="flex items-center">
+              <svg
+                className="w-4 h-4 text-red-500 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                />
+              </svg>
+              <span className="text-red-800 text-sm">{error}</span>
+            </div>
+          </div>
           <button
             onClick={() => window.location.reload()}
-            className="w-full bg-primary text-white py-2 rounded"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
           >
             Try Again
           </button>
@@ -276,330 +340,666 @@ function OnCallRevision() {
 
   if (!onCall) {
     return (
-      <div className="">
-        <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-          <button className="mr-2 text-white" onClick={() => navigate(-1)}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white">
+          <button
+            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
+            onClick={() => navigate(-1)}
+          >
             <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="currentColor"
-              className="bi bi-arrow-left-short"
-              viewBox="0 0 16 16"
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
               <path
-                fillRule="evenodd"
-                d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
-                0 0 1-.708.708l-3-3a.5.5 
-                0 0 1 0-.708l3-3a.5.5 
-                0 1 1 .708.708L5.707 7.5H11.5a.5.5 
-                0 0 1 .5.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
               />
             </svg>
           </button>
-          <h2 className="text-xl font-bold">OnCall Revision</h2>
+          <h1 className="text-lg font-semibold">OnCall Revision</h1>
         </div>
-        <div className="mt-20 p-4 text-center">OnCall not found</div>
+        <div className="p-3 text-center">
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <svg
+              className="w-12 h-12 mx-auto text-gray-400 mb-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <h2 className="text-lg font-medium text-gray-800 mb-1">
+              OnCall Not Found
+            </h2>
+            <p className="text-gray-600 text-sm">
+              The requested OnCall could not be found.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="">
-      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
-        <button className="mr-2 text-white" onClick={() => navigate(-1)}>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white shadow-lg">
+        <button
+          className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
+          onClick={() => navigate(-1)}
+        >
           <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="36"
-            height="36"
-            fill="currentColor"
-            className="bi bi-arrow-left-short"
-            viewBox="0 0 16 16"
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
             <path
-              fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 
-              0 0 1-.708.708l-3-3a.5.5 
-              0 0 1 0-.708l3-3a.5.5 
-              0 1 1 .708.708L5.707 7.5H11.5a.5.5 
-              0 0 1 .5.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
             />
           </svg>
         </button>
-        <h2 className="text-xl font-bold">OnCall Revision</h2>
+        <h1 className="text-lg font-semibold">OnCall Revision</h1>
       </div>
 
-      <main className="mb-6 px-4 space-y-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="font-semibold text-lg mb-4">
-            OnCall #{onCall.onCallNumber} (Revision: {onCall.currentRevision})
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-gray-500">Customer</p>
-              <p className="font-medium">{onCall.customer.customername}</p>
-              <p className="text-sm text-gray-500">{onCall.customer.city}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Complaint ID</p>
-              <p className="font-medium">{onCall.complaint.notification_complaintid}</p>
+      <div className="p-3 space-y-3">
+        {/* OnCall Info */}
+        <div className="bg-white rounded-lg shadow-sm p-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-800">
+              #{onCall.onCallNumber}
+            </h2>
+            <div className="flex items-center space-x-2">
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                Rev: {onCall.currentRevision}
+              </span>
             </div>
           </div>
 
-          <div className="mb-4">
-            <p className="text-gray-500">Device</p>
-            <p className="font-medium">
-              {onCall.complaint.materialdescription} ({onCall.complaint.serialnumber})
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <p className="text-xs text-gray-500">Customer</p>
+              <p className="font-medium text-gray-800 text-sm">
+                {onCall.customer.customername}
+              </p>
+              <p className="text-xs text-gray-600">{onCall.customer.city}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Complaint ID</p>
+              <p className="font-medium text-gray-800 text-sm">
+                {onCall.complaint.notification_complaintid}
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <p className="text-xs text-gray-500">Device</p>
+            <p className="font-medium text-gray-800 text-sm">
+              {onCall.complaint.materialdescription}
+            </p>
+            <p className="text-xs text-gray-600">
+              S/N: {onCall.complaint.serialnumber}
             </p>
           </div>
 
-          <div className="mb-4">
-            <p className="text-gray-500">Reported Problem</p>
-            <p className="font-medium">{onCall.complaint.reportedproblem}</p>
+          <div>
+            <p className="text-xs text-gray-500">Problem</p>
+            <p className="font-medium text-gray-800 text-sm">
+              {onCall.complaint.reportedproblem}
+            </p>
           </div>
+        </div>
 
-          <div className="mb-4">
-            <p className="text-gray-500">Spare Requested</p>
-            <p className="font-medium">{onCall.complaint.sparerequest}</p>
-          </div>
-
-          {/* ROE SECTION - Only show if currentRevision > 0 */}
-          {onCall.currentRevision > 0 && (
-            <div className="mb-4 p-3 border rounded-lg bg-yellow-50">
-              <h4 className="font-semibold mb-3 text-orange-700">
-                Rate of Exchange Options
-              </h4>
-              {onCall.productGroups.map((group, groupIndex) => (
-                <div key={groupIndex} className="mb-3">
-                  <h5 className="font-medium text-gray-700">
-                    {group.productPartNo} - {group.subgroup}
-                  </h5>
-                  <div className="space-y-2 ml-4">
-                    {group.spares.map((spare, spareIndex) => (
-                      <div key={spareIndex} className="flex items-start">
-                        <input
-                          type="checkbox"
-                          id={`roe-${groupIndex}-${spareIndex}`}
-                          checked={roeSelections[groupIndex]?.[spareIndex] || false}
-                          onChange={handleRoeChange(groupIndex, spareIndex)}
-                          className="mt-1 mr-2"
-                          disabled={!spare.Charges}
-                        />
-                        <label 
-                          htmlFor={`roe-${groupIndex}-${spareIndex}`} 
-                          className="flex-1"
-                        >
-                          <div className="font-medium">{spare.PartNumber}</div>
-                          <div className="text-sm text-gray-600">
-                            {spare.Description}
-                          </div>
-                          <div className="flex justify-between text-sm mt-1">
-                            <span>Original Rate: ₹{spare.Rate.toFixed(2)}</span>
-                            {spare.Charges ? (
-                              <span className="text-blue-600">
-                                Exchange Charge: ₹{parseFloat(spare.Charges).toFixed(2)}
-                              </span>
-                            ) : (
-                              <span className="text-red-500">No exchange option</span>
-                            )}
-                          </div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <p className="text-sm text-gray-500 mt-2">
-                Note: Selecting exchange will use the exchange charge instead of the original rate
-              </p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Discount Type
-              </label>
-              <div className="flex space-x-4 mb-3">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    className="form-radio"
-                    name="discountType"
-                    value="percentage"
-                    checked={discountType === "percentage"}
-                    onChange={() => handleDiscountTypeChange("percentage")}
-                  />
-                  <span className="ml-2">Percentage</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    className="form-radio"
-                    name="discountType"
-                    value="fixed"
-                    checked={discountType === "fixed"}
-                    onChange={() => handleDiscountTypeChange("fixed")}
-                  />
-                  <span className="ml-2">Fixed Amount</span>
-                </label>
-              </div>
-
-              {discountType === "percentage" ? (
-                <>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Discount Percentage
-                  </label>
-                  <select
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(parseInt(e.target.value, 10))}
-                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
-                    required
-                  >
-                    <option value="">Select Discount</option>
-                    {discountOptions.map((option) => (
-                      <option
-                        key={option._id}
-                        value={extractPercentageValue(option.discount)}
-                      >
-                        {option.discount}{" "}
-                        {option.status === "Active" ? "" : "(Inactive)"}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              ) : (
-                <>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Discount Amount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={discountValue}
-                    onChange={handleDiscountValueChange}
-                    min="0"
-                    max={newAmounts.grandSubTotal}
-                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Maximum allowed: ₹{newAmounts.grandSubTotal.toFixed(2)}
-                  </p>
-                </>
+        {/* Pricing Mode - Only show if currentRevision > 0 */}
+        {shouldShowExchangeMode && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+              <svg
+                className="w-4 h-4 text-amber-600 mr-1"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Pricing Mode
+            </h3>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setPricingMode("rate")}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  pricingMode === "rate"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Rate
+              </button>
+              {hasExchangeOptions && (
+                <button
+                  onClick={() => setPricingMode("exchange")}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                    pricingMode === "exchange"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Exchange
+                </button>
               )}
             </div>
+          </div>
+        )}
 
-            <div className="bg-gray-50 p-4 rounded-md mb-4">
-              <h4 className="font-semibold mb-3">Financial Summary</h4>
+        {/* Spares */}
+        <div className="bg-white rounded-lg shadow-sm p-3">
+          <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+            <svg
+              className="w-4 h-4 text-gray-600 mr-1"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Spares
+          </h3>
+          <div className="space-y-2">
+            {onCall.productGroups.map((group, groupIndex) => (
+              <div
+                key={groupIndex}
+                className="border border-gray-200 rounded-lg p-2"
+              >
+                <h4 className="font-medium text-gray-800 text-sm mb-2 flex items-center">
+                  <svg
+                    className="w-3 h-3 text-blue-600 mr-1"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {group.productPartNo}
+                </h4>
+                <div className="space-y-2">
+                  {group.spares.map((spare, spareIndex) => {
+                    const chargesValue = parseFloat(spare.Charges) || 0;
+                    const dpValue = spare.DP || 0;
 
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Revised Subtotal:</span>
-                  <span>₹{newAmounts.grandSubTotal.toFixed(2)}</span>
-                </div>
+                    let discountableAmount, effectivePrice;
 
-                <div className="flex justify-between">
-                  <span>
-                    {discountType === "percentage"
-                      ? `Discount (${discountValue}%):`
-                      : "Discount (Fixed):"}
-                  </span>
-                  <span className="text-red-600">
-                    -₹{newAmounts.discountAmount.toFixed(2)}
-                  </span>
-                </div>
+                    if (onCall.currentRevision === 0) {
+                      // For currentRevision = 0
+                      discountableAmount = Math.max(0, spare.Rate - dpValue);
+                      effectivePrice = spare.Rate; // Subtotal shows Rate
+                    } else {
+                      // For currentRevision > 0
+                      discountableAmount = Math.max(
+                        0,
+                        spare.Rate - chargesValue
+                      );
+                      if (pricingMode === "rate") {
+                        effectivePrice = spare.Rate; // Subtotal shows Rate
+                      } else {
+                        effectivePrice =
+                          chargesValue > 0 ? chargesValue : spare.Rate; // Subtotal shows Charges or Rate
+                      }
+                    }
 
-                <div className="flex justify-between">
-                  <span>After Discount:</span>
-                  <span>₹{newAmounts.afterDiscount.toFixed(2)}</span>
-                </div>
+                    return (
+                      <div
+                        key={spareIndex}
+                        className="bg-gray-50 rounded-lg p-2"
+                      >
+                        <div className="mb-2">
+                          <p className="font-medium text-gray-800 text-sm">
+                            {spare.PartNumber}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {spare.Description}
+                          </p>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              spare.Type === "Spare"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {spare.Type}
+                          </span>
+                        </div>
 
-                <div className="flex justify-between">
-                  <span>TDS ({onCall.tdsPercentage}%):</span>
-                  <span>-₹{newAmounts.tdsAmount.toFixed(2)}</span>
-                </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-gray-600">
+                              Rate:{" "}
+                              <span className="font-medium">
+                                ₹{spare.Rate.toFixed(2)}
+                              </span>
+                            </p>
+                            <p className="text-gray-600">
+                              {onCall.currentRevision === 0 ? "DP" : "Charges"}:
+                              <span className="font-medium">
+                                ₹
+                                {(onCall.currentRevision === 0
+                                  ? dpValue
+                                  : chargesValue
+                                ).toFixed(2)}
+                              </span>
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-blue-600">
+                              Subtotal:{" "}
+                              <span className="font-semibold">
+                                ₹{effectivePrice.toFixed(2)}
+                              </span>
+                            </p>
+                            <p className="text-green-600">
+                              Max Disc:{" "}
+                              <span className="font-semibold">
+                                ₹{discountableAmount.toFixed(2)}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
 
-                <div className="flex justify-between">
-                  <span>After TDS:</span>
-                  <span>₹{newAmounts.afterTds.toFixed(2)}</span>
-                </div>
+                        {onCall.currentRevision === 0 && (
+                          <div className="mt-2 text-xs text-blue-700 bg-blue-50 p-1 rounded border border-blue-200">
+                            <div className="flex items-center">
+                              <svg
+                                className="w-3 h-3 mr-1"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Subtotal: Rate | Max Discount: Rate - DP
+                            </div>
+                          </div>
+                        )}
 
-                <div className="flex justify-between">
-                  <span>GST ({onCall.gstPercentage}%):</span>
-                  <span>+₹{newAmounts.gstAmount.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between font-bold border-t pt-2 mt-2">
-                  <span>New Final Amount:</span>
-                  <span className="text-green-600">
-                    ₹{newAmounts.finalAmount.toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between text-sm pt-2">
-                  <span>Previous Final Amount:</span>
-                  <span className="text-gray-500">
-                    ₹{(onCall.finalAmount || 0).toFixed(2)}
-                  </span>
+                        {pricingMode === "exchange" &&
+                          chargesValue > 0 &&
+                          onCall.currentRevision > 0 && (
+                            <div className="mt-2 text-xs text-green-700 bg-green-50 p-1 rounded border border-green-200">
+                              <div className="flex items-center">
+                                <svg
+                                  className="w-3 h-3 mr-1"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                Subtotal: Charges | Max Discount: Rate - Charges
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Discount */}
+        <div className="bg-white rounded-lg shadow-sm p-3">
+          <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+            <svg
+              className="w-4 h-4 text-purple-600 mr-1"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Discount
+          </h3>
+
+          <div className="mb-3">
+            <div className="flex space-x-3 mb-2">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="discountType"
+                  value="percentage"
+                  checked={discountType === "percentage"}
+                  onChange={() => handleDiscountTypeChange("percentage")}
+                  className="mr-1 text-blue-600"
+                />
+                <span className="text-sm text-gray-700">Percentage</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="discountType"
+                  value="fixed"
+                  checked={discountType === "fixed"}
+                  onChange={() => handleDiscountTypeChange("fixed")}
+                  className="mr-1 text-blue-600"
+                />
+                <span className="text-sm text-gray-700">Fixed Amount</span>
+              </label>
             </div>
 
-            {error && (
-              <div className="mb-4 p-2 bg-red-100 text-red-700 rounded text-sm">
-                {error}
+            {discountType === "percentage" ? (
+              <select
+                value={discountValue}
+                onChange={(e) => setDiscountValue(parseInt(e.target.value, 10))}
+                className="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select Discount %</option>
+                {discountOptions.map((option) => (
+                  <option
+                    key={option._id}
+                    value={extractPercentageValue(option.discount)}
+                  >
+                    {option.discount}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div>
+                <input
+                  type="number"
+                  value={discountValue}
+                  onChange={handleDiscountValueChange}
+                  min="0"
+                  max={newAmounts.applicableDiscountBase}
+                  step="0.01"
+                  className="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter discount amount"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Max: ₹{newAmounts.applicableDiscountBase.toFixed(2)}
+                </p>
               </div>
             )}
-
-            <div className="flex space-x-3">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded"
-                disabled={updating}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className={`flex-1 bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded ${
-                  !hasChanges ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={updating || !hasChanges}
-              >
-                {updating ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Updating...
-                  </span>
-                ) : (
-                  "Revise OnCall"
-                )}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
-      </main>
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <svg
+                className="w-4 h-4 text-red-400 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                />
+              </svg>
+              <span className="text-red-800 text-sm font-medium">{error}</span>
+            </div>
+          </div>
+        )}
+        {/* Financial Summary */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 border">
+          <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+            <svg
+              className="w-4 h-4 text-green-600 mr-1"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Financial Summary
+          </h3>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">Subtotal:</span>
+              <span className="font-medium text-gray-800">
+                ₹{newAmounts.grandSubTotal.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">Max Discount:</span>
+              <span className="font-medium text-blue-600">
+                ₹{newAmounts.applicableDiscountBase.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">
+                Discount (
+                {discountType === "percentage" ? `${discountValue}%` : "Fixed"}
+                ):
+              </span>
+              <span className="font-medium text-red-600">
+                -₹{newAmounts.discountAmount.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">After Discount:</span>
+              <span className="font-medium text-gray-800">
+                ₹{newAmounts.afterDiscount.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">
+                TDS ({onCall.tdsPercentage}%):
+              </span>
+              <span className="font-medium text-green-600">
+                +₹{newAmounts.tdsAmount.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">
+                GST ({onCall.gstPercentage}%):
+              </span>
+              <span className="font-medium text-green-600">
+                +₹{newAmounts.gstAmount.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-2 bg-white rounded-lg px-3 shadow-sm">
+              <span className="font-semibold text-gray-800">Final Amount:</span>
+              <span className="font-bold text-lg text-green-600">
+                ₹{newAmounts.finalAmount.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 text-xs">
+              <span className="text-gray-500">Previous:</span>
+              <span className="text-gray-500">
+                ₹{(onCall.finalAmount || 0).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-1 text-xs">
+              <span className="text-gray-500">Difference:</span>
+              <span
+                className={`font-medium ${
+                  newAmounts.finalAmount > onCall.finalAmount
+                    ? "text-red-600"
+                    : "text-green-600"
+                }`}
+              >
+                {newAmounts.finalAmount > onCall.finalAmount ? "+" : ""}₹
+                {(newAmounts.finalAmount - onCall.finalAmount).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ==== Additional Service Charge Card ==== */}
+        {onCall.additionalServiceCharge && (
+          <div className="bg-yellow-50 border border-yellow-100 p-5 rounded-xl shadow-lg max-w-xl mx-auto flex flex-col gap-2 my-4">
+            <div className="flex items-center gap-2 mb-2">
+              <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="10" fill="#F59E42" />
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M10 5a1 1 0 011 1v4a1 1 0 11-2 0V6a1 1 0 011-1zm0 6a1.25 1.25 0 110 2.5A1.25 1.25 0 0110 11z"
+                  fill="#fff"
+                />
+              </svg>
+              <span className="text-orange-700 font-bold text-sm tracking-wide">
+                Additional Service Charge
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium text-gray-700">Location</span>
+              <span className="font-semibold capitalize text-sm text-gray-900">
+                {onCall.additionalServiceCharge.location}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium text-gray-700">Entered Charge</span>
+              <span className="font-semibold text-sm text-blue-800">
+                ₹
+                {onCall.additionalServiceCharge.enteredCharge.toLocaleString(
+                  "en-IN"
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium text-gray-700">GST (18%)</span>
+              <span className="font-semibold text-sm text-green-700">
+                ₹
+                {onCall.additionalServiceCharge.gstAmount
+                  ? onCall.additionalServiceCharge.gstAmount.toLocaleString(
+                      "en-IN",
+                      { minimumFractionDigits: 2 }
+                    )
+                  : "0.00"}
+              </span>
+            </div>
+            <div className="flex justify-between text-lg pt-2 border-t border-yellow-300 mt-1">
+              <span className="font-bold text-sm text-gray-800">
+                Total with GST
+              </span>
+              <span className="font-bold text-sm text-orange-700">
+                ₹
+                {onCall.additionalServiceCharge.totalAmount
+                  ? onCall.additionalServiceCharge.totalAmount.toLocaleString(
+                      "en-IN",
+                      { minimumFractionDigits: 2 }
+                    )
+                  : "0.00"}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex space-x-3 pb-3">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+            disabled={updating}
+          >
+            <svg
+              className="w-4 h-4 mr-1"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center ${
+              !hasChanges || updating
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            } text-white`}
+            disabled={updating || !hasChanges}
+          >
+            {updating ? (
+              <span className="flex items-center">
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span className="text-sm">Updating...</span>
+              </span>
+            ) : (
+              <>
+                <svg
+                  className="w-4 h-4 mr-1"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-sm">Revise OnCall</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

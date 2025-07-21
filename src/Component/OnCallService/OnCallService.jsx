@@ -58,7 +58,7 @@ function OnCallService() {
             {/* Quote Generation Card */}
             <div className="group">
               <button
-                onClick={() => navigate("/on-call-quote-gen")}
+                onClick={() => navigate("/oncall-quote-generation")}
                 className="w-full bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100 overflow-hidden relative"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

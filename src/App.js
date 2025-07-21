@@ -46,9 +46,10 @@ import ResetPasswordOtp from './Component/Auth/ResetPasswordOtp';
 import OTPVerification from './Component/Auth/OTPVerification';
 import CreateOnCallEstimationPage from './Component/OnCallService/CreateOnCallEstimationPage';
 import PendingOnCall from './Component/OnCallService/PendingOnCall';
-import OnCallquotegenation from './Component/OnCallService/OnCallquotegenation';
-import OnCallCompleted from './Component/OnCallService/OnCallCompleted';
 import OnCallRevision from './Component/OnCallService/OnCallRevision';
+import OnCallQuoteGeneration from './Component/OnCallService/OnCallQuoteGeneration';
+import OnCallCNoteGen from './Component/OnCallService/OnCallCNoteGen';
+import OnCallCompletedOrder from './Component/OnCallService/OnCallCompletedOrder';
 const platform = Capacitor.getPlatform();
 
 
@@ -242,6 +243,10 @@ function App() {
             element={<PrivateRoute element={CompletedOrder} />}
           />
           <Route
+            path="/oncall-completed-order"
+            element={<PrivateRoute element={CompletedOrder} />}
+          />
+          <Route
             path="/proposal-details"
             element={<PrivateRoute element={ProposalDetails} />}
           />
@@ -275,12 +280,16 @@ function App() {
             element={<PrivateRoute element={OnCallRevision} />}
           />
           <Route
-            path="/on-call-quote-gen"
-            element={<PrivateRoute element={OnCallquotegenation} />}
+            path="/oncall-quote-generation"
+            element={<PrivateRoute element={OnCallQuoteGeneration} />}
+          />
+          <Route
+            path="/oncall-quote-generation/:id"
+            element={<PrivateRoute element={OnCallCNoteGen} />}
           />
           <Route
             path="/on-call-completed"
-            element={<PrivateRoute element={OnCallCompleted} />}
+            element={<PrivateRoute element={OnCallCompletedOrder} />}
           />
         </Routes>
       </div>
