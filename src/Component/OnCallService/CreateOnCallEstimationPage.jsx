@@ -48,8 +48,8 @@ const ServiceChargeExtra = ({ materialCode, selectedTds }) => {
     if (!serviceChargeData) return;
     const maxVal =
       serviceType === "withinCity"
-        ? serviceChargeData.onCallVisitCharge.withinCity
-        : serviceChargeData.onCallVisitCharge.outsideCity;
+        ? serviceChargeData?.onCallVisitCharge.withinCity
+        : serviceChargeData?.onCallVisitCharge.outsideCity;
     setMaxCharge(maxVal);
     if (inputCharge && Number(inputCharge) > maxVal) setInputCharge("");
   }, [serviceType, serviceChargeData]);
@@ -88,7 +88,7 @@ const ServiceChargeExtra = ({ materialCode, selectedTds }) => {
           <>
             <div className="mb-4">
               <p>
-                <strong>Part Number:</strong> {serviceChargeData.partNumber}
+                <strong>Part Number:</strong> {serviceChargeData?.partNumber}
               </p>
             </div>
             <div className="mb-4">
@@ -106,7 +106,7 @@ const ServiceChargeExtra = ({ materialCode, selectedTds }) => {
                     className="mr-2"
                   />
                   Within City (Max ₹
-                  {serviceChargeData.onCallVisitCharge.withinCity.toLocaleString(
+                  {serviceChargeData?.onCallVisitCharge.withinCity.toLocaleString(
                     "en-IN"
                   )}
                   )
@@ -121,7 +121,7 @@ const ServiceChargeExtra = ({ materialCode, selectedTds }) => {
                     className="mr-2"
                   />
                   Outside City (Max ₹
-                  {serviceChargeData.onCallVisitCharge.outsideCity.toLocaleString(
+                  {serviceChargeData?.onCallVisitCharge.outsideCity.toLocaleString(
                     "en-IN"
                   )}
                   )
@@ -220,7 +220,7 @@ const CreateOnCallEstimationPage = () => {
   const [existingSpare, setExistingSpare] = useState(
     complaint?.sparerequest
       ? {
-          PartNumber: complaint.sparerequest,
+          PartNumber: complaint?.sparerequest,
           Description: "requested spare in Complaint",
         }
       : null
@@ -253,7 +253,7 @@ const CreateOnCallEstimationPage = () => {
     }
   }, []);
   const existingSpareRequests = complaint?.sparerequest
-    ? complaint.sparerequest
+    ? complaint?.sparerequest
         .split(",")
         .map((part) => part.trim())
         .filter((part) => part)
@@ -274,24 +274,24 @@ const CreateOnCallEstimationPage = () => {
           email: customer.email,
         },
         complaint: {
-          notificationtype: complaint.notificationtype,
-          notification_complaintid: complaint.notification_complaintid,
-          notificationdate: complaint.notificationdate,
-          userstatus: complaint.userstatus,
-          materialdescription: complaint.materialdescription,
-          serialnumber: complaint.serialnumber,
-          devicedata: complaint.devicedata,
-          salesoffice: complaint.salesoffice,
-          materialcode: complaint.materialcode,
-          reportedproblem: complaint.reportedproblem,
-          dealercode: complaint.dealercode,
-          customercode: complaint.customercode,
-          partnerresp: complaint.partnerresp,
-          breakdown: complaint.breakdown,
-          requesteupdate: complaint.requesteupdate,
-          rev: complaint.rev,
-          remark: complaint.remark,
-          sparerequest: complaint.sparerequest,
+          notificationtype: complaint?.notificationtype,
+          notification_complaintid: complaint?.notification_complaintid,
+          notificationdate: complaint?.notificationdate,
+          userstatus: complaint?.userstatus,
+          materialdescription: complaint?.materialdescription,
+          serialnumber: complaint?.serialnumber,
+          devicedata: complaint?.devicedata,
+          salesoffice: complaint?.salesoffice,
+          materialcode: complaint?.materialcode,
+          reportedproblem: complaint?.reportedproblem,
+          dealercode: complaint?.dealercode,
+          customercode: complaint?.customercode,
+          partnerresp: complaint?.partnerresp,
+          breakdown: complaint?.breakdown,
+          requesteupdate: complaint?.requesteupdate,
+          rev: complaint?.rev,
+          remark: complaint?.remark,
+          sparerequest: complaint?.sparerequest,
         },
       }));
     }
@@ -321,12 +321,12 @@ const CreateOnCallEstimationPage = () => {
       try {
         if (!complaint?.materialcode) return;
         const response = await axios.get(
-          `${process.env.REACT_APP_BASE_URL}/collections/spare-by-partno/${complaint.materialcode}`
+          `${process.env.REACT_APP_BASE_URL}/collections/spare-by-partno/${complaint?.materialcode}`
         );
         setAllSpares(response.data.spares);
         if (existingSpareRequests.length > 0) {
           const existingSpares = response.data.spares.filter((spare) =>
-            existingSpareRequests.includes(spare.PartNumber)
+            existingSpareRequests.includes(spare?.PartNumber)
           );
           setSelectedSpares(existingSpares);
         }
@@ -344,7 +344,7 @@ const CreateOnCallEstimationPage = () => {
   }, [complaint?.materialcode]);
 
   const handleAddSpare = (spare) => {
-    if (!selectedSpares.some((s) => s.PartNumber === spare.PartNumber)) {
+    if (!selectedSpares.some((s) => s.PartNumber === spare?.PartNumber)) {
       setSelectedSpares([...selectedSpares, spare]);
       setSearchInput("");
     }
@@ -352,7 +352,7 @@ const CreateOnCallEstimationPage = () => {
 
   const handleRemoveSpare = (partNumber) => {
     setSelectedSpares(
-      selectedSpares.filter((spare) => spare.PartNumber !== partNumber)
+      selectedSpares.filter((spare) => spare?.PartNumber !== partNumber)
     );
   };
 
@@ -383,7 +383,7 @@ const CreateOnCallEstimationPage = () => {
       // Prepare product groups for the OnCall
       const productGroups = [
         {
-          productPartNo: complaint.materialcode,
+          productPartNo: complaint?.materialcode,
           subgroup: "OnCall Spares",
           totalSpares: selectedSpares.length,
           spares: selectedSpares,
@@ -415,24 +415,24 @@ const CreateOnCallEstimationPage = () => {
           email: customer.email,
         },
         complaint: {
-          notificationtype: complaint.notificationtype,
-          notification_complaintid: complaint.notification_complaintid,
-          notificationdate: complaint.notificationdate,
-          userstatus: complaint.userstatus,
-          materialdescription: complaint.materialdescription,
-          serialnumber: complaint.serialnumber,
-          devicedata: complaint.devicedata,
-          salesoffice: complaint.salesoffice,
-          materialcode: complaint.materialcode,
-          reportedproblem: complaint.reportedproblem,
-          dealercode: complaint.dealercode,
-          customercode: complaint.customercode,
-          partnerresp: complaint.partnerresp,
-          breakdown: complaint.breakdown,
-          requesteupdate: complaint.requesteupdate,
-          rev: complaint.rev,
-          remark: complaint.remark,
-          sparerequest: complaint.sparerequest,
+          notificationtype: complaint?.notificationtype,
+          notification_complaintid: complaint?.notification_complaintid,
+          notificationdate: complaint?.notificationdate,
+          userstatus: complaint?.userstatus,
+          materialdescription: complaint?.materialdescription,
+          serialnumber: complaint?.serialnumber,
+          devicedata: complaint?.devicedata,
+          salesoffice: complaint?.salesoffice,
+          materialcode: complaint?.materialcode,
+          reportedproblem: complaint?.reportedproblem,
+          dealercode: complaint?.dealercode,
+          customercode: complaint?.customercode,
+          partnerresp: complaint?.partnerresp,
+          breakdown: complaint?.breakdown,
+          requesteupdate: complaint?.requesteupdate,
+          rev: complaint?.rev,
+          remark: complaint?.remark,
+          sparerequest: complaint?.sparerequest,
         },
         productGroups,
         tdsPercentage: parseFloat(selectedTds.tds),
@@ -487,14 +487,14 @@ const CreateOnCallEstimationPage = () => {
 
   const filteredSpares = allSpares.filter(
     (spare) =>
-      (spare.PartNumber.toLowerCase().includes(searchInput.toLowerCase()) ||
-        spare.Description.toLowerCase().includes(searchInput.toLowerCase())) &&
-      !selectedSpares.some((s) => s.PartNumber === spare.PartNumber)
+      (spare?.PartNumber.toLowerCase().includes(searchInput.toLowerCase()) ||
+        spare?.Description.toLowerCase().includes(searchInput.toLowerCase())) &&
+      !selectedSpares.some((s) => s.PartNumber === spare?.PartNumber)
   );
 
   const calculateTotals = () => {
     const subtotal = selectedSpares.reduce(
-      (sum, spare) => sum + (spare.Rate || 0),
+      (sum, spare) => sum + (spare?.Rate || 0),
       0
     );
     const tdsValue = selectedTds ? parseFloat(selectedTds.tds) : 0;
@@ -551,24 +551,24 @@ const CreateOnCallEstimationPage = () => {
             <div>
               <span className="text-gray-600">Complaint Number:</span>
               <span className="ml-2 font-medium">
-                {complaint.notification_complaintid}
+                {complaint?.notification_complaintid}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Revision No:</span>
-              <span className="ml-2 font-medium">{complaint.rev}</span>
+              <span className="ml-2 font-medium">{complaint?.rev}</span>
             </div>
             <div>
               <span className="text-gray-600">Serial Number:</span>
-              <span className="ml-2 font-medium">{complaint.serialnumber}</span>
+              <span className="ml-2 font-medium">{complaint?.serialnumber}</span>
             </div>
             <div>
               <span className="text-gray-600">Part Number:</span>
-              <span className="ml-2 font-medium">{complaint.materialcode}</span>
+              <span className="ml-2 font-medium">{complaint?.materialcode}</span>
             </div>
             <div>
               <span className="text-gray-600">Customer Code:</span>
-              <span className="ml-2 font-medium">{complaint.customercode}</span>
+              <span className="ml-2 font-medium">{complaint?.customercode}</span>
             </div>
             <div>
               <span className="text-gray-600">Customer Email:</span>
@@ -591,7 +591,7 @@ const CreateOnCallEstimationPage = () => {
               getOptionLabel={(option) =>
                 typeof option === "string"
                   ? option
-                  : `${option.PartNumber} - ${option.Description}`
+                  : `${option?.PartNumber} - ${option?.Description}`
               }
               inputValue={searchInput}
               onInputChange={(_, newValue) => setSearchInput(newValue)}
@@ -614,12 +614,12 @@ const CreateOnCallEstimationPage = () => {
                   {...props}
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 >
-                  <div className="font-medium">{option.PartNumber}</div>
+                  <div className="font-medium">{option?.PartNumber}</div>
                   <div className="text-sm text-gray-600">
-                    {option.Description}
+                    {option?.Description}
                   </div>
                   <div className="text-sm text-gray-500">
-                    ₹{option.Rate ?? "N/A"}
+                    ₹{option?.Rate ?? "N/A"}
                   </div>
                 </li>
               )}
@@ -650,8 +650,8 @@ const CreateOnCallEstimationPage = () => {
               >
                 <option value="">Select TDS</option>
                 {tdsOptions.map((option, index) => (
-                  <option key={`tds-${index}`} value={option.tds.toString()}>
-                    {option.tds}%
+                  <option key={`tds-${index}`} value={option?.tds.toString()}>
+                    {option?.tds}%
                   </option>
                 ))}
               </select>
@@ -674,8 +674,8 @@ const CreateOnCallEstimationPage = () => {
               >
                 <option value="">Select GST</option>
                 {gstOptions.map((option, index) => (
-                  <option key={`gst-${index}`} value={option.gst.toString()}>
-                    {option.gst}%
+                  <option key={`gst-${index}`} value={option?.gst.toString()}>
+                    {option?.gst}%
                   </option>
                 ))}
               </select>
@@ -700,13 +700,13 @@ const CreateOnCallEstimationPage = () => {
             <div className="border rounded-md p-3 flex justify-between items-center bg-blue-50 border-blue-200">
               <div>
                 <div className="font-medium flex items-center">
-                  {existingSpare.PartNumber}
+                  {existingSpare?.PartNumber}
                   <span className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                     Existing
                   </span>
                 </div>
                 <div className="text-sm text-gray-600">
-                  {existingSpare.Description}
+                  {existingSpare?.Description}
                 </div>
               </div>
               <IconButton
@@ -730,18 +730,18 @@ const CreateOnCallEstimationPage = () => {
                 >
                   <div>
                     <div className="font-medium flex items-center">
-                      {spare.PartNumber}
+                      {spare?.PartNumber}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {spare.Description}
+                      {spare?.Description}
                     </div>
                     <div className="text-sm mt-1">
                       <span className="font-medium">Rate:</span> ₹
-                      {spare.Rate?.toLocaleString("en-IN") ?? "N/A"}
+                      {spare?.Rate?.toLocaleString("en-IN") ?? "N/A"}
                     </div>
                   </div>
                   <IconButton
-                    onClick={() => handleRemoveSpare(spare.PartNumber)}
+                    onClick={() => handleRemoveSpare(spare?.PartNumber)}
                     className="text-red-500 hover:text-red-700"
                   >
                     <X size={18} />

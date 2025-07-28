@@ -81,7 +81,7 @@ function OnCallCompletedOrder() {
                 OnCall Service Details
               </h1>
               <p className="text-sm text-nowrap font-bold text-white tracking-wide">
-                Completed OnCall #{selectedOnCall.onCallNumber}
+                Completed OnCall #{selectedOnCall?.onCallNumber}
               </p>
             </div>
           </div>
@@ -126,7 +126,7 @@ function OnCallCompletedOrder() {
                       Customer Name
                     </label>
                     <p className="text-slate-800 font-medium">
-                      {selectedOnCall.customer.customername}
+                      {selectedOnCall?.customer?.customername}
                     </p>
                   </div>
                   <div>
@@ -134,7 +134,7 @@ function OnCallCompletedOrder() {
                       Email Address
                     </label>
                     <p className="text-slate-800">
-                      {selectedOnCall.customer.email}
+                      {selectedOnCall?.customer?.email}
                     </p>
                   </div>
                   <div>
@@ -142,7 +142,7 @@ function OnCallCompletedOrder() {
                       Customer Code
                     </label>
                     <p className="text-slate-800 font-mono">
-                      {selectedOnCall.customer.customercodeid}
+                      {selectedOnCall?.customer?.customercodeid}
                     </p>
                   </div>
                 </div>
@@ -152,7 +152,7 @@ function OnCallCompletedOrder() {
                       Phone Number
                     </label>
                     <p className="text-slate-800">
-                      {selectedOnCall.customer.telephone}
+                      {selectedOnCall?.customer?.telephone}
                     </p>
                   </div>
                   <div>
@@ -160,8 +160,8 @@ function OnCallCompletedOrder() {
                       Location
                     </label>
                     <p className="text-slate-800">
-                      {selectedOnCall.customer.city},{" "}
-                      {selectedOnCall.customer.postalcode}
+                      {selectedOnCall?.customer?.city},{" "}
+                      {selectedOnCall?.customer?.postalcode}
                     </p>
                   </div>
                   <div>
@@ -169,7 +169,7 @@ function OnCallCompletedOrder() {
                       GST Number
                     </label>
                     <p className="text-slate-800 font-mono">
-                      {selectedOnCall.customer.taxnumber2}
+                      {selectedOnCall?.customer?.taxnumber2}
                     </p>
                   </div>
                 </div>
@@ -195,7 +195,7 @@ function OnCallCompletedOrder() {
                       OnCall Number
                     </span>
                     <span className="text-slate-800 font-semibold">
-                      {selectedOnCall.onCallNumber}
+                      {selectedOnCall?.onCallNumber}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
@@ -203,7 +203,7 @@ function OnCallCompletedOrder() {
                       CNote Number
                     </span>
                     <span className="text-slate-800 font-semibold">
-                      {selectedOnCall.cnoteNumber}
+                      {selectedOnCall?.cnoteNumber}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
@@ -211,7 +211,7 @@ function OnCallCompletedOrder() {
                       Current Revision
                     </span>
                     <span className="text-slate-800 font-semibold">
-                      Rev {selectedOnCall.currentRevision}
+                      Rev {selectedOnCall?.currentRevision}
                     </span>
                   </div>
                 </div>
@@ -221,13 +221,13 @@ function OnCallCompletedOrder() {
                       Service Date
                     </span>
                     <span className="text-slate-800">
-                      {formatDate(selectedOnCall.createdAt)}
+                      {formatDate(selectedOnCall?.createdAt)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
                     <span className="text-slate-500 font-medium">Status</span>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
-                      {selectedOnCall.status}
+                      {selectedOnCall?.status}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
@@ -235,7 +235,7 @@ function OnCallCompletedOrder() {
                       Spare Parts
                     </span>
                     <span className="text-slate-800 font-semibold">
-                      {selectedOnCall.spares?.length || 0} items
+                      {selectedOnCall?.spares?.length || 0} items
                     </span>
                   </div>
                 </div>
@@ -261,7 +261,7 @@ function OnCallCompletedOrder() {
                       Device Description
                     </label>
                     <p className="text-slate-800 font-medium">
-                      {selectedOnCall.complaint?.materialdescription}
+                      {selectedOnCall?.complaint?.materialdescription}
                     </p>
                   </div>
                   <div>
@@ -269,7 +269,7 @@ function OnCallCompletedOrder() {
                       Serial Number
                     </label>
                     <p className="text-slate-800 font-mono">
-                      {selectedOnCall.complaint?.serialnumber}
+                      {selectedOnCall?.complaint?.serialnumber}
                     </p>
                   </div>
                   <div>
@@ -277,7 +277,7 @@ function OnCallCompletedOrder() {
                       Material Code
                     </label>
                     <p className="text-slate-800 font-mono">
-                      {selectedOnCall.complaint?.materialcode}
+                      {selectedOnCall?.complaint?.materialcode}
                     </p>
                   </div>
                 </div>
@@ -287,7 +287,7 @@ function OnCallCompletedOrder() {
                       Complaint ID
                     </label>
                     <p className="text-slate-800 font-mono">
-                      {selectedOnCall.complaint?.notification_complaintid}
+                      {selectedOnCall?.complaint?.notification_complaintid}
                     </p>
                   </div>
                   <div>
@@ -295,7 +295,7 @@ function OnCallCompletedOrder() {
                       Sales Office
                     </label>
                     <p className="text-slate-800">
-                      {selectedOnCall.complaint?.salesoffice}
+                      {selectedOnCall?.complaint?.salesoffice}
                     </p>
                   </div>
                   <div>
@@ -303,7 +303,7 @@ function OnCallCompletedOrder() {
                       Dealer Code
                     </label>
                     <p className="text-slate-800">
-                      {selectedOnCall.complaint?.dealercode}
+                      {selectedOnCall?.complaint?.dealercode}
                     </p>
                   </div>
                 </div>
@@ -313,7 +313,7 @@ function OnCallCompletedOrder() {
                   Reported Problem
                 </label>
                 <p className="text-slate-800 mt-1 p-3 bg-slate-50 rounded-lg">
-                  {selectedOnCall.complaint?.reportedproblem}
+                  {selectedOnCall?.complaint?.reportedproblem}
                 </p>
               </div>
             </div>
@@ -326,12 +326,12 @@ function OnCallCompletedOrder() {
                 <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
                   <Package className="w-4 h-4 text-orange-600" />
                 </div>
-                Spare Parts ({selectedOnCall.spares?.length || 0})
+                Spare Parts ({selectedOnCall?.spares?.length || 0})
               </h2>
             </div>
             <div className="p-6">
               <div className="space-y-6">
-                {selectedOnCall.spares?.map((spare, index) => (
+                {selectedOnCall?.spares?.map((spare, index) => (
                   <div
                     key={index}
                     className="bg-slate-50 rounded-lg p-5 border border-slate-200"
@@ -339,15 +339,15 @@ function OnCallCompletedOrder() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-slate-800">
-                          {spare.Description}
+                          {spare?.Description}
                         </h3>
                         <p className="text-slate-600 text-sm mt-1 font-mono">
-                          Part No: {spare.PartNumber}
+                          Part No: {spare?.PartNumber}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-slate-800">
-                          ₹{spare.Rate?.toLocaleString()}
+                          ₹{spare?.Rate?.toLocaleString()}
                         </p>
                         <p className="text-sm text-slate-500">Rate</p>
                       </div>
@@ -358,7 +358,7 @@ function OnCallCompletedOrder() {
                         <div className="flex justify-between">
                           <span className="text-sm text-slate-500">Type</span>
                           <span className="text-sm font-medium text-slate-700">
-                            {spare.Type}
+                            {spare?.Type}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -366,7 +366,7 @@ function OnCallCompletedOrder() {
                             Product Group
                           </span>
                           <span className="text-sm font-medium text-slate-700">
-                            {spare.productPartNo}
+                            {spare?.productPartNo}
                           </span>
                         </div>
                       </div>
@@ -376,7 +376,7 @@ function OnCallCompletedOrder() {
                             DP Price
                           </span>
                           <span className="text-sm font-medium text-slate-700">
-                            ₹{spare.DP?.toLocaleString()}
+                            ₹{spare?.DP?.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -384,7 +384,7 @@ function OnCallCompletedOrder() {
                             Charges
                           </span>
                           <span className="text-sm font-medium text-slate-700">
-                            ₹{spare.Charges || 0}
+                            ₹{spare?.Charges || 0}
                           </span>
                         </div>
                       </div>
@@ -394,7 +394,7 @@ function OnCallCompletedOrder() {
                             Subgroup
                           </span>
                           <span className="text-sm font-medium text-slate-700">
-                            {spare.subgroup}
+                            {spare?.subgroup}
                           </span>
                         </div>
                       </div>
@@ -420,43 +420,43 @@ function OnCallCompletedOrder() {
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <span className="text-slate-600">Grand Subtotal</span>
                   <span className="text-slate-800 font-semibold">
-                    ₹{selectedOnCall.grandSubTotal?.toLocaleString()}
+                    ₹{selectedOnCall?.grandSubTotal?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <span className="text-slate-600">
-                    Discount ({selectedOnCall.discountPercentage?.toFixed(2)}%)
+                    Discount ({selectedOnCall?.discountPercentage?.toFixed(2)}%)
                   </span>
                   <span className="text-red-600 font-semibold">
-                    -₹{selectedOnCall.discountAmount?.toLocaleString()}
+                    -₹{selectedOnCall?.discountAmount?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <span className="text-slate-600">After Discount</span>
                   <span className="text-slate-800 font-semibold">
-                    ₹{selectedOnCall.afterDiscount?.toLocaleString()}
+                    ₹{selectedOnCall?.afterDiscount?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <span className="text-slate-600">
-                    TDS ({selectedOnCall.tdsPercentage}%)
+                    TDS ({selectedOnCall?.tdsPercentage}%)
                   </span>
                   <span className="text-red-600 font-semibold">
-                    -₹{selectedOnCall.tdsAmount?.toLocaleString()}
+                    -₹{selectedOnCall?.tdsAmount?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <span className="text-slate-600">After TDS</span>
                   <span className="text-slate-800 font-semibold">
-                    ₹{selectedOnCall.afterTds?.toLocaleString()}
+                    ₹{selectedOnCall?.afterTds?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <span className="text-slate-600">
-                    GST ({selectedOnCall.gstPercentage}%)
+                    GST ({selectedOnCall?.gstPercentage}%)
                   </span>
                   <span className="text-green-600 font-semibold">
-                    +₹{selectedOnCall.gstAmount?.toLocaleString()}
+                    +₹{selectedOnCall?.gstAmount?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-4 bg-slate-50 rounded-lg px-4 mt-4">
@@ -464,7 +464,7 @@ function OnCallCompletedOrder() {
                     Final Amount
                   </span>
                   <span className="text-2xl font-bold text-slate-800">
-                    ₹{selectedOnCall.finalAmount?.toLocaleString()}
+                    ₹{selectedOnCall?.finalAmount?.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -504,15 +504,15 @@ function OnCallCompletedOrder() {
                     <p className="text-sm">
                       Status:{" "}
                       <span className="font-medium text-green-700">
-                        {selectedOnCall.RSHApproval?.approved
+                        {selectedOnCall?.RSHApproval?.approved
                           ? "Approved"
                           : "Pending"}
                       </span>
                     </p>
-                    {selectedOnCall.RSHApproval?.approvedAt && (
+                    {selectedOnCall?.RSHApproval?.approvedAt && (
                       <p className="text-sm text-green-600">
                         Date:{" "}
-                        {formatDate(selectedOnCall.RSHApproval.approvedAt)}
+                        {formatDate(selectedOnCall?.RSHApproval.approvedAt)}
                       </p>
                     )}
                   </div>
@@ -525,15 +525,15 @@ function OnCallCompletedOrder() {
                     <p className="text-sm">
                       Status:{" "}
                       <span className="font-medium text-blue-700">
-                        {selectedOnCall.NSHApproval?.approved
+                        {selectedOnCall?.NSHApproval?.approved
                           ? "Approved"
                           : "Pending"}
                       </span>
                     </p>
-                    {selectedOnCall.NSHApproval?.approvedAt && (
+                    {selectedOnCall?.NSHApproval?.approvedAt && (
                       <p className="text-sm text-blue-600">
                         Date:{" "}
-                        {formatDate(selectedOnCall.NSHApproval.approvedAt)}
+                        {formatDate(selectedOnCall?.NSHApproval.approvedAt)}
                       </p>
                     )}
                   </div>
@@ -542,7 +542,7 @@ function OnCallCompletedOrder() {
 
               {/* Revision History */}
               <div className="space-y-6">
-                {selectedOnCall.revisions?.map((revision, index) => (
+                {selectedOnCall?.revisions?.map((revision, index) => (
                   <div
                     key={index}
                     className="border border-slate-200 rounded-lg p-5"
@@ -551,37 +551,37 @@ function OnCallCompletedOrder() {
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
                           <span className="text-sm font-bold text-green-600">
-                            {revision.revisionNumber}
+                            {revision?.revisionNumber}
                           </span>
                         </div>
                         <div>
                           <h3 className="font-semibold text-slate-800">
-                            Revision {revision.revisionNumber}
+                            Revision {revision?.revisionNumber}
                           </h3>
                           <p className="text-sm text-slate-500">
-                            {formatDate(revision.revisionDate)}
+                            {formatDate(revision?.revisionDate)}
                           </p>
                         </div>
                       </div>
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
-                        {revision.status}
+                        {revision?.status}
                       </span>
                     </div>
 
                     <div className="mb-4">
                       <p className="text-sm text-slate-600">
                         <span className="font-medium">Remark:</span>{" "}
-                        {revision.changes?.remark || "No remark provided"}
+                        {revision?.changes?.remark || "No remark provided"}
                       </p>
                     </div>
 
-                    {revision.approvalHistory?.length > 0 && (
+                    {revision?.approvalHistory?.length > 0 && (
                       <div className="bg-slate-50 rounded-lg p-4">
                         <h4 className="font-medium text-slate-700 mb-3">
                           Approval Timeline
                         </h4>
                         <div className="space-y-2">
-                          {revision.approvalHistory.map((approval, idx) => (
+                          {revision?.approvalHistory.map((approval, idx) => (
                             <div
                               key={idx}
                               className="flex items-center justify-between py-2 border-b border-slate-200 last:border-b-0"
@@ -643,7 +643,7 @@ function OnCallCompletedOrder() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {onCallCNotes.map((onCallCNote, index) => (
               <div
-                key={onCallCNote._id}
+                key={onCallCNote?._id}
                 className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-green-500/10 hover:-translate-y-1 hover:border-green-200"
                 onClick={() => handleCardClick(onCallCNote)}
                 style={{
@@ -658,14 +658,14 @@ function OnCallCompletedOrder() {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-gray-900 group-hover:text-green-600 transition-colors">
-                        {onCallCNote.customer.customername}
+                        {onCallCNote?.customer?.customername}
                       </h3>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1 text-gray-500 mb-3">
                     <MapPin className="w-4 h-4" />
-                    <span className="text-sm">{onCallCNote.customer.city}</span>
+                    <span className="text-sm">{onCallCNote?.customer?.city}</span>
                   </div>
                 </div>
 
@@ -674,13 +674,13 @@ function OnCallCompletedOrder() {
                   <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
                     <Wrench className="w-4 h-4 text-green-600" />
                     <span className="text-sm font-mono text-green-800">
-                      {onCallCNote.onCallNumber}
+                      {onCallCNote?.onCallNumber}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
                     <FileText className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-mono text-blue-800">
-                      {onCallCNote.cnoteNumber}
+                      {onCallCNote?.cnoteNumber}
                     </span>
                   </div>
                 </div>
@@ -689,10 +689,10 @@ function OnCallCompletedOrder() {
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">Device</p>
                   <p className="text-sm font-medium text-gray-800 truncate">
-                    {onCallCNote.complaint?.materialdescription}
+                    {onCallCNote?.complaint?.materialdescription}
                   </p>
                   <p className="text-xs text-gray-600">
-                    S/N: {onCallCNote.complaint?.serialnumber}
+                    S/N: {onCallCNote?.complaint?.serialnumber}
                   </p>
                 </div>
 
@@ -704,7 +704,7 @@ function OnCallCompletedOrder() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-gray-900">
-                        ₹{onCallCNote.finalAmount?.toLocaleString("en-IN")}
+                        ₹{onCallCNote?.finalAmount?.toLocaleString("en-IN")}
                       </p>
                       <p className="text-xs text-gray-500">Service Amount</p>
                     </div>
@@ -715,7 +715,7 @@ function OnCallCompletedOrder() {
                 <div className="flex items-center gap-2 mb-4">
                   <Package className="w-4 h-4 text-gray-500" />
                   <span className="text-sm text-gray-600">
-                    {onCallCNote.spares?.length || 0} Spare Parts
+                    {onCallCNote?.spares?.length || 0} Spare Parts
                   </span>
                 </div>
 
@@ -723,7 +723,7 @@ function OnCallCompletedOrder() {
                 <div className="flex items-center gap-2 text-gray-500 pt-4 border-t border-gray-100">
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">
-                    Completed {formatDate(onCallCNote.createdAt)}
+                    Completed {formatDate(onCallCNote?.createdAt)}
                   </span>
                 </div>
 

@@ -133,7 +133,7 @@ function PendingProposal() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-bold text-lg">
-                    {proposal.customer.customername}
+                    {proposal.customer?.customername}
                   </h3>
                 </div>
                 <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
@@ -144,7 +144,7 @@ function PendingProposal() {
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <p className="text-gray-500">Customer City</p>
-                  <p className="font-bold">{proposal.customer.city}</p>
+                  <p className="font-bold">{proposal.customer?.city}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Revision</p>
@@ -225,19 +225,19 @@ function PendingProposal() {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <p>
                         <span className="text-gray-500">Name:</span>{" "}
-                        {selectedProposal.customer.customername}
+                        {selectedProposal.customer?.customername}
                       </p>
                       <p>
                         <span className="text-gray-500">City:</span>{" "}
-                        {selectedProposal.customer.city}
+                        {selectedProposal.customer?.city}
                       </p>
                       <p>
                         <span className="text-gray-500">Code:</span>{" "}
-                        {selectedProposal.customer.customercodeid}
+                        {selectedProposal.customer?.customercodeid}
                       </p>
                       <p>
                         <span className="text-gray-500">GST:</span>{" "}
-                        {selectedProposal.customer.taxnumber2}
+                        {selectedProposal.customer?.taxnumber2}
                       </p>
                     </div>
                   </div>

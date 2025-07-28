@@ -116,7 +116,7 @@ function CompletedOrder() {
                       Full Name
                     </label>
                     <p className="text-slate-800 font-medium">
-                      {selectedProposal.customer.customername}
+                      {selectedProposal.customer?.customername}
                     </p>
                   </div>
                   <div>
@@ -124,7 +124,7 @@ function CompletedOrder() {
                       Email Address
                     </label>
                     <p className="text-slate-800">
-                      {selectedProposal.customer.email}
+                      {selectedProposal.customer?.email}
                     </p>
                   </div>
                 </div>
@@ -134,7 +134,7 @@ function CompletedOrder() {
                       Phone Number
                     </label>
                     <p className="text-slate-800">
-                      {selectedProposal.customer.telephone}
+                      {selectedProposal.customer?.telephone}
                     </p>
                   </div>
                   <div>
@@ -142,8 +142,8 @@ function CompletedOrder() {
                       Location
                     </label>
                     <p className="text-slate-800">
-                      {selectedProposal.customer.city},{" "}
-                      {selectedProposal.customer.postalcode}
+                      {selectedProposal.customer?.city},{" "}
+                      {selectedProposal.customer?.postalcode}
                     </p>
                   </div>
                 </div>
@@ -536,14 +536,14 @@ function CompletedOrder() {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {proposal.customer.customername}
+                        {proposal.customer?.customername}
                       </h3>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1 text-gray-500 mb-3">
                     <MapPin className="w-4 h-4" />
-                    <span className="text-sm">{proposal.customer.city}</span>
+                    <span className="text-sm">{proposal.customer?.city}</span>
                   </div>
                 </div>
 

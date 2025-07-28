@@ -30,11 +30,11 @@ const CustomerDetails = () => {
 
     console.log(
       "Fetching equipments for customerCode:",
-      customer.customercodeid
+      customer?.customercodeid
     );
 
     fetch(
-      `${process.env.REACT_APP_BASE_URL}/collections/checkequipments/${customer.customercodeid}`
+      `${process.env.REACT_APP_BASE_URL}/collections/checkequipments/${customer?.customercodeid}`
     )
       .then((response) => response.json())
       .then((data) => {
@@ -82,7 +82,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Customer Code:</strong>{" "}
-                {customer.customercodeid || "N/A"}
+                {customer?.customercodeid || "N/A"}
               </p>
             </div>
 
@@ -90,7 +90,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Customer Name:</strong>{" "}
-                {customer.customername || "N/A"}
+                {customer?.customername || "N/A"}
               </p>
             </div>
 
@@ -98,7 +98,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Hospital Name:</strong>{" "}
-                {customer.hospitalname || "N/A"}
+                {customer?.hospitalname || "N/A"}
               </p>
             </div>
 
@@ -106,7 +106,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Street:</strong>{" "}
-                {customer.street || "N/A"}
+                {customer?.street || "N/A"}
               </p>
             </div>
 
@@ -114,7 +114,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-teal-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">City:</strong>{" "}
-                {customer.city || "N/A"}
+                {customer?.city || "N/A"}
               </p>
             </div>
 
@@ -122,7 +122,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-pink-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">District:</strong>{" "}
-                {customer.district || "N/A"}
+                {customer?.district || "N/A"}
               </p>
             </div>
 
@@ -130,7 +130,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-indigo-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Postal Code:</strong>{" "}
-                {customer.postalcode || "N/A"}
+                {customer?.postalcode || "N/A"}
               </p>
             </div>
 
@@ -138,7 +138,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Region:</strong>{" "}
-                {customer.region || "N/A"}
+                {customer?.region || "N/A"}
               </p>
             </div>
 
@@ -146,7 +146,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Country:</strong>{" "}
-                {customer.country || "N/A"}
+                {customer?.country || "N/A"}
               </p>
             </div>
 
@@ -154,7 +154,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-cyan-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">PAN Number:</strong>{" "}
-                {customer.pannumber || "N/A"}
+                {customer?.pannumber || "N/A"}
               </p>
             </div>
 
@@ -162,7 +162,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-emerald-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">GST Number:</strong>{" "}
-                {customer.gstnumber || "N/A"}
+                {customer?.gstnumber || "N/A"}
               </p>
             </div>
 
@@ -170,7 +170,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-violet-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Telephone:</strong>{" "}
-                {customer.telephone || "N/A"}
+                {customer?.telephone || "N/A"}
               </p>
             </div>
 
@@ -178,7 +178,7 @@ const CustomerDetails = () => {
               <div className="w-3 h-3 bg-rose-500 rounded-full mr-3"></div>
               <p className="text-gray-600">
                 <strong className="text-gray-800">Email:</strong>{" "}
-                {customer.email || "N/A"}
+                {customer?.email || "N/A"}
               </p>
             </div>
           </div>
@@ -291,7 +291,7 @@ const CustomerDetails = () => {
                   </svg>
                 </div>
                 <p className="text-gray-500">
-                  No equipment found for this customer.
+                  No equipment found for this customer?.
                 </p>
               </div>
             )}

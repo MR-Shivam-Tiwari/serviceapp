@@ -20,7 +20,7 @@ function OnCallQuoteGeneration() {
         const data = result.data || result;
         
         // Filter only approved onCalls
-        const approvedOnCalls = Array.isArray(data) ? data.filter(onCall => onCall.status === "approved") : [];
+        const approvedOnCalls = Array.isArray(data) ? data.filter(onCall => onCall?.status === "approved") : [];
         setOnCalls(approvedOnCalls);
       } catch (err) {
         setError(err.message);
@@ -38,7 +38,7 @@ function OnCallQuoteGeneration() {
   };
 
   const handleOnCallClick = (onCall) => {
-    navigate(`/oncall-quote-generation/${onCall._id}`, { state: { onCall } });
+    navigate(`/oncall-quote-generation/${onCall?._id}`, { state: { onCall } });
   };
 
   if (loading)
@@ -86,20 +86,20 @@ function OnCallQuoteGeneration() {
         <div className="space-y-4">
           {onCalls.map((onCall) => (
             <div
-              key={onCall._id}
+              key={onCall?._id}
               className="bg-white p-4 rounded shadow-md cursor-pointer"
               onClick={() => handleOnCallClick(onCall)}
             >
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-bold text-lg">
-                    {onCall.customer.customername}
+                    {onCall?.customer?.customername}
                   </h3>
                   <p className="text-gray-600">
-                    {onCall.customer.city}, {onCall.customer.postalcode}
+                    {onCall?.customer?.city}, {onCall?.customer?.postalcode}
                   </p>
                   <p className="text-gray-500 text-sm mt-1">
-                    Device: {onCall.complaint?.materialdescription}
+                    Device: {onCall?.complaint?.materialdescription}
                   </p>
                 </div>
                 <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
@@ -108,18 +108,18 @@ function OnCallQuoteGeneration() {
               </div>
               <div className="mt-2 flex justify-between items-center">
                 <span className="text-sm text-gray-500">
-                  {onCall.onCallNumber}
+                  {onCall?.onCallNumber}
                 </span>
                 <span className="text-sm font-semibold">
-                  ₹{onCall.finalAmount?.toLocaleString()}
+                  ₹{onCall?.finalAmount?.toLocaleString()}
                 </span>
               </div>
               <div className="mt-2 text-xs text-gray-500">
-                Created: {formatDate(onCall.createdAt)}
+                Created: {formatDate(onCall?.createdAt)}
               </div>
-              {onCall.currentRevision > 0 && (
+              {onCall?.currentRevision > 0 && (
                 <div className="mt-1 text-xs text-blue-600">
-                  Revision: {onCall.currentRevision}
+                  Revision: {onCall?.currentRevision}
                 </div>
               )}
             </div>

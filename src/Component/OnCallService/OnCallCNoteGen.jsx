@@ -44,12 +44,14 @@ function OnCallCNoteGen() {
         pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
       }
 
-      pdf.save(`${selectedOnCall.onCallNumber}-Quote.pdf`);
+      pdf.save(`${selectedOnCall?.onCallNumber}-Quote.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
   };
-
+  const handleDownloadQuote = (proposalId) => {
+    navigate(`/on-call-quote-download/${proposalId}`);
+  };
   // In OnCallCNoteGen.jsx
   const handleGenerateCNote = async (onCall) => {
     try {
@@ -148,7 +150,7 @@ function OnCallCNoteGen() {
               <h2 className="text-xl font-bold">Customer Details</h2>
               <svg
                 className={`w-6 h-6 transform transition-transform ${
-                  expandedSections.customer ? "rotate-180" : ""
+                  expandedSections?.customer ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -163,40 +165,40 @@ function OnCallCNoteGen() {
                 />
               </svg>
             </button>
-            {expandedSections.customer && (
+            {expandedSections?.customer && (
               <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1 bg-gray-100 p-3 rounded">
                   <div>
                     <p className="font-semibold">Customer Name:</p>
-                    <p>{selectedOnCall.customer.customername}</p>
+                    <p>{selectedOnCall?.customer?.customername}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Customer Code:</p>
-                    <p>{selectedOnCall.customer.customercodeid}</p>
+                    <p>{selectedOnCall?.customer?.customercodeid}</p>
                   </div>
                   <div>
                     <p className="font-semibold">City:</p>
-                    <p>{selectedOnCall.customer.city}</p>
+                    <p>{selectedOnCall?.customer?.city}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Postal Code:</p>
-                    <p>{selectedOnCall.customer.postalcode}</p>
+                    <p>{selectedOnCall?.customer?.postalcode}</p>
                   </div>
                   <div>
                     <p className="font-semibold">PAN:</p>
-                    <p>{selectedOnCall.customer.taxnumber1}</p>
+                    <p>{selectedOnCall?.customer?.taxnumber1}</p>
                   </div>
                   <div>
                     <p className="font-semibold">GST:</p>
-                    <p>{selectedOnCall.customer.taxnumber2}</p>
+                    <p>{selectedOnCall?.customer?.taxnumber2}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Telephone:</p>
-                    <p>{selectedOnCall.customer.telephone}</p>
+                    <p>{selectedOnCall?.customer?.telephone}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Email:</p>
-                    <p>{selectedOnCall.customer.email}</p>
+                    <p>{selectedOnCall?.customer?.email}</p>
                   </div>
                 </div>
               </div>
@@ -212,7 +214,7 @@ function OnCallCNoteGen() {
               <h2 className="text-xl font-bold">Complaint Details</h2>
               <svg
                 className={`w-6 h-6 transform transition-transform ${
-                  expandedSections.complaint ? "rotate-180" : ""
+                  expandedSections?.complaint ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -227,48 +229,48 @@ function OnCallCNoteGen() {
                 />
               </svg>
             </button>
-            {expandedSections.complaint && (
+            {expandedSections?.complaint && (
               <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1 bg-gray-100 p-3 rounded">
                   <div>
                     <p className="font-semibold">Complaint ID:</p>
-                    <p>{selectedOnCall.complaint?.notification_complaintid}</p>
+                    <p>{selectedOnCall?.complaint?.notification_complaintid}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Notification Date:</p>
-                    <p>{selectedOnCall.complaint?.notificationdate}</p>
+                    <p>{selectedOnCall?.complaint?.notificationdate}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Device:</p>
-                    <p>{selectedOnCall.complaint?.materialdescription}</p>
+                    <p>{selectedOnCall?.complaint?.materialdescription}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Serial Number:</p>
-                    <p>{selectedOnCall.complaint?.serialnumber}</p>
+                    <p>{selectedOnCall?.complaint?.serialnumber}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Material Code:</p>
-                    <p>{selectedOnCall.complaint?.materialcode}</p>
+                    <p>{selectedOnCall?.complaint?.materialcode}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Sales Office:</p>
-                    <p>{selectedOnCall.complaint?.salesoffice}</p>
+                    <p>{selectedOnCall?.complaint?.salesoffice}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Dealer Code:</p>
-                    <p>{selectedOnCall.complaint?.dealercode}</p>
+                    <p>{selectedOnCall?.complaint?.dealercode}</p>
                   </div>
                   <div>
                     <p className="font-semibold">User Status:</p>
-                    <p>{selectedOnCall.complaint?.userstatus}</p>
+                    <p>{selectedOnCall?.complaint?.userstatus}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="font-semibold">Reported Problem:</p>
-                    <p>{selectedOnCall.complaint?.reportedproblem}</p>
+                    <p>{selectedOnCall?.complaint?.reportedproblem}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="font-semibold">Device Data:</p>
-                    <p>{selectedOnCall.complaint?.devicedata}</p>
+                    <p>{selectedOnCall?.complaint?.devicedata}</p>
                   </div>
                 </div>
               </div>
@@ -284,7 +286,7 @@ function OnCallCNoteGen() {
               <h2 className="text-xl font-bold">Spare Parts Details</h2>
               <svg
                 className={`w-6 h-6 transform transition-transform ${
-                  expandedSections.spares ? "rotate-180" : ""
+                  expandedSections?.spares ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -299,9 +301,9 @@ function OnCallCNoteGen() {
                 />
               </svg>
             </button>
-            {expandedSections.spares && (
+            {expandedSections?.spares && (
               <div className="p-4">
-                {selectedOnCall.productGroups?.map((group, groupIndex) => (
+                {selectedOnCall?.productGroups?.map((group, groupIndex) => (
                   <div
                     key={groupIndex}
                     className="mb-6 p-4 border rounded bg-gray-50"
@@ -320,28 +322,28 @@ function OnCallCNoteGen() {
                         className="mb-4 p-3 border rounded bg-white"
                       >
                         <h4 className="font-semibold text-md mb-2">
-                          Spare {spareIndex + 1}: {spare.Description}
+                          Spare {spareIndex + 1}: {spare?.Description}
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                           <div>
                             <p className="font-semibold">Part Number:</p>
-                            <p>{spare.PartNumber}</p>
+                            <p>{spare?.PartNumber}</p>
                           </div>
                           <div>
                             <p className="font-semibold">Type:</p>
-                            <p>{spare.Type}</p>
+                            <p>{spare?.Type}</p>
                           </div>
                           <div>
                             <p className="font-semibold">Rate:</p>
-                            <p>₹{spare.Rate?.toLocaleString()}</p>
+                            <p>₹{spare?.Rate?.toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="font-semibold">DP:</p>
-                            <p>₹{spare.DP?.toLocaleString()}</p>
+                            <p>₹{spare?.DP?.toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="font-semibold">Charges:</p>
-                            <p>₹{spare.Charges?.toLocaleString()}</p>
+                            <p>₹{spare?.Charges?.toLocaleString()}</p>
                           </div>
                         </div>
                       </div>
@@ -358,11 +360,11 @@ function OnCallCNoteGen() {
                           >
                             <p>
                               <strong>Part Number:</strong>{" "}
-                              {existing.PartNumber}
+                              {existing?.PartNumber}
                             </p>
                             <p>
                               <strong>Description:</strong>{" "}
-                              {existing.Description}
+                              {existing?.Description}
                             </p>
                           </div>
                         ))}
@@ -383,7 +385,7 @@ function OnCallCNoteGen() {
               <h2 className="text-xl font-bold">Financial Details</h2>
               <svg
                 className={`w-6 h-6 transform transition-transform ${
-                  expandedSections.financial ? "rotate-180" : ""
+                  expandedSections?.financial ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -398,40 +400,40 @@ function OnCallCNoteGen() {
                 />
               </svg>
             </button>
-            {expandedSections.financial && (
+            {expandedSections?.financial && (
               <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1 bg-gray-100 p-3 rounded">
                   <div>
                     <p className="font-semibold">Grand Subtotal:</p>
-                    <p>₹{selectedOnCall.grandSubTotal?.toLocaleString()}</p>
+                    <p>₹{selectedOnCall?.grandSubTotal?.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="font-semibold">
-                      Discount ({selectedOnCall.discountPercentage}%):
+                      Discount ({selectedOnCall?.discountPercentage}%):
                     </p>
-                    <p>₹{selectedOnCall.discountAmount?.toLocaleString()}</p>
+                    <p>₹{selectedOnCall?.discountAmount?.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="font-semibold">After Discount:</p>
-                    <p>₹{selectedOnCall.afterDiscount?.toLocaleString()}</p>
+                    <p>₹{selectedOnCall?.afterDiscount?.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="font-semibold">
-                      TDS ({selectedOnCall.tdsPercentage}%):
+                      TDS ({selectedOnCall?.tdsPercentage}%):
                     </p>
-                    <p>₹{selectedOnCall.tdsAmount?.toLocaleString()}</p>
+                    <p>₹{selectedOnCall?.tdsAmount?.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="font-semibold">After TDS:</p>
-                    <p>₹{selectedOnCall.afterTds?.toLocaleString()}</p>
+                    <p>₹{selectedOnCall?.afterTds?.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="font-semibold">
-                      GST ({selectedOnCall.gstPercentage}%):
+                      GST ({selectedOnCall?.gstPercentage}%):
                     </p>
-                    <p>₹{selectedOnCall.gstAmount?.toLocaleString()}</p>
+                    <p>₹{selectedOnCall?.gstAmount?.toLocaleString()}</p>
                   </div>
-                  {selectedOnCall.additionalServiceCharge && (
+                  {selectedOnCall?.additionalServiceCharge && (
                     <>
                       <div>
                         <p className="font-semibold">
@@ -439,19 +441,19 @@ function OnCallCNoteGen() {
                         </p>
                         <p>
                           ₹
-                          {selectedOnCall.additionalServiceCharge.enteredCharge?.toLocaleString()}
+                          {selectedOnCall?.additionalServiceCharge.enteredCharge?.toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="font-semibold">Service Location:</p>
-                        <p>{selectedOnCall.additionalServiceCharge.location}</p>
+                        <p>{selectedOnCall?.additionalServiceCharge.location}</p>
                       </div>
                     </>
                   )}
                   <div className="col-span-2">
                     <p className="font-semibold text-lg">Final Amount:</p>
                     <p className="text-xl font-bold">
-                      ₹{selectedOnCall.finalAmount?.toLocaleString()}
+                      ₹{selectedOnCall?.finalAmount?.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -460,7 +462,7 @@ function OnCallCNoteGen() {
           </div>
 
           {/* Revisions Accordion (only shown if there are revisions) */}
-          {selectedOnCall.revisions?.length > 0 && (
+          {selectedOnCall?.revisions?.length > 0 && (
             <div className="mb-6 border rounded overflow-hidden">
               <button
                 className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100"
@@ -469,7 +471,7 @@ function OnCallCNoteGen() {
                 <h2 className="text-xl font-bold">Revision History</h2>
                 <svg
                   className={`w-6 h-6 transform transition-transform ${
-                    expandedSections.revisions ? "rotate-180" : ""
+                    expandedSections?.revisions ? "rotate-180" : ""
                   }`}
                   fill="none"
                   stroke="currentColor"
@@ -484,69 +486,69 @@ function OnCallCNoteGen() {
                   />
                 </svg>
               </button>
-              {expandedSections.revisions && (
+              {expandedSections?.revisions && (
                 <div className="p-4">
-                  {selectedOnCall.revisions.map((revision) => (
+                  {selectedOnCall?.revisions.map((revision) => (
                     <div
-                      key={revision.revisionNumber}
+                      key={revision?.revisionNumber}
                       className="mb-4 p-4 border rounded bg-gray-50"
                     >
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-bold">
-                          Revision #{revision.revisionNumber}
+                          Revision #{revision?.revisionNumber}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          {formatDate(revision.revisionDate)}
+                          {formatDate(revision?.revisionDate)}
                         </p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                         <div>
                           <p className="font-semibold">Discount:</p>
                           <p>
-                            {revision.changes?.discountPercentage}% (₹
-                            {revision.changes?.discountAmount?.toLocaleString()}
+                            {revision?.changes?.discountPercentage}% (₹
+                            {revision?.changes?.discountAmount?.toLocaleString()}
                             )
                           </p>
                         </div>
                         <div>
                           <p className="font-semibold">After Discount:</p>
                           <p>
-                            ₹{revision.changes?.afterDiscount?.toLocaleString()}
+                            ₹{revision?.changes?.afterDiscount?.toLocaleString()}
                           </p>
                         </div>
                         <div>
                           <p className="font-semibold">TDS:</p>
                           <p>
-                            ₹{revision.changes?.tdsAmount?.toLocaleString()}
+                            ₹{revision?.changes?.tdsAmount?.toLocaleString()}
                           </p>
                         </div>
                         <div>
                           <p className="font-semibold">After TDS:</p>
-                          <p>₹{revision.changes?.afterTds?.toLocaleString()}</p>
+                          <p>₹{revision?.changes?.afterTds?.toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="font-semibold">GST:</p>
                           <p>
-                            ₹{revision.changes?.gstAmount?.toLocaleString()}
+                            ₹{revision?.changes?.gstAmount?.toLocaleString()}
                           </p>
                         </div>
                         <div>
                           <p className="font-semibold">Final Amount:</p>
                           <p>
-                            ₹{revision.changes?.finalAmount?.toLocaleString()}
+                            ₹{revision?.changes?.finalAmount?.toLocaleString()}
                           </p>
                         </div>
                         <div className="col-span-2">
                           <p className="font-semibold">Remark:</p>
-                          <p>{revision.changes?.remark}</p>
+                          <p>{revision?.changes?.remark}</p>
                         </div>
                       </div>
 
                       {/* Approval History */}
-                      {revision.approvalHistory?.length > 0 && (
+                      {revision?.approvalHistory?.length > 0 && (
                         <div className="mt-3">
                           <p className="font-semibold">Approval History:</p>
-                          {revision.approvalHistory.map((approval, idx) => (
+                          {revision?.approvalHistory.map((approval, idx) => (
                             <div
                               key={idx}
                               className="text-sm bg-white p-2 rounded mt-1"
@@ -579,15 +581,15 @@ function OnCallCNoteGen() {
 
           {/* Generate CNote Button */}
           <div className="flex justify-end mt-6">
-            {selectedOnCall.discountPercentage > 10 ? (
-              selectedOnCall.RSHApproval?.approved &&
-              selectedOnCall.NSHApproval?.approved ? (
+            {selectedOnCall?.discountPercentage > 10 ? (
+              selectedOnCall?.RSHApproval?.approved &&
+              selectedOnCall?.NSHApproval?.approved ? (
                 <button className="bg-primary w-full text-white px-6 py-2 rounded hover:bg-primary-dark transition">
                   <a
-                    href={`/${selectedOnCall.onCallNumber}-Quote.pdf`}
-                    download={`${selectedOnCall.onCallNumber}-Quote.pdf`}
+                   
+                    onClick={() => handleDownloadQuote(selectedOnCall?._id)}
                   >
-                    Download Quotation
+                    Download Quotations
                   </a>
                 </button>
               ) : (
@@ -596,12 +598,12 @@ function OnCallCNoteGen() {
                   10%
                 </p>
               )
-            ) : selectedOnCall.discountPercentage >= 6 ? (
-              selectedOnCall.RSHApproval?.approved ? (
+            ) : selectedOnCall?.discountPercentage >= 6 ? (
+              selectedOnCall?.RSHApproval?.approved ? (
                 <button className="bg-primary w-full text-white px-6 py-2 rounded hover:bg-primary-dark transition">
                   <a
-                    href={`/${selectedOnCall.onCallNumber}-Quote.pdf`}
-                    download={`${selectedOnCall.onCallNumber}-Quote.pdf`}
+                   
+                    onClick={() => handleDownloadQuote(selectedOnCall?._id)}
                   >
                     Download Quotation
                   </a>
@@ -614,8 +616,8 @@ function OnCallCNoteGen() {
             ) : (
               <button className="bg-primary w-full text-white px-6 py-2 rounded hover:bg-primary-dark transition">
                 <a
-                  href={`/${selectedOnCall.onCallNumber}-Quote.pdf`}
-                  download={`${selectedOnCall.onCallNumber}-Quote.pdf`}
+                 
+                  onClick={() => handleDownloadQuote(selectedOnCall?._id)}
                 >
                   Download Quotation
                 </a>

@@ -43,11 +43,11 @@ function PendingOnCall() {
   };
 
   const shouldShowRevisionButton = (proposal) => {
-    const currentDiscount = proposal.discountPercentage || 0;
+    const currentDiscount = proposal?.discountPercentage || 0;
     if (currentDiscount <= 5) return true;
 
-    const latestRevision = proposal.revisions?.[proposal.revisions.length - 1];
-    return !proposal.revisions?.length || latestRevision?.status === "rejected";
+    const latestRevision = proposal?.revisions?.[proposal?.revisions.length - 1];
+    return !proposal?.revisions?.length || latestRevision?.status === "rejected";
   };
 
   const formatCurrency = (value) => {
@@ -62,9 +62,9 @@ function PendingOnCall() {
   const filteredProposals = proposals.filter((proposal) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      proposal.onCallNumber?.toLowerCase().includes(searchLower) ||
-      proposal.customer?.customername?.toLowerCase().includes(searchLower) ||
-      proposal.customer?.city?.toLowerCase().includes(searchLower)
+      proposal?.onCallNumber?.toLowerCase().includes(searchLower) ||
+      proposal?.customer?.customername?.toLowerCase().includes(searchLower) ||
+      proposal?.customer?.city?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -200,25 +200,25 @@ function PendingOnCall() {
           <div className="space-y-4">
             {filteredProposals.map((proposal) => (
               <div
-                key={proposal._id}
+                key={proposal?._id}
                 className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-lg text-gray-800">
-                      {proposal.customer?.customername || "N/A"}
+                      {proposal?.customer?.customername || "N/A"}
                     </h3>
                     <p>
                       <span className="text-gray-600">Revision:</span>{" "}
-                      {proposal.currentRevision || 0}
+                      {proposal?.currentRevision || 0}
                     </p>
                   </div>
                   <div className="text-right">
                     <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                      {proposal.onCallNumber || "N/A"}
+                      {proposal?.onCallNumber || "N/A"}
                     </span>
                     <p className="text-xs text-gray-500 mt-1">
-                      Created: {formatDate(proposal.createdAt)}
+                      Created: {formatDate(proposal?.createdAt)}
                     </p>
                   </div>
                 </div>
@@ -227,14 +227,14 @@ function PendingOnCall() {
                   <div>
                     <p className="text-gray-500">Complaint ID</p>
                     <p className="font-medium">
-                      {proposal.complaint?.notification_complaintid || "N/A"}
+                      {proposal?.complaint?.notification_complaintid || "N/A"}
                     </p>
                   </div>
 
                   <div>
                     <p className="text-gray-500">Device</p>
                     <p className="font-medium">
-                      {proposal.complaint?.materialdescription || "N/A"}
+                      {proposal?.complaint?.materialdescription || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -243,7 +243,7 @@ function PendingOnCall() {
                   <div>
                     <p className="text-gray-500">Total Spares</p>
                     <p>
-                      {proposal.productGroups?.reduce(
+                      {proposal?.productGroups?.reduce(
                         (total, group) => total + (group.totalSpares || 0),
                         0
                       )}
@@ -252,7 +252,7 @@ function PendingOnCall() {
                   <div>
                     <p className="text-gray-500">Final Amount</p>
                     <p className="font-bold text-green-600">
-                      {formatCurrency(proposal.finalAmount)}
+                      {formatCurrency(proposal?.finalAmount)}
                     </p>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ function PendingOnCall() {
                   </button>
                   {shouldShowRevisionButton(proposal) ? (
                     <button
-                      onClick={() => handleRevision(proposal._id)}
+                      onClick={() => handleRevision(proposal?._id)}
                       className="flex-1 bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded flex items-center justify-center"
                     >
                       <svg

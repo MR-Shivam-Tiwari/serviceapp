@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 
 function OnCallRevision() {
@@ -47,7 +48,7 @@ function OnCallRevision() {
 
   useEffect(() => {
     if (onCall) {
-      const originalDiscount = onCall.discountPercentage || 0;
+      const originalDiscount = onCall?.discountPercentage || 0;
       const hasDiscountChanged =
         discountType === "percentage"
           ? discountValue !== originalDiscount
@@ -88,17 +89,17 @@ function OnCallRevision() {
 
     let maxDiscount = 0;
 
-    onCall.productGroups.forEach((group) => {
+    onCall?.productGroups.forEach((group) => {
       group.spares.forEach((spare) => {
-        const chargesValue = parseFloat(spare.Charges) || 0;
-        const dpValue = spare.DP || 0;
+        const chargesValue = parseFloat(spare?.Charges) || 0;
+        const dpValue = spare?.DP || 0;
 
-        if (onCall.currentRevision === 0) {
+        if (onCall?.currentRevision === 0) {
           // For currentRevision = 0, max discount is Rate - DP
-          maxDiscount += Math.max(0, spare.Rate - dpValue);
+          maxDiscount += Math.max(0, spare?.Rate - dpValue);
         } else {
           // For currentRevision > 0, max discount is Rate - Charges
-          maxDiscount += Math.max(0, spare.Rate - chargesValue);
+          maxDiscount += Math.max(0, spare?.Rate - chargesValue);
         }
       });
     });
@@ -112,31 +113,31 @@ function OnCallRevision() {
     let grandSubTotal = 0;
     let applicableDiscountBase = 0;
 
-    onCall.productGroups.forEach((group) => {
+    onCall?.productGroups.forEach((group) => {
       group.spares.forEach((spare) => {
-        const chargesValue = parseFloat(spare.Charges) || 0;
-        const dpValue = spare.DP || 0;
+        const chargesValue = parseFloat(spare?.Charges) || 0;
+        const dpValue = spare?.DP || 0;
 
-        if (onCall.currentRevision === 0) {
+        if (onCall?.currentRevision === 0) {
           // For currentRevision = 0
           // Subtotal: Rate
           // Max discount: Rate - DP
-          grandSubTotal += spare.Rate;
-          applicableDiscountBase += Math.max(0, spare.Rate - dpValue);
+          grandSubTotal += spare?.Rate;
+          applicableDiscountBase += Math.max(0, spare?.Rate - dpValue);
         } else {
           // For currentRevision > 0
           if (pricingMode === "rate") {
             // Rate mode: Subtotal = Rate, Max discount = Rate - Charges
-            grandSubTotal += spare.Rate;
-            applicableDiscountBase += Math.max(0, spare.Rate - chargesValue);
+            grandSubTotal += spare?.Rate;
+            applicableDiscountBase += Math.max(0, spare?.Rate - chargesValue);
           } else if (pricingMode === "exchange") {
             // Exchange mode: Subtotal = Charges (if available), Max discount = Rate - Charges
             if (chargesValue > 0) {
               grandSubTotal += chargesValue;
             } else {
-              grandSubTotal += spare.Rate;
+              grandSubTotal += spare?.Rate;
             }
-            applicableDiscountBase += Math.max(0, spare.Rate - chargesValue);
+            applicableDiscountBase += Math.max(0, spare?.Rate - chargesValue);
           }
         }
       });
@@ -150,9 +151,9 @@ function OnCallRevision() {
     }
 
     const afterDiscount = grandSubTotal - discountAmount;
-    const tdsAmount = afterDiscount * ((onCall.tdsPercentage || 0) / 100);
+    const tdsAmount = afterDiscount * ((onCall?.tdsPercentage || 0) / 100);
     const afterTds = afterDiscount + tdsAmount;
-    const gstAmount = afterTds * ((onCall.gstPercentage || 0) / 100);
+    const gstAmount = afterTds * ((onCall?.gstPercentage || 0) / 100);
     const finalAmount = afterTds + gstAmount;
 
     return {
@@ -191,6 +192,11 @@ function OnCallRevision() {
     if (newAmounts.discountAmount > newAmounts.applicableDiscountBase) {
       setError(
         `Discount cannot exceed maximum allowed amount of ₹${newAmounts.applicableDiscountBase.toFixed(
+          2
+        )}`
+      );
+      toast.error(
+        `Discount cannot exceed ₹${newAmounts.applicableDiscountBase.toFixed(
           2
         )}`
       );
@@ -241,9 +247,13 @@ function OnCallRevision() {
         throw new Error(errorData.message || "Failed to update oncall");
       }
 
-      const updatedOnCall = await response.json();
+      await response.json();
+
+      toast.success("OnCall revised successfully!");
+      navigate("/on-call-pending");
     } catch (err) {
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setUpdating(false);
     }
@@ -251,7 +261,7 @@ function OnCallRevision() {
 
   const shouldShowExchangeMode = onCall?.currentRevision > 0;
   const hasExchangeOptions = onCall?.productGroups.some((group) =>
-    group.spares.some((spare) => parseFloat(spare.Charges) > 0)
+    group.spares.some((spare) => parseFloat(spare?.Charges) > 0)
   );
 
   const newAmounts = calculateNewAmounts();
@@ -419,11 +429,11 @@ function OnCallRevision() {
         <div className="bg-white rounded-lg shadow-sm p-3">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-gray-800">
-              #{onCall.onCallNumber}
+              #{onCall?.onCallNumber}
             </h2>
             <div className="flex items-center space-x-2">
               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                Rev: {onCall.currentRevision}
+                Rev: {onCall?.currentRevision}
               </span>
             </div>
           </div>
@@ -432,14 +442,14 @@ function OnCallRevision() {
             <div>
               <p className="text-xs text-gray-500">Customer</p>
               <p className="font-medium text-gray-800 text-sm">
-                {onCall.customer.customername}
+                {onCall?.customer?.customername}
               </p>
-              <p className="text-xs text-gray-600">{onCall.customer.city}</p>
+              <p className="text-xs text-gray-600">{onCall?.customer?.city}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Complaint ID</p>
               <p className="font-medium text-gray-800 text-sm">
-                {onCall.complaint.notification_complaintid}
+                {onCall?.complaint?.notification_complaintid}
               </p>
             </div>
           </div>
@@ -447,17 +457,17 @@ function OnCallRevision() {
           <div className="mb-3">
             <p className="text-xs text-gray-500">Device</p>
             <p className="font-medium text-gray-800 text-sm">
-              {onCall.complaint.materialdescription}
+              {onCall?.complaint?.materialdescription}
             </p>
             <p className="text-xs text-gray-600">
-              S/N: {onCall.complaint.serialnumber}
+              S/N: {onCall?.complaint?.serialnumber}
             </p>
           </div>
 
           <div>
             <p className="text-xs text-gray-500">Problem</p>
             <p className="font-medium text-gray-800 text-sm">
-              {onCall.complaint.reportedproblem}
+              {onCall?.complaint?.reportedproblem}
             </p>
           </div>
         </div>
@@ -523,7 +533,7 @@ function OnCallRevision() {
             Spares
           </h3>
           <div className="space-y-2">
-            {onCall.productGroups.map((group, groupIndex) => (
+            {onCall?.productGroups.map((group, groupIndex) => (
               <div
                 key={groupIndex}
                 className="border border-gray-200 rounded-lg p-2"
@@ -544,26 +554,26 @@ function OnCallRevision() {
                 </h4>
                 <div className="space-y-2">
                   {group.spares.map((spare, spareIndex) => {
-                    const chargesValue = parseFloat(spare.Charges) || 0;
-                    const dpValue = spare.DP || 0;
+                    const chargesValue = parseFloat(spare?.Charges) || 0;
+                    const dpValue = spare?.DP || 0;
 
                     let discountableAmount, effectivePrice;
 
-                    if (onCall.currentRevision === 0) {
+                    if (onCall?.currentRevision === 0) {
                       // For currentRevision = 0
-                      discountableAmount = Math.max(0, spare.Rate - dpValue);
-                      effectivePrice = spare.Rate; // Subtotal shows Rate
+                      discountableAmount = Math.max(0, spare?.Rate - dpValue);
+                      effectivePrice = spare?.Rate; // Subtotal shows Rate
                     } else {
                       // For currentRevision > 0
                       discountableAmount = Math.max(
                         0,
-                        spare.Rate - chargesValue
+                        spare?.Rate - chargesValue
                       );
                       if (pricingMode === "rate") {
-                        effectivePrice = spare.Rate; // Subtotal shows Rate
+                        effectivePrice = spare?.Rate; // Subtotal shows Rate
                       } else {
                         effectivePrice =
-                          chargesValue > 0 ? chargesValue : spare.Rate; // Subtotal shows Charges or Rate
+                          chargesValue > 0 ? chargesValue : spare?.Rate; // Subtotal shows Charges or Rate
                       }
                     }
 
@@ -574,19 +584,19 @@ function OnCallRevision() {
                       >
                         <div className="mb-2">
                           <p className="font-medium text-gray-800 text-sm">
-                            {spare.PartNumber}
+                            {spare?.PartNumber}
                           </p>
                           <p className="text-xs text-gray-600">
-                            {spare.Description}
+                            {spare?.Description}
                           </p>
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                              spare.Type === "Spare"
+                              spare?.Type === "Spare"
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-green-100 text-green-800"
                             }`}
                           >
-                            {spare.Type}
+                            {spare?.Type}
                           </span>
                         </div>
 
@@ -595,14 +605,15 @@ function OnCallRevision() {
                             <p className="text-gray-600">
                               Rate:{" "}
                               <span className="font-medium">
-                                ₹{spare.Rate.toFixed(2)}
+                                ₹{spare?.Rate.toFixed(2)}
                               </span>
                             </p>
                             <p className="text-gray-600">
-                              {onCall.currentRevision === 0 ? "DP" : "Charges"}:
+                              {onCall?.currentRevision === 0 ? "DP" : "Charges"}
+                              :
                               <span className="font-medium">
                                 ₹
-                                {(onCall.currentRevision === 0
+                                {(onCall?.currentRevision === 0
                                   ? dpValue
                                   : chargesValue
                                 ).toFixed(2)}
@@ -625,7 +636,7 @@ function OnCallRevision() {
                           </div>
                         </div>
 
-                        {onCall.currentRevision === 0 && (
+                        {onCall?.currentRevision === 0 && (
                           <div className="mt-2 text-xs text-blue-700 bg-blue-50 p-1 rounded border border-blue-200">
                             <div className="flex items-center">
                               <svg
@@ -646,7 +657,7 @@ function OnCallRevision() {
 
                         {pricingMode === "exchange" &&
                           chargesValue > 0 &&
-                          onCall.currentRevision > 0 && (
+                          onCall?.currentRevision > 0 && (
                             <div className="mt-2 text-xs text-green-700 bg-green-50 p-1 rounded border border-green-200">
                               <div className="flex items-center">
                                 <svg
@@ -820,7 +831,7 @@ function OnCallRevision() {
 
             <div className="flex justify-between py-1 border-b border-gray-200">
               <span className="text-gray-600">
-                TDS ({onCall.tdsPercentage}%):
+                TDS ({onCall?.tdsPercentage}%):
               </span>
               <span className="font-medium text-green-600">
                 +₹{newAmounts.tdsAmount.toFixed(2)}
@@ -829,7 +840,7 @@ function OnCallRevision() {
 
             <div className="flex justify-between py-1 border-b border-gray-200">
               <span className="text-gray-600">
-                GST ({onCall.gstPercentage}%):
+                GST ({onCall?.gstPercentage}%):
               </span>
               <span className="font-medium text-green-600">
                 +₹{newAmounts.gstAmount.toFixed(2)}
@@ -846,7 +857,7 @@ function OnCallRevision() {
             <div className="flex justify-between py-1 text-xs">
               <span className="text-gray-500">Previous:</span>
               <span className="text-gray-500">
-                ₹{(onCall.finalAmount || 0).toFixed(2)}
+                ₹{(onCall?.finalAmount || 0).toFixed(2)}
               </span>
             </div>
 
@@ -854,20 +865,20 @@ function OnCallRevision() {
               <span className="text-gray-500">Difference:</span>
               <span
                 className={`font-medium ${
-                  newAmounts.finalAmount > onCall.finalAmount
+                  newAmounts.finalAmount > onCall?.finalAmount
                     ? "text-red-600"
                     : "text-green-600"
                 }`}
               >
-                {newAmounts.finalAmount > onCall.finalAmount ? "+" : ""}₹
-                {(newAmounts.finalAmount - onCall.finalAmount).toFixed(2)}
+                {newAmounts.finalAmount > onCall?.finalAmount ? "+" : ""}₹
+                {(newAmounts.finalAmount - onCall?.finalAmount).toFixed(2)}
               </span>
             </div>
           </div>
         </div>
 
         {/* ==== Additional Service Charge Card ==== */}
-        {onCall.additionalServiceCharge && (
+        {onCall?.additionalServiceCharge && (
           <div className="bg-yellow-50 border border-yellow-100 p-5 rounded-xl shadow-lg max-w-xl mx-auto flex flex-col gap-2 my-4">
             <div className="flex items-center gap-2 mb-2">
               <svg width={20} height={20} viewBox="0 0 20 20" fill="none">
@@ -886,14 +897,14 @@ function OnCallRevision() {
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Location</span>
               <span className="font-semibold capitalize text-sm text-gray-900">
-                {onCall.additionalServiceCharge.location}
+                {onCall?.additionalServiceCharge.location}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Entered Charge</span>
               <span className="font-semibold text-sm text-blue-800">
                 ₹
-                {onCall.additionalServiceCharge.enteredCharge.toLocaleString(
+                {onCall?.additionalServiceCharge.enteredCharge.toLocaleString(
                   "en-IN"
                 )}
               </span>
@@ -902,8 +913,8 @@ function OnCallRevision() {
               <span className="font-medium text-gray-700">GST (18%)</span>
               <span className="font-semibold text-sm text-green-700">
                 ₹
-                {onCall.additionalServiceCharge.gstAmount
-                  ? onCall.additionalServiceCharge.gstAmount.toLocaleString(
+                {onCall?.additionalServiceCharge.gstAmount
+                  ? onCall?.additionalServiceCharge.gstAmount.toLocaleString(
                       "en-IN",
                       { minimumFractionDigits: 2 }
                     )
@@ -916,8 +927,8 @@ function OnCallRevision() {
               </span>
               <span className="font-bold text-sm text-orange-700">
                 ₹
-                {onCall.additionalServiceCharge.totalAmount
-                  ? onCall.additionalServiceCharge.totalAmount.toLocaleString(
+                {onCall?.additionalServiceCharge.totalAmount
+                  ? onCall?.additionalServiceCharge.totalAmount.toLocaleString(
                       "en-IN",
                       { minimumFractionDigits: 2 }
                     )

@@ -125,7 +125,7 @@ const SearchCustomer = () => {
               <div className="space-y-4">
                 {filteredCustomers.map((customer, index) => (
                   <div
-                    key={customer._id}
+                    key={customer?._id}
                     className="group bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all duration-300 overflow-hidden"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
@@ -136,9 +136,9 @@ const SearchCustomer = () => {
                           <div className="flex items-center mb-3">
                             <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mr-3"></div>
                             <h3 className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors duration-200">
-                              {customer.hospitalname.length > 35
-                                ? customer.hospitalname.slice(0, 35) + "..."
-                                : customer.hospitalname}
+                              {customer?.hospitalname.length > 35
+                                ? customer?.hospitalname.slice(0, 35) + "..."
+                                : customer?.hospitalname}
                             </h3>
                           </div>
 
@@ -165,7 +165,7 @@ const SearchCustomer = () => {
                                     Customer
                                   </p>
                                   <p className="text-sm font-semibold text-gray-700">
-                                    {customer.customername}
+                                    {customer?.customername}
                                   </p>
                                 </div>
                               </div>
@@ -190,7 +190,7 @@ const SearchCustomer = () => {
                                     Phone
                                   </p>
                                   <p className="text-sm font-semibold text-gray-700">
-                                    {customer.telephone}
+                                    {customer?.telephone}
                                   </p>
                                 </div>
                               </div>
@@ -217,9 +217,9 @@ const SearchCustomer = () => {
                                     Email
                                   </p>
                                   <p className="text-sm font-semibold text-gray-700">
-                                    {customer.email.length > 25
-                                      ? customer.email.slice(0, 25) + "..."
-                                      : customer.email}
+                                    {customer?.email.length > 25
+                                      ? customer?.email.slice(0, 25) + "..."
+                                      : customer?.email}
                                   </p>
                                 </div>
                               </div>
@@ -250,7 +250,7 @@ const SearchCustomer = () => {
                                     City
                                   </p>
                                   <p className="text-sm font-semibold text-gray-700">
-                                    {customer.city}
+                                    {customer?.city}
                                   </p>
                                 </div>
                               </div>
@@ -261,12 +261,12 @@ const SearchCustomer = () => {
                           {/* <div className="mt-4">
                             <span
                               className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                customer.customertype === "Government"
+                                customer?.customertype === "Government"
                                   ? "bg-green-100 text-green-800"
                                   : "bg-blue-100 text-blue-800"
                               }`}
                             >
-                              {customer.customertype}
+                              {customer?.customertype}
                             </span>
                           </div> */}
                         </div>
@@ -277,7 +277,7 @@ const SearchCustomer = () => {
                         <button
                           className="px-6 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:scale-105 transform transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
                           onClick={() =>
-                            navigate(`/customer-details/${customer._id}`)
+                            navigate(`/customer-details/${customer?._id}`)
                           }
                         >
                           <div className="flex items-center justify-center space-x-2">

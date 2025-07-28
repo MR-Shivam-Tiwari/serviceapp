@@ -176,14 +176,14 @@ export default function ProposalDetails() {
     // Prepare the complete proposal data
     const proposalData = {
       customer: {
-        customercodeid: customer.customercodeid,
-        customername: customer.customername,
-        city: customer.city,
-        postalcode: customer.postalcode,
-        taxnumber1: customer.taxnumber1, // PAN
-        taxnumber2: customer.taxnumber2, // GST
-        telephone: customer.telephone,
-        email: customer.email,
+        customercodeid: customer?.customercodeid,
+        customername: customer?.customername,
+        city: customer?.city,
+        postalcode: customer?.postalcode,
+        taxnumber1: customer?.taxnumber1, // PAN
+        taxnumber2: customer?.taxnumber2, // GST
+        telephone: customer?.telephone,
+        email: customer?.email,
       },
       items: items.map(({ equipment }) => {
         const sel = selections[equipment._id];
@@ -293,28 +293,28 @@ export default function ProposalDetails() {
         <section className="bg-white p-4 rounded-lg shadow">
           <h3 className="font-semibold mb-2">Customer Info</h3>
           <p>
-            <strong>Code:</strong> {customer.customercodeid}
+            <strong>Code:</strong> {customer?.customercodeid}
           </p>
           <p>
-            <strong>Name:</strong> {customer.customername}
+            <strong>Name:</strong> {customer?.customername}
           </p>
           <p>
-            <strong>City:</strong> {customer.city}
+            <strong>City:</strong> {customer?.city}
           </p>
           <p>
-            <strong>Pincode:</strong> {customer.postalcode}
+            <strong>Pincode:</strong> {customer?.postalcode}
           </p>
           <p>
-            <strong>Pan Number:</strong> {customer.taxnumber1}
+            <strong>Pan Number:</strong> {customer?.taxnumber1}
           </p>
           <p>
-            <strong>GST Number:</strong> {customer.taxnumber2}
+            <strong>GST Number:</strong> {customer?.taxnumber2}
           </p>
           <p>
-            <strong>Phone Number:</strong> {customer.telephone}
+            <strong>Phone Number:</strong> {customer?.telephone}
           </p>
           <p>
-            <strong>Email :</strong> {customer.email}
+            <strong>Email :</strong> {customer?.email}
           </p>
           <p>
             <strong>Dealer :</strong> {equipmentdealer.dealer}

@@ -34,7 +34,7 @@ function QuoteGeneration() {
   };
 
   const handleProposalClick = (proposal) => {
-    navigate(`/quote-generation/${proposal._id}`, { state: { proposal } });
+    navigate(`/quote-generation/${proposal?._id}`, { state: { proposal } });
   };
 
   if (loading)
@@ -81,43 +81,43 @@ function QuoteGeneration() {
         <div className="space-y-4">
           {proposals.map((proposal) => (
             <div
-              key={proposal._id}
+              key={proposal?._id}
               className="bg-white p-4 rounded shadow-md cursor-pointer"
               onClick={() => handleProposalClick(proposal)}
             >
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-bold text-lg">
-                    {proposal.customer.customername}
+                    {proposal?.customer?.customername}
                   </h3>
                   <p className="text-gray-600">
-                    {proposal.customer.city}, {proposal.customer.postalcode}
+                    {proposal?.customer?.city}, {proposal?.customer?.postalcode}
                   </p>
                 </div>
                 {/* <span
                   className={`px-2 py-1 rounded text-xs ${
-                    proposal.status === "approved"
+                    proposal?.status === "approved"
                       ? "bg-green-100 text-green-800"
-                      : proposal.status === "rejected"
+                      : proposal?.status === "rejected"
                       ? "bg-red-100 text-red-800"
-                      : proposal.status === "draft"
+                      : proposal?.status === "draft"
                       ? "bg-yellow-100 text-yellow-800"
                       : "bg-blue-100 text-blue-800"
                   }`}
                 >
-                  {proposal.status.toUpperCase()}
+                  {proposal?.status.toUpperCase()}
                 </span> */}
               </div>
               <div className="mt-2 flex justify-between items-center">
                 <span className="text-sm text-gray-500">
-                  {proposal.proposalNumber}
+                  {proposal?.proposalNumber}
                 </span>
                 <span className="text-sm font-semibold">
-                  ₹{proposal.finalAmount.toLocaleString()}
+                  ₹{proposal?.finalAmount.toLocaleString()}
                 </span>
               </div>
               <div className="mt-2 text-xs text-gray-500">
-                Created: {formatDate(proposal.createdAt)}
+                Created: {formatDate(proposal?.createdAt)}
               </div>
             </div>
           ))}

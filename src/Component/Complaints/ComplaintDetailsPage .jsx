@@ -18,6 +18,9 @@ const ComplaintDetailsPage = () => {
   // State for spare parts options from the backend API
   const [spareOptions, setSpareOptions] = useState([]);
 
+  // NEW: State to control close button visibility
+  const [showCloseButton, setShowCloseButton] = useState(true);
+
   const [userInfo, setUserInfo] = useState({
     firstName: "",
     lastName: "",
@@ -75,6 +78,33 @@ const ComplaintDetailsPage = () => {
         .catch((error) =>
           console.error("Error fetching customer details:", error)
         );
+    }
+  }, [complaint]);
+
+  // NEW: Check oncall status for NW and NC complaint types
+  useEffect(() => {
+    if (complaint && complaint.notificationtype) {
+      if (complaint.notificationtype === "NW" || complaint.notificationtype === "NC") {
+        // For NW and NC, check oncall status via API
+        fetch(
+          `${process.env.REACT_APP_BASE_URL}/phone/oncall/by-complaint/${complaint.notification_complaintid}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success && data.data && data.data.status === "completed") {
+              setShowCloseButton(true);
+            } else {
+              setShowCloseButton(false);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching oncall status:", error);
+            setShowCloseButton(false); // Hide button if API fails
+          });
+      } else {
+        // For other complaint types, show the close button
+        setShowCloseButton(true);
+      }
     }
   }, [complaint]);
 
@@ -159,6 +189,7 @@ const ComplaintDetailsPage = () => {
       </div>
     );
   }
+  
   const handleCreateEstimation = () => {
     navigate("/create-oncall-estimation", { state: { complaint, customer } });
   };
@@ -167,7 +198,9 @@ const ComplaintDetailsPage = () => {
     // Navigate to CloseComplaintPage and pass both complaint and customer data as "state"
     navigate("/closecomplaint", { state: { complaint, customer } });
   };
+  
   console.log(complaint, "he;lo");
+  
   return (
     <div>
       {/* ===================
@@ -261,12 +294,15 @@ const ComplaintDetailsPage = () => {
               >
                 Update Complaint
               </button>
-              <button
-                className="bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700"
-                onClick={handleCloseComplaint}
-              >
-                Close Complaint
-              </button>
+              {/* Conditionally render Close Complaint button */}
+              {showCloseButton && (
+                <button
+                  className="bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                  onClick={handleCloseComplaint}
+                >
+                  Close Complaint
+                </button>
+              )}
             </div>
             {(complaint.notificationtype === "NW" ||
               complaint.notificationtype === "NC") && (

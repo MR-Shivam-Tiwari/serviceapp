@@ -108,12 +108,12 @@ function ProposalRevision() {
       };
 
     // Handle null values by defaulting to 0
-    const grandSubTotal = proposal.grandSubTotal || 0;
+    const grandSubTotal = proposal?.grandSubTotal || 0;
     const discountAmount = grandSubTotal * (selectedDiscount / 100);
     const afterDiscount = grandSubTotal - discountAmount;
-    const tdsAmount = afterDiscount * ((proposal.tdsPercentage || 0) / 100);
+    const tdsAmount = afterDiscount * ((proposal?.tdsPercentage || 0) / 100);
     const afterTds = afterDiscount - tdsAmount;
-    const gstAmount = afterTds * ((proposal.gstPercentage || 0) / 100);
+    const gstAmount = afterTds * ((proposal?.gstPercentage || 0) / 100);
     const finalAmount = afterTds + gstAmount;
 
     return {
@@ -217,17 +217,17 @@ function ProposalRevision() {
       <main className=" mb-6 px-4 space-y-4">
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="font-semibold text-lg mb-4">
-            Proposal #{proposal.proposalNumber}
+            Proposal #{proposal?.proposalNumber}
           </h3>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-gray-500">Customer</p>
-              <p className="font-medium">{proposal.customer.customername}</p>
+              <p className="font-medium">{proposal?.customer?.customername}</p>
             </div>
             <div>
               <p className="text-gray-500">Current Discount</p>
-              <p className="font-medium">{proposal.discountPercentage}%</p>
+              <p className="font-medium">{proposal?.discountPercentage}%</p>
             </div>
           </div>
 
@@ -261,14 +261,14 @@ function ProposalRevision() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Original Subtotal:</span>
-                  <span>₹{(proposal.grandSubTotal || 0).toFixed(2)}</span>
+                  <span>₹{(proposal?.grandSubTotal || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>
-                    Current Discount ({proposal.discountPercentage}%):
+                    Current Discount ({proposal?.discountPercentage}%):
                   </span>
-                  <span>-₹{(proposal.discountAmount || 0).toFixed(2)}</span>
+                  <span>-₹{(proposal?.discountAmount || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between font-medium text-blue-600">
@@ -282,7 +282,7 @@ function ProposalRevision() {
                 </div>
 
                 <div className="flex justify-between">
-                  <span>TDS ({proposal.tdsPercentage}%):</span>
+                  <span>TDS ({proposal?.tdsPercentage}%):</span>
                   <span>-₹{(newAmounts.tdsAmount || 0).toFixed(2)}</span>
                 </div>
 
@@ -292,7 +292,7 @@ function ProposalRevision() {
                 </div>
 
                 <div className="flex justify-between">
-                  <span>GST ({proposal.gstPercentage}%):</span>
+                  <span>GST ({proposal?.gstPercentage}%):</span>
                   <span>+₹{(newAmounts.gstAmount || 0).toFixed(2)}</span>
                 </div>
 
@@ -306,7 +306,7 @@ function ProposalRevision() {
                 <div className="flex justify-between text-sm pt-2">
                   <span>Previous Final Amount:</span>
                   <span className="text-gray-500">
-                    ₹{(proposal.finalAmount || 0).toFixed(2)}
+                    ₹{(proposal?.finalAmount || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -325,7 +325,7 @@ function ProposalRevision() {
                 type="submit"
                 className="flex-1 bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded"
                 disabled={
-                  updating || selectedDiscount === proposal.discountPercentage
+                  updating || selectedDiscount === proposal?.discountPercentage
                 }
               >
                 {updating ? (

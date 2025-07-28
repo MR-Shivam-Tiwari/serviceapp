@@ -172,35 +172,35 @@ function CNoteGen() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1 bg-gray-100 p-3 rounded">
                   <div>
                     <p className="font-semibold">Customer Name:</p>
-                    <p>{selectedProposal.customer.customername}</p>
+                    <p>{selectedProposal.customer?.customername}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Customer Code:</p>
-                    <p>{selectedProposal.customer.customercodeid}</p>
+                    <p>{selectedProposal.customer?.customercodeid}</p>
                   </div>
                   <div>
                     <p className="font-semibold">City:</p>
-                    <p>{selectedProposal.customer.city}</p>
+                    <p>{selectedProposal.customer?.city}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Postal Code:</p>
-                    <p>{selectedProposal.customer.postalcode}</p>
+                    <p>{selectedProposal.customer?.postalcode}</p>
                   </div>
                   <div>
                     <p className="font-semibold">PAN:</p>
-                    <p>{selectedProposal.customer.taxnumber1}</p>
+                    <p>{selectedProposal.customer?.taxnumber1}</p>
                   </div>
                   <div>
                     <p className="font-semibold">GST:</p>
-                    <p>{selectedProposal.customer.taxnumber2}</p>
+                    <p>{selectedProposal.customer?.taxnumber2}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Telephone:</p>
-                    <p>{selectedProposal.customer.telephone}</p>
+                    <p>{selectedProposal.customer?.telephone}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Email:</p>
-                    <p>{selectedProposal.customer.email}</p>
+                    <p>{selectedProposal.customer?.email}</p>
                   </div>
                 </div>
               </div>

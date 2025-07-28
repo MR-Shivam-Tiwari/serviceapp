@@ -24,6 +24,7 @@ import CreateCloseComplaint from './Component/Complaints/CreateCloseComplaint';
 import ComplaintDetailsPage from './Component/Complaints/ComplaintDetailsPage ';
 import CustomerDetails from './Component/Customer/CustomerAction/CustomerDetails';
 import { Toaster } from 'react-hot-toast';
+import { Filesystem } from '@capacitor/filesystem';
 import PrivateRoute from './PrivateRoute';
 import PublicRoute from './PublicRoute';
 import SelectCustomer from './Component/Installation/SelectCustomer';
@@ -50,6 +51,7 @@ import OnCallRevision from './Component/OnCallService/OnCallRevision';
 import OnCallQuoteGeneration from './Component/OnCallService/OnCallQuoteGeneration';
 import OnCallCNoteGen from './Component/OnCallService/OnCallCNoteGen';
 import OnCallCompletedOrder from './Component/OnCallService/OnCallCompletedOrder';
+import OnCallQuoteDownload from './Component/OnCallService/OnCallQuoteDownload';
 const platform = Capacitor.getPlatform();
 
 
@@ -59,7 +61,12 @@ const BackButtonHandler = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [routeStack, setRouteStack] = useState(['/']);
-
+  useEffect(() => {
+    const requestFS = async () => {
+      await Filesystem.requestPermissions();
+    };
+    requestFS();
+  }, []);
   useEffect(() => {
     setRouteStack(prev => {
       if (prev[prev.length - 1] !== location.pathname) {
@@ -290,6 +297,10 @@ function App() {
           <Route
             path="/on-call-completed"
             element={<PrivateRoute element={OnCallCompletedOrder} />}
+          />
+          <Route
+            path="/on-call-quote-download/:proposalId"
+            element={<PrivateRoute element={OnCallQuoteDownload} />}
           />
         </Routes>
       </div>

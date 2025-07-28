@@ -111,23 +111,23 @@ function SelectCustomer() {
         {/* List of filtered customers */}
         {filteredCustomers.map((customer) => (
           <div
-            key={customer._id}
+            key={customer?._id}
             className="flex items-center justify-between p-4 mb-2 bg-gray-100 
                        rounded-lg shadow hover:bg-gray-200"
           >
             <div>
               <p className="text-sm font-semibold text-gray-700">
-                {customer.customername}
+                {customer?.customername}
               </p>
-              <p className="text-sm text-gray-500">{customer.telephone}</p>
-              <p className="text-sm text-gray-500">City: {customer.city}</p>
+              <p className="text-sm text-gray-500">{customer?.telephone}</p>
+              <p className="text-sm text-gray-500">City: {customer?.city}</p>
               <p className="text-sm text-gray-500">
-                Customer Code: {customer.customercodeid}
+                Customer Code: {customer?.customercodeid}
               </p>
               <p className="text-sm text-gray-500">
-                {customer.email.length > 25
-                  ? `${customer.email.slice(0, 25)}...`
-                  : customer.email}
+                {customer?.email.length > 25
+                  ? `${customer?.email.slice(0, 25)}...`
+                  : customer?.email}
               </p>
             </div>
             <button
