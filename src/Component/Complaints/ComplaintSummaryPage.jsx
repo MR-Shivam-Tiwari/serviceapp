@@ -285,26 +285,26 @@ const ComplaintSummaryPage = () => {
             <label className="block font-medium mb-1">Serial Number:</label>
             <div>{complaint?.serialnumber || "N/A"}</div>
           </div>
-          <div className="mb-4 flex justify-between items-center">
+          {/* <div className="mb-4 flex justify-between items-center">
             <label className="block font-medium mb-1">Product Code:</label>
             <div>{complaint?.productCode || "N/A"}</div>
-          </div>
+          </div> */}
           <div className="mb-4 flex justify-between items-center">
             <label className="block font-medium mb-1">Description:</label>
             <div>{complaint?.materialdescription || "N/A"}</div>
           </div>
-          <div className="mb-4 flex justify-between items-center">
+          {/* <div className="mb-4 flex justify-between items-center">
             <label className="block font-medium mb-1">Product Group:</label>
             <div>{complaint?.productgroup || "N/A"}</div>
-          </div>
-          <div className="mb-4 flex justify-between items-center">
+          </div> */}
+          {/* <div className="mb-4 flex justify-between items-center">
             <label className="block font-medium mb-1">Product Type:</label>
             <div>{complaint?.problemtype || "N/A"}</div>
-          </div>
-          <div className="mb-4 flex justify-between items-center">
+          </div> */}
+          {/* <div className="mb-4 flex justify-between items-center">
             <label className="block font-medium mb-1">Problem Name:</label>
             <div>{complaint?.problemname || "N/A"}</div>
-          </div>
+          </div> */}
 
           {/* Show user inputs (voltage, action, instruction) */}
           <div className="mb-4">

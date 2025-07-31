@@ -454,30 +454,45 @@ function PmDetails() {
       pm.pmEngineerCode = userInfo.employeeid || "UNKNOWN";
       pm.pmStatus = "Completed";
 
-      // ✅ Fetch chlNo and revNo from /upload/pmdoc/by-part/:partNumber
-      let chlNo = "";
-      let revNo = "";
+      // ✅ Fetch documents and formats from /upload/docs/by-part/:partNumber
+      let documentChlNo = "";
+      let documentRevNo = "";
+      let formatChlNo = "";
+      let formatRevNo = "";
+
       try {
-        const pmdocRes = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/upload/pmdoc/by-part/${pm.partNumber}`
+        const docsRes = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/upload/docs/by-part/${pm.partNumber}`
         );
-        const pmdocData = await pmdocRes.json();
+        const docsData = await docsRes.json();
         console.log("pm.partNumber", pm.partNumber);
-        if (pmdocData.pmDocs && pmdocData.pmDocs.length > 0) {
-          chlNo = pmdocData.pmDocs[0].chlNo;
-          revNo = pmdocData.pmDocs[0].revNo;
+
+        // Get document data (from PMDocMaster)
+        if (docsData.documents && docsData.documents.length > 0) {
+          documentChlNo = docsData.documents[0].chlNo;
+          documentRevNo = docsData.documents[0].revNo;
         } else {
-          details.push(`⚠️ No PM Doc found for part number ${pm.partNumber}`);
+          details.push(`⚠️ No Document found for part number ${pm.partNumber}`);
+        }
+
+        // Get format data (from FormatMaster)
+        if (docsData.formats && docsData.formats.length > 0) {
+          formatChlNo = docsData.formats[0].chlNo;
+          formatRevNo = docsData.formats[0].revNo;
+        } else {
+          details.push(`⚠️ No Format found for part number ${pm.partNumber}`);
         }
       } catch (err) {
         details.push(
-          `❌ Error fetching PM Doc for ${pm.partNumber}: ${err.message}`
+          `❌ Error fetching Docs for ${pm.partNumber}: ${err.message}`
         );
       }
 
-      // ✅ Add chlNo and revNo to pm object
-      pm.chlNo = chlNo;
-      pm.revNo = revNo;
+      // ✅ Add both document and format data to pm object
+      pm.documentChlNo = documentChlNo;
+      pm.documentRevNo = documentRevNo;
+      pm.formatChlNo = formatChlNo;
+      pm.formatRevNo = formatRevNo;
 
       // Prepare checklist data
       const pmChecklist = checklistData[pm._id];

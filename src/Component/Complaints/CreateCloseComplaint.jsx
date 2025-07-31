@@ -119,6 +119,7 @@ const CreateCloseComplaint = () => {
             className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 p-2 focus:border-purple-500 focus:ring focus:ring-purple-200"
             placeholder="Enter details..."
           ></textarea>
+          
         </div>
 
         <div>

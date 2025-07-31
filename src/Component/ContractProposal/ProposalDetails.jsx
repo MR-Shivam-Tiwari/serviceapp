@@ -545,11 +545,23 @@ export default function ProposalDetails() {
             <section className="bg-white p-4 rounded-lg shadow">
               <h3 className="font-semibold mb-2">Remark</h3>
               <textarea
-                className="w-full bg-gray-100 rounded p-2 border-2"
-                rows={5}
+                maxLength={400}
+                className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+                rows={4}
                 value={remark}
                 onChange={(e) => setRemark(e.target.value)}
               />
+              <p
+                className={`text-xs font-medium text-right mt-1 ${
+                  remark.length > 380
+                    ? "text-red-600"
+                    : remark.length > 350
+                    ? "text-orange-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {remark.length}/400 characters used
+              </p>
             </section>
           </>
         )}

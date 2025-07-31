@@ -132,11 +132,24 @@ const CloseComplaintPage = () => {
         <div className="mb-4">
           <label className="block font-medium mb-1">Action Taken:</label>
           <textarea
-            className="border p-2 rounded w-full"
             placeholder="Describe the action taken to resolve the complaint..."
             value={actionTaken}
+            maxLength={400}
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+            rows={4}
             onChange={(e) => setActionTaken(e.target.value)}
           />
+          <p
+            className={`text-xs font-medium text-right mt-1 ${
+              actionTaken.length > 380
+                ? "text-red-600"
+                : actionTaken.length > 350
+                ? "text-orange-500"
+                : "text-gray-500"
+            }`}
+          >
+            {actionTaken.length}/400 characters used
+          </p>
         </div>
 
         {/* Instruction to Customer */}
@@ -145,11 +158,24 @@ const CloseComplaintPage = () => {
             Instruction to Customer:
           </label>
           <textarea
-            className="border p-2 rounded w-full"
+            maxLength={400}
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+            rows={4}
             placeholder="Any instructions given to the customer..."
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
           />
+          <p
+            className={`text-xs font-medium text-right mt-1 ${
+              instruction.length > 380
+                ? "text-red-600"
+                : instruction.length > 350
+                ? "text-orange-500"
+                : "text-gray-500"
+            }`}
+          >
+            {instruction.length}/400 characters used
+          </p>
         </div>
 
         {/* Enter Voltage Fields */}

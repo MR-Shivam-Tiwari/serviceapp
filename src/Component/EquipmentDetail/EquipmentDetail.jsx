@@ -305,6 +305,7 @@ const EquipmentDetail = () => {
                         </div>
                       </div>
                     </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex items-center p-3 bg-gray-50 rounded-xl">
                         <div>
@@ -333,6 +334,36 @@ const EquipmentDetail = () => {
                               : "N/A"}
                           </p>
                         </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center p-3 bg-purple-50 rounded-xl border border-purple-200">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                      <div>
+                        <p className="text-xs text-purple-600 uppercase tracking-wide font-medium">
+                          Dealer Warranty Start Date
+                        </p>
+                        <p className="font-bold text-purple-800">
+                          {equipmentDetails.equipment?.dealerwarrantystartdate
+                            ? new Date(
+                                equipmentDetails.equipment.dealerwarrantystartdate
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center p-3 bg-purple-50 rounded-xl border border-purple-200">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                      <div>
+                        <p className="text-xs text-purple-600 uppercase tracking-wide font-medium">
+                          Dealer Warranty End Date
+                        </p>
+                        <p className="font-bold text-purple-800">
+                          {equipmentDetails.equipment?.dealerwarrantyenddate
+                            ? new Date(
+                                equipmentDetails.equipment.dealerwarrantyenddate
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </p>
                       </div>
                     </div>
                   </div>

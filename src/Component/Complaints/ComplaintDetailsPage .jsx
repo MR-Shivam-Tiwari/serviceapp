@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useParams, useNavigate } from "react-router-dom";
 
 const ComplaintDetailsPage = () => {
@@ -9,7 +10,7 @@ const ComplaintDetailsPage = () => {
   const [customer, setCustomer] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
-
+  const [onCallExists, setOnCallExists] = useState(false);
   // Local state for form fields:
   const [problemDetails, setProblemDetails] = useState("");
   const [sparesRequired, setSparesRequired] = useState("");
@@ -48,6 +49,33 @@ const ComplaintDetailsPage = () => {
       });
     }
   }, []);
+  useEffect(() => {
+    const checkOnCall = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/phone/oncall/check-by-complaint/${complaint.notification_complaintid}`
+        );
+        const data = await response.json();
+        if (data.success && data.exists) {
+          setOnCallExists(true);
+        } else {
+          setOnCallExists(false);
+        }
+
+        // Force re-render के लिए
+        setTimeout(() => {
+          setOnCallExists((prev) => prev);
+        }, 100);
+      } catch (error) {
+        console.error("Failed to check on-call status:", error);
+        setOnCallExists(false);
+      }
+    };
+
+    if (complaint?.notification_complaintid) {
+      checkOnCall();
+    }
+  }, [complaint?.notification_complaintid]);
 
   useEffect(() => {
     // Fetch the existing complaint details
@@ -84,7 +112,10 @@ const ComplaintDetailsPage = () => {
   // NEW: Check oncall status for NW and NC complaint types
   useEffect(() => {
     if (complaint && complaint.notificationtype) {
-      if (complaint.notificationtype === "NW" || complaint.notificationtype === "NC") {
+      if (
+        complaint.notificationtype === "NW" ||
+        complaint.notificationtype === "NC"
+      ) {
         // For NW and NC, check oncall status via API
         fetch(
           `${process.env.REACT_APP_BASE_URL}/phone/oncall/by-complaint/${complaint.notification_complaintid}`
@@ -115,11 +146,23 @@ const ComplaintDetailsPage = () => {
         `${process.env.REACT_APP_BASE_URL}/collections/search/${complaint.materialcode}`
       )
         .then((response) => response.json())
-        .then((data) => setSpareOptions(data))
-        .catch((error) => console.error("Error fetching spare parts:", error));
+        .then((data) => {
+          if (data.message) {
+            toast.dismiss(); // Dismiss existing toasts
+            toast.error(data.message, { id: "spare-fetch-error" });
+          } else {
+            setSpareOptions(data);
+          }
+        })
+        .catch((error) => {
+          toast.dismiss(); // Avoid duplicate error toasts
+          console.error("Error fetching spare parts:", error);
+          toast.error("Failed to fetch spare parts.", {
+            id: "spare-fetch-error",
+          });
+        });
     }
   }, [complaint]);
-
   // Navigate back to the main complaints list
   const handleBackClick = () => {
     navigate("/pendingcomplaints");
@@ -189,7 +232,7 @@ const ComplaintDetailsPage = () => {
       </div>
     );
   }
-  
+
   const handleCreateEstimation = () => {
     navigate("/create-oncall-estimation", { state: { complaint, customer } });
   };
@@ -198,9 +241,9 @@ const ComplaintDetailsPage = () => {
     // Navigate to CloseComplaintPage and pass both complaint and customer data as "state"
     navigate("/closecomplaint", { state: { complaint, customer } });
   };
-  
+
   console.log(complaint, "he;lo");
-  
+
   return (
     <div>
       {/* ===================
@@ -253,7 +296,7 @@ const ComplaintDetailsPage = () => {
                 <div className="bg-gray-200 p-2 rounded">
                   <div className="flex justify-between">
                     <span className="font-medium">Customer Name:</span>
-                    <span>{customer?.hospitalname || "[Text Widget]"}</span>
+                    <span>{customer?.customername || "[Text Widget]"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">City:</span>
@@ -305,16 +348,17 @@ const ComplaintDetailsPage = () => {
               )}
             </div>
             {(complaint.notificationtype === "NW" ||
-              complaint.notificationtype === "NC") && (
-              <div className="w-full mt-3">
-                <button
-                  className="bg-primary w-full text-white py-2 px-4 rounded-md hover:bg-blue-700"
-                  onClick={handleCreateEstimation}
-                >
-                  On Call Estimation
-                </button>
-              </div>
-            )}
+              complaint.notificationtype === "NC") &&
+              !onCallExists && (
+                <div key={`oncall-${onCallExists}`} className="w-full mt-3">
+                  <button
+                    className="bg-primary w-full text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                    onClick={handleCreateEstimation}
+                  >
+                    On Call Estimation
+                  </button>
+                </div>
+              )}
           </div>
         </>
       ) : (
@@ -400,10 +444,23 @@ const ComplaintDetailsPage = () => {
                 Description/Remarks:
               </label>
               <textarea
-                className="border p-2 rounded w-full"
+                maxLength={400}
+                className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+                rows={4}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
               />
+              <p
+                className={`text-xs font-medium text-right mt-1 ${
+                  remarks.length > 380
+                    ? "text-red-600"
+                    : remarks.length > 350
+                    ? "text-orange-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {remarks.length}/400 characters used
+              </p>
             </div>
 
             {/* Submit button with loader */}

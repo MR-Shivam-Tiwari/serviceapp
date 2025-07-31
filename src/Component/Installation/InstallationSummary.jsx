@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   Loader2,
   X,
+  FileText,
 } from "lucide-react";
+
 function InstallationSummary() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,6 +52,9 @@ function InstallationSummary() {
   const [activeMachineIndex, setActiveMachineIndex] = useState(null);
   const [tempChecklistResults, setTempChecklistResults] = useState([]);
 
+  // Document information state
+  const [documentInfo, setDocumentInfo] = useState({});
+
   // Progress data
   const [progressData, setProgressData] = useState({
     status: "initializing",
@@ -71,6 +76,8 @@ function InstallationSummary() {
     userid: "",
     email: "",
     dealerEmail: "",
+    dealerCode: "",
+    usertype: "",
     manageremail: [],
   });
 
@@ -84,7 +91,9 @@ function InstallationSummary() {
         employeeId: storedUser.employeeid,
         userid: storedUser.id,
         email: storedUser.email,
+        usertype: storedUser.usertype,
         dealerEmail: storedUser.dealerInfo?.dealerEmail,
+        dealerCode: storedUser.dealerInfo?.dealerCode,
         manageremail: Array.isArray(storedUser.manageremail)
           ? storedUser.manageremail
           : storedUser.manageremail
@@ -93,6 +102,39 @@ function InstallationSummary() {
       });
     }
   }, []);
+
+  // Fetch document information for all items
+  useEffect(() => {
+    const fetchDocumentInfo = async () => {
+      const docInfoMap = {};
+
+      for (const item of installItems) {
+        const materialCode = item.pendingInstallationData?.material;
+        if (materialCode && !docInfoMap[materialCode]) {
+          try {
+            const response = await fetch(
+              `${process.env.REACT_APP_BASE_URL}/collections/informatedoc/by-part/${materialCode}`
+            );
+            const data = await response.json();
+            if (data.success) {
+              docInfoMap[materialCode] = data;
+            }
+          } catch (err) {
+            console.error(
+              `Error fetching document info for ${materialCode}:`,
+              err
+            );
+          }
+        }
+      }
+
+      setDocumentInfo(docInfoMap);
+    };
+
+    if (installItems.length > 0) {
+      fetchDocumentInfo();
+    }
+  }, [installItems]);
 
   // Build data to send in one request
   const buildEquipmentPayloadsAndPdfData = () => {
@@ -144,6 +186,11 @@ function InstallationSummary() {
       };
 
       equipmentPayloads.push(equipPayload);
+
+      // Get document info for this material
+      const materialCode = pendingInstallationData?.material;
+      const docInfo = documentInfo[materialCode];
+
       equipmentListForPdf.push({
         materialdescription: pendingInstallationData?.description || "",
         serialnumber: serialNumber,
@@ -284,11 +331,18 @@ function InstallationSummary() {
         if (item.checklistResults && item.checklistResults.length > 0) {
           prodGroup = item.checklistResults[0].prodGroup;
         }
+
+        // Get document info for this material
+        const materialCode = item.pendingInstallationData?.material;
+        const docInfo = documentInfo[materialCode];
+
         return {
           serialNumber: item.serialNumber,
           checklistResults: item.checklistResults || [],
           globalRemark: globalChecklistRemark,
           prodGroup,
+          // Add document information to checklist data
+          documentInfo: docInfo || null,
         };
       });
 
@@ -463,6 +517,10 @@ function InstallationSummary() {
                 );
               }
 
+              // Get document info for this material
+              const materialCode = pendingInstallationData?.material;
+              const docInfo = documentInfo[materialCode];
+
               return (
                 <div
                   key={idx}
@@ -533,6 +591,65 @@ function InstallationSummary() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Document Information Section */}
+                  {docInfo && (
+                    <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <h4 className="font-medium text-purple-900 mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-purple-600" />
+                        Document Information
+                        <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                          {docInfo.productGroup}
+                        </span>
+                      </h4>
+
+                      {docInfo.documents && docInfo.documents.length > 0 && (
+                        <div className="mb-3">
+                          <h5 className="text-sm font-medium text-purple-800 mb-2">
+                            Documents:
+                          </h5>
+                          <div className="space-y-1">
+                            {docInfo.documents.map((doc, docIdx) => (
+                              <div
+                                key={docIdx}
+                                className="flex items-center justify-between text-sm bg-white p-2 rounded border border-purple-100"
+                              >
+                                <span className="text-purple-700 font-medium">
+                                  CHL No: {doc.chlNo}
+                                </span>
+                                <span className="text-purple-600 text-xs">
+                                  Rev: {doc.revNo}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {docInfo.formats && docInfo.formats.length > 0 && (
+                        <div>
+                          <h5 className="text-sm font-medium text-purple-800 mb-2">
+                            Formats:
+                          </h5>
+                          <div className="space-y-1">
+                            {docInfo.formats.map((format, formatIdx) => (
+                              <div
+                                key={formatIdx}
+                                className="flex items-center justify-between text-sm bg-white p-2 rounded border border-purple-100"
+                              >
+                                <span className="text-purple-700 font-medium">
+                                  CHL No: {format.chlNo}
+                                </span>
+                                <span className="text-purple-600 text-xs">
+                                  Rev: {format.revNo}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Checklist Results */}
                   {checklistResults.length > 0 && (
@@ -808,8 +925,6 @@ function InstallationSummary() {
       )}
 
       {/* Success Modal */}
-
-      {/* Abort Confirmation Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
@@ -836,6 +951,8 @@ function InstallationSummary() {
           </div>
         </div>
       )}
+
+      {/* Abort Confirmation Modal */}
       {showAbortModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
@@ -871,6 +988,7 @@ function InstallationSummary() {
           </div>
         </div>
       )}
+
       {/* Global Spinner Overlay */}
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">

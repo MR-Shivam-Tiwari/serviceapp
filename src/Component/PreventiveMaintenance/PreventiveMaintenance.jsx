@@ -3,16 +3,15 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Search,
   MapPin,
   Building2,
-  Settings,
-  Calendar,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
   Users,
+  CheckCircle,
+  XCircle,
+  Calendar,
 } from "lucide-react";
+import PmList from "./PmList";
 
 function PreventiveMaintenance() {
   const navigate = useNavigate();
@@ -22,7 +21,10 @@ function PreventiveMaintenance() {
   const [cityFilter, setCityFilter] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedPms, setSelectedPms] = useState([]);
-  const [viewMode, setViewMode] = useState("regions"); // 'regions', 'cities', 'customers', or 'pms'
+  const [viewMode, setViewMode] = useState("regions");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const [userInfo, setUserInfo] = useState({
     firstName: "",
     lastName: "",
@@ -32,6 +34,13 @@ function PreventiveMaintenance() {
     dealerEmail: "",
     manageremail: [],
   });
+
+  // Set currentMonth in MM/YYYY format (ex: 07/2025)
+  const now = new Date();
+  const currentMonth = `${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}/${now.getFullYear()}`;
 
   // Load user info on mount
   useEffect(() => {
@@ -53,38 +62,89 @@ function PreventiveMaintenance() {
     }
   }, []);
 
+  // Fetch all PMs for filters and default list
+  const [allPms, setAllPms] = useState([]);
   useEffect(() => {
     if (!userInfo.employeeId) return;
-    fetch(
-      `${process.env.REACT_APP_BASE_URL}/upload/allpms/${userInfo.employeeId}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setPms(data.pms);
-      })
-      .catch((err) => console.error("Error fetching PM data", err));
+    const fetchAllPms = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/upload/allpms/${userInfo.employeeId}`
+        );
+        const data = await res.json();
+        setAllPms(data.pms || []);
+      } catch (e) {
+        console.error("Error fetching all PM data", e);
+      }
+      setIsLoading(false);
+    };
+    fetchAllPms();
   }, [userInfo.employeeId]);
 
-  // Get unique regions
-  const uniqueRegions = [...new Set(pms.map((pm) => pm.region))].filter(
+  // Fetch PMs on search
+  const fetchPmsWithSearch = async (query = "", page = 1) => {
+    if (!userInfo.employeeId) return;
+    setIsLoading(true);
+    try {
+      const url = query
+        ? `${
+            process.env.REACT_APP_BASE_URL
+          }/upload/pmsearch?q=${encodeURIComponent(
+            query
+          )}&page=${page}&limit=10`
+        : `${process.env.REACT_APP_BASE_URL}/upload/allpms/${userInfo.employeeId}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (query) {
+        setPms(data.pms || []);
+        setTotalPages(data.totalPages || 1);
+        setCurrentPage(data.currentPage || 1);
+      } else {
+        setPms(data.pms || []);
+        setTotalPages(1);
+        setCurrentPage(1);
+      }
+    } catch (err) {
+      console.error("Error fetching PM data", err);
+      setPms([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial load for search PMs
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      // Call search API only if query length > 2 or empty query
+      if (searchQuery.trim().length > 2 || searchQuery.trim() === "") {
+        fetchPmsWithSearch(searchQuery, 1);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, userInfo.employeeId]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      fetchPmsWithSearch("", 1);
+    }
+  }, [userInfo.employeeId]);
+  const uniqueRegions = [...new Set(allPms.map((pm) => pm.region))].filter(
     Boolean
   );
-
-  // Get unique cities based on selected region
   const uniqueCities = regionFilter
     ? [
         ...new Set(
-          pms.filter((pm) => pm.region === regionFilter).map((pm) => pm.city)
+          allPms.filter((pm) => pm.region === regionFilter).map((pm) => pm.city)
         ),
       ].filter(Boolean)
     : [];
-
-  // Get unique customers based on selected region and city
   const uniqueCustomers =
     regionFilter && cityFilter
       ? [
           ...new Set(
-            pms
+            allPms
               .filter(
                 (pm) => pm.region === regionFilter && pm.city === cityFilter
               )
@@ -92,45 +152,76 @@ function PreventiveMaintenance() {
           ),
         ].filter(Boolean)
       : [];
+  const customerPms =
+    selectedCustomer && !searchQuery.trim()
+      ? allPms.filter(
+          (pm) =>
+            pm.customerCode === selectedCustomer &&
+            pm.region === regionFilter &&
+            pm.city === cityFilter &&
+            (pm.pmStatus === "Due" || pm.pmStatus === "Overdue")
+        )
+      : [];
+  const displayPms = searchQuery.trim() ? pms : customerPms;
 
-  // Filter PMs for the selected customer (only Due and Overdue)
-  const customerPms = selectedCustomer
-    ? pms.filter(
-        (pm) =>
-          pm.customerCode === selectedCustomer &&
-          pm.region === regionFilter &&
-          pm.city === cityFilter &&
-          (pm.pmStatus === "Due" || pm.pmStatus === "Overdue")
-      )
-    : [];
-
-  // Filter for search functionality in PM view
-  const filteredPms = customerPms.filter((pm) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      pm.customerCode.toLowerCase().includes(query) ||
-      pm.serialNumber.toLowerCase().includes(query) ||
-      pm.materialDescription.toLowerCase().includes(query)
-    );
-  });
-
-  // Toggle selection for a PM card. Limit selections to 10.
-  const toggleSelection = (pm) => {
-    if (selectedPms.some((sel) => sel._id === pm._id)) {
-      setSelectedPms(selectedPms.filter((sel) => sel._id !== pm._id));
-    } else {
-      if (selectedPms.length < 10) {
-        setSelectedPms([...selectedPms, pm]);
-      } else {
-        alert("You can select a maximum of 10 PMs.");
-      }
-    }
+  // Hierarchy navigation
+  const handleRegionSelect = (region) => {
+    setRegionFilter(region);
+    setCityFilter("");
+    setSelectedCustomer(null);
+    setViewMode("cities");
+    setSearchQuery("");
+    setSelectedPms([]);
   };
-
-  const handleRemoveAll = () => {
+  const handleCitySelect = (city) => {
+    setCityFilter(city);
+    setSelectedCustomer(null);
+    setViewMode("customers");
+    setSearchQuery("");
+    setSelectedPms([]);
+  };
+  const handleCustomerSelect = (customerCode) => {
+    setSelectedCustomer(customerCode);
+    setViewMode("pms");
+    setSearchQuery("");
+    setCurrentPage(1);
+    const customerPmsData = allPms.filter(
+      (pm) =>
+        pm.customerCode === customerCode &&
+        pm.region === regionFilter &&
+        pm.city === cityFilter &&
+        (pm.pmStatus === "Due" || pm.pmStatus === "Overdue")
+    );
+    setPms(customerPmsData);
+    setTotalPages(1);
+    setSelectedPms([]);
+  };
+  const handleBackToRegions = () => {
+    setRegionFilter("");
+    setCityFilter("");
+    setSelectedCustomer(null);
+    setViewMode("regions");
+    setSearchQuery("");
+    setSelectedPms([]);
+  };
+  const handleBackToCities = () => {
+    setCityFilter("");
+    setSelectedCustomer(null);
+    setViewMode("cities");
+    setSearchQuery("");
+    setSelectedPms([]);
+  };
+  const handleBackToCustomers = () => {
+    setSelectedCustomer(null);
+    setViewMode("customers");
+    setSearchQuery("");
     setSelectedPms([]);
   };
 
+  // Remove all selected PMs
+  const handleRemoveAll = () => setSelectedPms([]);
+
+  // Proceed to details page
   const handleProceed = () => {
     if (selectedPms.length === 0) {
       alert("Please select at least one PM.");
@@ -139,56 +230,17 @@ function PreventiveMaintenance() {
     navigate("/pm-details", { state: { selectedPms } });
   };
 
-  const handleRegionSelect = (region) => {
-    setRegionFilter(region);
-    setCityFilter("");
-    setSelectedCustomer(null);
-    setViewMode("cities");
-  };
-
-  const handleCitySelect = (city) => {
-    setCityFilter(city);
-    setSelectedCustomer(null);
-    setViewMode("customers");
-  };
-
-  const handleCustomerSelect = (customerCode) => {
-    setSelectedCustomer(customerCode);
-    setViewMode("pms");
-  };
-
-  const handleBackToRegions = () => {
-    setRegionFilter("");
-    setCityFilter("");
-    setSelectedCustomer(null);
-    setViewMode("regions");
-  };
-
-  const handleBackToCities = () => {
-    setCityFilter("");
-    setSelectedCustomer(null);
-    setViewMode("cities");
-  };
-
-  const handleBackToCustomers = () => {
-    setSelectedCustomer(null);
-    setViewMode("customers");
-    setSelectedPms([]);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Due":
-        return "from-yellow-500 to-orange-600";
-      case "Overdue":
-        return "from-red-500 to-pink-600";
-      case "Completed":
-        return "from-green-500 to-emerald-600";
-      default:
-        return "from-gray-500 to-slate-600";
+  // Pagination for search results
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      if (searchQuery.trim()) {
+        fetchPmsWithSearch(searchQuery, newPage);
+      }
     }
   };
 
+  // Status badge color utility
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case "Due":
@@ -202,6 +254,7 @@ function PreventiveMaintenance() {
     }
   };
 
+  // Status icon utility
   const getStatusIcon = (status) => {
     switch (status) {
       case "Due":
@@ -217,7 +270,28 @@ function PreventiveMaintenance() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-100">
-      {/* Header with Glassmorphism Effect */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center py-14">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600"></div>
+          </div>
+          <style jsx>{`
+            .loader {
+              border-top-color: #6366f1; /* Indigo-500 */
+              animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+              0% {
+                transform: rotate(0deg);
+              }
+              100% {
+                transform: rotate(360deg);
+              }
+            }
+          `}</style>
+        </div>
+      )}
+      {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-6 text-white">
           <button
@@ -233,6 +307,7 @@ function PreventiveMaintenance() {
                 navigate("/");
               }
             }}
+            aria-label="Back"
           >
             <ArrowLeft className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
           </button>
@@ -243,54 +318,21 @@ function PreventiveMaintenance() {
           </div>
         </div>
       </div>
-
       <div className="p-4 max-w-7xl mx-auto pb-24">
-        {/* Enhanced Search and Filters */}
-        <div className="mb-4">
-          <div className=" ">
-            <div className="flex flex-col md:flex-row gap-2">
-              {/* Search Input - Only show in PMS view */}
-              {viewMode === "pms" && (
-                <div className="relative flex-1">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search by Customer Code, Serial No, or Description"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-gray-50 to-purple-50 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-500"
-                  />
-                </div>
-              )}
-
-              {/* Filter Controls */}
-              <div className="flex gap-3 w-full md:w-auto">
-                {/* Remove All Button */}
-                {viewMode === "pms" && selectedPms.length > 0 && (
-                  <button
-                    onClick={handleRemoveAll}
-                    className="px-6 py-3 w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-300 focus:ring-opacity-50"
-                  >
-                    Remove All
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="space-y-6">
-          {/* Regions View */}
-          {viewMode === "regions" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {uniqueRegions.map((region) => (
+        {/* Regions, Cities, Customers (Hierarchy) */}
+        {viewMode === "regions" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {uniqueRegions.length ? (
+              uniqueRegions.map((region) => (
                 <div
                   key={region}
                   onClick={() => handleRegionSelect(region)}
                   className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group"
+                  role="button"
+                  tabIndex={0}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handleRegionSelect(region)
+                  }
                 >
                   <div className="p-1">
                     <div className="bg-white/90 backdrop-blur-sm mx-1 my-1 rounded-xl p-6">
@@ -302,7 +344,8 @@ function PreventiveMaintenance() {
                       </div>
                       <div className="flex justify-between items-center">
                         <div className="text-sm text-gray-600">
-                          {pms.filter((pm) => pm.region === region).length} PMs
+                          {allPms.filter((pm) => pm.region === region).length}{" "}
+                          PMs
                         </div>
                         <div className="text-blue-500 font-medium group-hover:translate-x-1 transition-transform">
                           View Cities →
@@ -311,18 +354,35 @@ function PreventiveMaintenance() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Cities View */}
-          {viewMode === "cities" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {uniqueCities.map((city) => (
+              ))
+            ) : (
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                  <MapPin className="w-10 h-10 text-blue-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Regions Found
+                </h3>
+                <p className="text-gray-500">
+                  There are no regions with PM data available.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {viewMode === "cities" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {uniqueCities.length ? (
+              uniqueCities.map((city) => (
                 <div
                   key={city}
                   onClick={() => handleCitySelect(city)}
                   className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group"
+                  role="button"
+                  tabIndex={0}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handleCitySelect(city)
+                  }
                 >
                   <div className="p-1">
                     <div className="bg-white/90 backdrop-blur-sm mx-1 my-1 rounded-xl p-6">
@@ -335,7 +395,7 @@ function PreventiveMaintenance() {
                       <div className="flex justify-between items-center">
                         <div className="text-sm text-gray-600">
                           {
-                            pms.filter(
+                            allPms.filter(
                               (pm) =>
                                 pm.region === regionFilter && pm.city === city
                             ).length
@@ -349,30 +409,46 @@ function PreventiveMaintenance() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Customer Cards View */}
-          {viewMode === "customers" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {uniqueCustomers.map((customerCode) => {
-                const customerPms = pms.filter(
+              ))
+            ) : (
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
+                <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto">
+                  <Building2 className="w-10 h-10 text-indigo-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Cities Found
+                </h3>
+                <p className="text-gray-500">
+                  There are no cities with PM data available for {regionFilter}.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {viewMode === "customers" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {uniqueCustomers.length ? (
+              uniqueCustomers.map((customerCode) => {
+                const customerPmsData = allPms.filter(
                   (pm) =>
                     pm.customerCode === customerCode &&
                     pm.region === regionFilter &&
                     pm.city === cityFilter
                 );
-                const firstPm = customerPms[0];
-                const duePms = customerPms.filter(
+                const firstPm = customerPmsData[0];
+                const duePms = customerPmsData.filter(
                   (pm) => pm.pmStatus === "Due" || pm.pmStatus === "Overdue"
                 ).length;
-
                 return (
                   <div
                     key={customerCode}
                     onClick={() => handleCustomerSelect(customerCode)}
                     className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && handleCustomerSelect(customerCode)
+                    }
                   >
                     <div className="p-1">
                       <div className="bg-white/90 backdrop-blur-sm mx-1 my-1 rounded-xl p-6">
@@ -381,7 +457,6 @@ function PreventiveMaintenance() {
                             Customer Code: {customerCode}
                           </h3>
                         </div>
-
                         {firstPm && (
                           <div className="space-y-2 mb-4">
                             <div className="flex items-center space-x-2">
@@ -404,7 +479,6 @@ function PreventiveMaintenance() {
                             </div>
                           </div>
                         )}
-
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <AlertTriangle className="w-4 h-4 text-orange-500" />
@@ -429,181 +503,60 @@ function PreventiveMaintenance() {
                     </div>
                   </div>
                 );
-              })}
-            </div>
-          )}
-
-          {/* PMS Cards View */}
-          {viewMode === "pms" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPms.map((pm) => (
-                <div
-                  key={pm._id}
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
-                >
-                  <div>
-                    <div className="bg-white/90 backdrop-blur-sm mx-1 my-1 rounded-xl p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Users className="w-4 h-4 text-gray-600" />
-                            <span className="font-bold text-gray-800">
-                              {pm.customerCode}
-                            </span>
-                          </div>
-                          <span
-                            className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusBadgeColor(
-                              pm.pmStatus
-                            )}`}
-                          >
-                            {getStatusIcon(pm.pmStatus)}
-                            <span>{pm.pmStatus}</span>
-                          </span>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <span className="text-xs text-gray-500">
-                              PM Type:
-                            </span>
-                            <p className="font-medium text-gray-800">
-                              {pm.pmType}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-gray-500">
-                              Description:
-                            </span>
-                            <p className="font-medium text-gray-800 text-sm">
-                              {pm.materialDescription}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-gray-500">
-                              Serial Number:
-                            </span>
-                            <p className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded-lg text-sm inline-block">
-                              {pm.serialNumber}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="w-4 h-4 text-gray-500" />
-                            <span className="text-xs text-gray-500">Due:</span>
-                            <span className="text-sm font-medium text-gray-800">
-                              {pm.pmDueMonth}
-                            </span>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => toggleSelection(pm)}
-                          disabled={
-                            !selectedPms.some((sel) => sel._id === pm._id) &&
-                            selectedPms.length === 10
-                          }
-                          className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
-                            selectedPms.some((sel) => sel._id === pm._id)
-                              ? "bg-gradient-to-r from-purple-600 to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
-                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          } ${
-                            !selectedPms.some((sel) => sel._id === pm._id) &&
-                            selectedPms.length === 10
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          }`}
-                        >
-                          {selectedPms.some((sel) => sel._id === pm._id)
-                            ? "Remove"
-                            : "Select"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+              })
+            ) : (
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
+                <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+                  <Users className="w-10 h-10 text-purple-500" />
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Empty States */}
-          {viewMode === "regions" && uniqueRegions.length === 0 && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                <MapPin className="w-10 h-10 text-blue-500" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Customers Found
+                </h3>
+                <p className="text-gray-500">
+                  There are no customers with PM data available in {cityFilter}.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No Regions Found
-              </h3>
-              <p className="text-gray-500">
-                There are no regions with PM data available.
-              </p>
-            </div>
-          )}
-
-          {viewMode === "cities" && uniqueCities.length === 0 && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
-              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto">
-                <Building2 className="w-10 h-10 text-indigo-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No Cities Found
-              </h3>
-              <p className="text-gray-500">
-                There are no cities with PM data available for {regionFilter}.
-              </p>
-            </div>
-          )}
-
-          {viewMode === "customers" && uniqueCustomers.length === 0 && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
-              <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
-                <Users className="w-10 h-10 text-purple-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No Customers Found
-              </h3>
-              <p className="text-gray-500">
-                There are no customers with PM data available in {cityFilter}.
-              </p>
-            </div>
-          )}
-
-          {viewMode === "pms" && filteredPms.length === 0 && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-12 text-center">
-              <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-10 h-10 text-yellow-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No PMs Found
-              </h3>
-              <p className="text-gray-500">
-                {searchQuery
-                  ? "No matching PMs found for your search."
-                  : "There are no Due or Overdue PMs for this customer."}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Enhanced Fixed Footer */}
-      {viewMode === "pms" && selectedPms.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-white/20 shadow-2xl p-6 z-50">
-          <div className="max-w-7xl mx-auto">
-            <button
-              onClick={handleProceed}
-              className="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-700 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-300 focus:ring-opacity-50"
-            >
-              <span className="flex items-center justify-center space-x-2">
-                <CheckCircle className="w-5 h-5" />
-                <span>
-                  Proceed with {selectedPms.length} PM
-                  {selectedPms.length > 1 && "s"}
-                </span>
-              </span>
-            </button>
+            )}
           </div>
-        </div>
-      )}
+        )}
+        {/* PM List with search, selection, and pagination */}
+        {viewMode === "pms" && (
+          <PmList
+            pms={displayPms}
+            selectedPms={selectedPms}
+            toggleSelection={(pm) => {
+              // Allow only current "MM/YYYY" Due PM to be selected
+              if (pm.pmStatus === "Due" && pm.pmDueMonth !== currentMonth) {
+                alert(
+                  `Cannot select PM with Due month (${pm.pmDueMonth}) different from current month (${currentMonth}).`
+                );
+                return;
+              }
+              if (selectedPms.some((sel) => sel._id === pm._id)) {
+                setSelectedPms(selectedPms.filter((sel) => sel._id !== pm._id));
+              } else {
+                if (selectedPms.length < 10) {
+                  setSelectedPms([...selectedPms, pm]);
+                } else {
+                  alert("You can select a maximum of 10 PMs.");
+                }
+              }
+            }}
+            selectedPmsCount={selectedPms.length}
+            handleRemoveAll={handleRemoveAll}
+            handleProceed={handleProceed}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            handlePageChange={handlePageChange}
+            getStatusBadgeColor={getStatusBadgeColor}
+            getStatusIcon={getStatusIcon}
+            currentMonth={currentMonth}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
     </div>
   );
 }

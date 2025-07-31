@@ -16,7 +16,7 @@ const ChecklistModal = ({
   checklistItems,
   onFinish,
   initialGlobalRemark = "",
-  voltageData,
+  voltageData, // Ab ye use nahi hoga numeric entry ke liye
   initialEquipmentUsed = "",
   initialCalibrationDate = "",
 }) => {
@@ -32,6 +32,9 @@ const ChecklistModal = ({
   );
   const [showEquipmentForm, setShowEquipmentForm] = useState(true);
 
+  // New state for manual voltage input
+  const [manualVoltageInput, setManualVoltageInput] = useState("");
+
   // Initialize values when checklist items change
   useEffect(() => {
     if (checklistItems.length > 0 && checklistItems[0].equipmentUsedSerial) {
@@ -41,6 +44,11 @@ const ChecklistModal = ({
       setCalibrationDueDate(checklistItems[0].calibrationDueDate);
     }
   }, [checklistItems]);
+
+  // Reset manual voltage input when question changes
+  useEffect(() => {
+    setManualVoltageInput("");
+  }, [currentQuestionIndex]);
 
   const handleChecklistResultChange = (checkId, newVal) => {
     setTempChecklistResults((prev) =>
@@ -90,7 +98,19 @@ const ChecklistModal = ({
     }
 
     if (currentItem.resulttype === "Numeric Entry") {
-      handleNumericEntry(currentItem);
+      // Validate manual voltage input
+      if (!manualVoltageInput.trim()) {
+        toast.error("Please enter the voltage reading before proceeding.");
+        return;
+      }
+
+      const voltageValue = Number.parseFloat(manualVoltageInput);
+      if (isNaN(voltageValue)) {
+        toast.error("Please enter a valid voltage reading.");
+        return;
+      }
+
+      handleNumericEntry(currentItem, voltageValue);
     }
 
     if (currentQuestionIndex < tempChecklistResults.length - 1) {
@@ -109,7 +129,7 @@ const ChecklistModal = ({
     }
   };
 
-  const handleNumericEntry = (currentItem) => {
+  const handleNumericEntry = (currentItem, manualVoltage) => {
     const { startVoltage, endVoltage } = currentItem;
     if (!startVoltage || !endVoltage) {
       toast.error("Voltage range missing.");
@@ -118,27 +138,27 @@ const ChecklistModal = ({
 
     const start = Number.parseFloat(startVoltage);
     const end = Number.parseFloat(endVoltage);
-    let currentVoltage;
 
-    const label = currentItem.checkpoint.toLowerCase();
-    if (label.includes("l-n") || label.includes("r-y")) {
-      currentVoltage = Number.parseFloat(voltageData.lnry);
-    } else if (label.includes("l-g") || label.includes("y-b")) {
-      currentVoltage = Number.parseFloat(voltageData.lgyb);
-    } else if (label.includes("n-g") || label.includes("b-r")) {
-      currentVoltage = Number.parseFloat(voltageData.ngbr);
-    } else {
-      currentVoltage = Number.parseFloat(voltageData.lnry);
-    }
-
-    if (isNaN(start) || isNaN(end) || isNaN(currentVoltage)) {
-      toast.error("Invalid or missing voltage readings.");
+    if (isNaN(start) || isNaN(end)) {
+      toast.error("Invalid voltage range.");
       return;
     }
 
-    currentItem.result =
-      currentVoltage >= start && currentVoltage <= end ? "Pass" : "Failed";
-    currentItem.remark = `Measured: ${currentVoltage}V (Range: ${start}V - ${end}V)`;
+    // Update the current item with manual voltage reading
+    const updatedResults = [...tempChecklistResults];
+    const itemIndex = updatedResults.findIndex(
+      (item) => item._id === currentItem._id
+    );
+
+    if (itemIndex !== -1) {
+      updatedResults[itemIndex].result =
+        manualVoltage >= start && manualVoltage <= end ? "Pass" : "Failed";
+      updatedResults[
+        itemIndex
+      ].remark = `Measured: ${manualVoltage}V (Range: ${start}V - ${end}V)`;
+
+      setTempChecklistResults(updatedResults);
+    }
   };
 
   const handleFinish = () => {
@@ -205,9 +225,21 @@ const ChecklistModal = ({
                 onChange={(e) =>
                   handleChecklistRemarkChange(currentItem._id, e.target.value)
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                rows="3"
+                maxLength={400}
+                className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+                rows={4}
               />
+              <p
+                className={`text-xs font-medium text-right mt-1 ${
+                  currentItem.remark.length > 380
+                    ? "text-red-600"
+                    : currentItem.remark.length > 350
+                    ? "text-orange-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {currentItem.remark.length}/400 characters used
+              </p>
             </div>
           )}
         </div>
@@ -254,9 +286,21 @@ const ChecklistModal = ({
                 onChange={(e) =>
                   handleChecklistRemarkChange(currentItem._id, e.target.value)
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                rows="3"
+                maxLength={400}
+                className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+                rows={4}
               />
+              <p
+                className={`text-xs font-medium text-right mt-1 ${
+                  currentItem.remark.length > 380
+                    ? "text-red-600"
+                    : currentItem.remark.length > 350
+                    ? "text-orange-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {currentItem.remark.length}/400 characters used
+              </p>
             </div>
           )}
         </div>
@@ -271,17 +315,58 @@ const ChecklistModal = ({
       return (
         <div className="space-y-4">
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Voltage Reading</h4>
+            <h4 className="font-medium text-blue-900 mb-2">
+              Expected Voltage Range
+            </h4>
             <p className="text-sm text-blue-700">
-              Expected Range:{" "}
+              Range:{" "}
               <span className="font-semibold">
                 {start}V - {end}V
               </span>
             </p>
-            {currentItem.remark && (
-              <p className="text-sm text-blue-700 mt-1">{currentItem.remark}</p>
-            )}
           </div>
+
+          {/* Manual Voltage Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Enter Voltage Reading (V) *
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Enter measured voltage value"
+              value={manualVoltageInput}
+              onChange={(e) => setManualVoltageInput(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the voltage reading from your measurement equipment
+            </p>
+          </div>
+
+          {/* Show result preview if voltage is entered */}
+          {manualVoltageInput &&
+            !isNaN(Number.parseFloat(manualVoltageInput)) && (
+              <div className="p-3 bg-gray-50 hidden border border-gray-200 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  Result Preview:
+                  <span
+                    className={`ml-2 font-semibold ${
+                      Number.parseFloat(manualVoltageInput) >= start &&
+                      Number.parseFloat(manualVoltageInput) <= end
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {Number.parseFloat(manualVoltageInput) >= start &&
+                    Number.parseFloat(manualVoltageInput) <= end
+                      ? "Pass"
+                      : "Failed"}
+                  </span>
+                </p>
+              </div>
+            )}
         </div>
       );
     }
@@ -386,7 +471,7 @@ const ChecklistModal = ({
           {!showEquipmentForm &&
             currentQuestionIndex < tempChecklistResults.length && (
               <div className="space-y-6 flex justify-center">
-                <div className="bg-white     rounded-lg p-2 px-3 ">
+                <div className="bg-white rounded-lg p-2 px-3">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     {tempChecklistResults[currentQuestionIndex].checkpoint}
                   </h3>
@@ -419,9 +504,21 @@ const ChecklistModal = ({
                     placeholder="Enter any overall remarks about this installation..."
                     value={globalChecklistRemark}
                     onChange={(e) => setGlobalChecklistRemark(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                    rows="4"
+                    maxLength={400}
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+                    rows={4}
                   />
+                  <p
+                    className={`text-xs font-medium text-right mt-1 ${
+                      globalChecklistRemark.length > 380
+                        ? "text-red-600"
+                        : globalChecklistRemark.length > 350
+                        ? "text-orange-500"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {globalChecklistRemark.length}/400 characters used
+                  </p>
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-lg border">
@@ -485,8 +582,12 @@ const ChecklistModal = ({
                   className="flex items-center text-nowrap space-x-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleNextQuestion}
                   disabled={
-                    showEquipmentForm &&
-                    (!equipmentUsedSerial || !calibrationDueDate)
+                    (showEquipmentForm &&
+                      (!equipmentUsedSerial || !calibrationDueDate)) ||
+                    (!showEquipmentForm &&
+                      tempChecklistResults[currentQuestionIndex]?.resulttype ===
+                        "Numeric Entry" &&
+                      !manualVoltageInput.trim())
                   }
                 >
                   <span>
