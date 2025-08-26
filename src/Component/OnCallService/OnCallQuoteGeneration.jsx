@@ -20,8 +20,8 @@ function OnCallQuoteGeneration() {
         const data = result.data || result;
         
         // Filter only approved onCalls
-        const approvedOnCalls = Array.isArray(data) ? data.filter(onCall => onCall?.status === "approved") : [];
-        setOnCalls(approvedOnCalls);
+        // const approvedOnCalls = Array.isArray(data) ? data.filter(onCall => onCall?.status === "approved") : [];
+        setOnCalls(data);
       } catch (err) {
         setError(err.message);
       } finally {

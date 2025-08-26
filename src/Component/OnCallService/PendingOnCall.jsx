@@ -43,11 +43,8 @@ function PendingOnCall() {
   };
 
   const shouldShowRevisionButton = (proposal) => {
-    const currentDiscount = proposal?.discountPercentage || 0;
-    if (currentDiscount <= 5) return true;
-
-    const latestRevision = proposal?.revisions?.[proposal?.revisions.length - 1];
-    return !proposal?.revisions?.length || latestRevision?.status === "rejected";
+    // Only disable if cnoteNumber has a value, otherwise always enable
+    return !proposal?.cnoteNumber;
   };
 
   const formatCurrency = (value) => {

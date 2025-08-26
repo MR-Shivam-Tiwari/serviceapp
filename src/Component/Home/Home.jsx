@@ -1162,6 +1162,8 @@ function Home() {
   const [userData, setUserData] = useState(null);
   const [roleData, setRoleData] = useState(null);
 
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     // Retrieve user data from localStorage
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -1177,6 +1179,7 @@ function Home() {
   }, []);
 
   const fetchRoleData = async (roleId) => {
+    setIsLoading(true);
     try {
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/roles/by-roleid/${roleId}`
@@ -1189,10 +1192,30 @@ function Home() {
     } catch (error) {
       console.error("Error fetching role data:", error);
       toast.error("Failed to load role permissions");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (!userData || !roleData) return null;
+  // Existing condition replace kariye:
+  if (!userData || !roleData || isLoading) {
+    return (
+      <div className="min-h-screen bg-white/80 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-200 rounded-full animate-pulse"></div>
+            <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            Loading Dashboard
+          </h3>
+          <p className="text-sm text-gray-500">
+            Please wait while we set up your workspace...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -1202,11 +1225,12 @@ function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white/80">
-      <div className="w-full backdrop-blur-sm">
+    <div className="min-h-screen bg-white/80 flex flex-col">
+      {/* Header - Fixed */}
+      <div className="fixed top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-sm">
         {/* Enhanced Header Section */}
         <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-          <div className="flex items-center justify-between px-6 py-5 text-white">
+          <div className="flex items-center justify-between px-6 py-4 text-white">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
@@ -1228,46 +1252,19 @@ function Home() {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Logout Modal */}
-        {showModal && (
-          <div className="fixed inset-0 mb-24 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <LogOut className="w-8 h-8 text-red-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                  Confirm Logout
-                </h3>
-                <p className="text-gray-600 mb-8">
-                  Are you sure you want to logout from your account?
-                </p>
-                <div className="flex space-x-4">
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* User Info Section */}
-        <div className="p-3">
-          {/* User Profile Card (isolated click) */}
+      {/* Scrollable content starts here */}
+      <div
+        className="flex-1 overflow-y-auto pb-3"
+        style={{ paddingTop: "85px" }} // Adjust this to match header's true pixel height
+      >
+        {/* User info and quick actions header */}
+        <div className="p-3 bg-white/80">
+          {/* User Profile Card */}
           <div
             onClick={() => navigate("/user-profile")}
-            className="bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-md hover:shadow-lg border border-blue-100 p-2 cursor-pointer transition-all duration-300 transform hover:scale-[1.01] mb-4"
+            className="bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-md hover:shadow-lg border border-blue-100 p-2 cursor-pointer transition-all duration-300 mb-4"
           >
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -1332,44 +1329,76 @@ function Home() {
               </div>
             </div>
           </div>
-          {/* Quick Actions Grid (outside profile card) */}
-          <div className="mb-4">
-            <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full mr-3"></div>
-              Quick Actions
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {roleData.mobileComponents.map((component) => {
-                if (component.read && componentConfig[component.name]) {
-                  const config = componentConfig[component.name];
-                  return (
+          {showModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <LogOut className="w-8 h-8 text-red-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    Confirm Logout
+                  </h3>
+                  <p className="text-gray-600 mb-8">
+                    Are you sure you want to logout from your account?
+                  </p>
+                  <div className="flex space-x-4">
                     <button
-                      key={component.componentId}
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevents bubbling to any parent (e.g. profile card)
-                        navigate(config.path);
-                      }}
-                      className="group relative bg-gradient-to-br from-white to-gray-50 hover:from-blue-50 hover:to-indigo-50 rounded-2xl shadow-md hover:shadow-xl border border-gray-200 hover:border-blue-300 p-6 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
+                      onClick={() => setShowModal(false)}
+                      className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
                     >
-                      <div className="flex flex-col items-center space-y-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 group-hover:from-blue-200 group-hover:to-indigo-200 rounded-xl flex items-center justify-center text-2xl transition-all duration-300 transform group-hover:scale-110">
-                          {config.icon}
-                        </div>
-                        <div className="text-center">
-                          <p className="font-semibold text-gray-800 text-sm leading-tight">
-                            {component.name.length > 23
-                              ? component.name.slice(0, 23) + "..."
-                              : component.name}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/5 to-indigo-600/0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      Cancel
                     </button>
-                  );
-                }
-                return null;
-              })}
+                    <button
+                      onClick={handleLogout}
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
+          )}
+          {/* Quick Actions Header */}
+          <h4 className="text-lg font-semibold text-gray-800 flex items-center ">
+            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full mr-3"></div>
+            Quick Actions
+          </h4>
+        </div>
+
+        {/* Quick Actions Grid */}
+        <div className="px-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {roleData.mobileComponents.map((component) => {
+              if (component.read && componentConfig[component.name]) {
+                const config = componentConfig[component.name];
+                return (
+                  <button
+                    key={component.componentId}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(config.path);
+                    }}
+                    className="bg-gradient-to-br from-white to-gray-50 hover:from-blue-50 hover:to-indigo-50 rounded-2xl shadow-md hover:shadow-xl border border-gray-200 hover:border-blue-300 p-6 transition-all duration-300 transform hover:scale-105"
+                  >
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 rounded-xl flex items-center justify-center text-2xl transition-all duration-300">
+                        {config.icon}
+                      </div>
+                      <div className="text-center">
+                        <p className="font-semibold text-gray-800 text-sm leading-tight">
+                          {component.name.length > 23
+                            ? component.name.slice(0, 23) + "..."
+                            : component.name}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
+              return null;
+            })}
           </div>
         </div>
       </div>

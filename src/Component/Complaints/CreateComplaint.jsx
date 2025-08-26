@@ -40,12 +40,16 @@ const CreateComplaint = () => {
   const [CustomerDetails, setCustomerDetails] = useState(null);
 
   // Loading states
-  const [loadingSerialNumbers, setLoadingSerialNumbers] = useState(true);
+  const [loadingSerialNumbers, setLoadingSerialNumbers] = useState(false);
   const [loadingComplaintTypes, setLoadingComplaintTypes] = useState(true);
   const [loadingProductGroups, setLoadingProductGroups] = useState(true);
   const [loadingProblemTypes, setLoadingProblemTypes] = useState(true);
   const [loadingProblemNames, setLoadingProblemNames] = useState(true);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+
+  // Search functionality states (similar to EquipmentDetail)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState("");
 
   // Validation states
   const [errors, setErrors] = useState({
@@ -85,10 +89,12 @@ const CreateComplaint = () => {
           deviceid: userData.deviceid || "",
           deviceregistereddate: userData.deviceregistereddate || "",
           usertype: userData.usertype || "",
+          manageremail: userData.manageremail || "",
           roleName: userData.role?.roleName || "",
           roleId: userData.role?.roleId || "",
           dealerName: userData.dealerInfo?.dealerName || "",
           dealerId: userData.dealerInfo?.dealerId || "",
+          dealerEmail: userData.dealerInfo?.dealerEmail || "",
           location: userData.location || [],
           skills: userData.skills || "",
         });
@@ -97,25 +103,58 @@ const CreateComplaint = () => {
       }
     }
   }, []);
-
-  // Fetch API data functions
-  const fetchSerialNumbers = async () => {
+  console.log("manageremail", userInfo.manageremail);
+  // Enhanced fetch serial numbers with search and pagination (similar to EquipmentDetail)
+  const fetchSerialNumbers = async (search = "") => {
+    setLoadingSerialNumbers(true);
+    setError("");
     try {
+      const queryParams = new URLSearchParams();
+      if (search.trim()) {
+        queryParams.append("search", search.trim());
+      }
+      queryParams.append("limit", "100");
+
       const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/collections/allequipment/serialnumbers`
+        `${process.env.REACT_APP_BASE_URL}/collections/allequipment/serialnumbers?${queryParams}`
       );
-      setSerialNumbers(response.data);
-    } catch (error) {
-      console.error("Error fetching serial numbers:", error);
+
+      const data = response.data;
+      const rawSerials = data.serialNumbers || data || [];
+      const serialNumbers = rawSerials.filter((sn) => sn && sn.trim() !== "");
+
+      setSerialNumbers(serialNumbers);
+    } catch (err) {
+      setError(err.message || "Failed to fetch equipment serial numbers");
+      setSerialNumbers([]);
     } finally {
       setLoadingSerialNumbers(false);
     }
   };
 
+  // Initial load - fetch all serial numbers
+  useEffect(() => {
+    fetchSerialNumbers();
+  }, []);
+
+  // Debounced search effect - Only trigger after 5 characters (similar to EquipmentDetail)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm.length >= 5 && searchTerm !== selectedSerialNumber) {
+        fetchSerialNumbers(searchTerm);
+      } else if (searchTerm.length === 0) {
+        // Reset to initial load when search is cleared
+        fetchSerialNumbers();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, selectedSerialNumber]);
+
   const fetchComplaintTypes = async () => {
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/complaints/complaint`
+        `${process.env.REACT_APP_BASE_URL}/complaints/complainttype`
       );
       if (Array.isArray(response.data.complaints)) {
         setComplaintTypes(response.data.complaints);
@@ -226,12 +265,36 @@ const CreateComplaint = () => {
 
   // useEffect to fetch all data on component mount
   useEffect(() => {
-    fetchSerialNumbers();
     fetchComplaintTypes();
     fetchProductGroups();
     fetchProblemTypes();
     fetchProblemNames();
   }, []);
+
+  // Handle equipment selection (similar to EquipmentDetail)
+  const handleEquipmentChange = (event, newValue) => {
+    if (newValue) {
+      setSelectedSerialNumber(newValue);
+      setSearchTerm(newValue);
+      setEquipmentDetails(null);
+      setSpareOptions([]);
+      setAmcDateDetails(null);
+      setCustomerDetails(null);
+      setErrors({ ...errors, serialNumber: false });
+    } else {
+      setSelectedSerialNumber("");
+      setSearchTerm("");
+      setEquipmentDetails(null);
+      setSpareOptions([]);
+      setAmcDateDetails(null);
+      setCustomerDetails(null);
+    }
+  };
+
+  // Handle input change for search (similar to EquipmentDetail)
+  const handleInputChange = (event, newInputValue) => {
+    setSearchTerm(newInputValue);
+  };
 
   const validateForm = () => {
     const newErrors = {
@@ -271,8 +334,11 @@ const CreateComplaint = () => {
         firstName: userInfo.firstname || "",
         lastName: userInfo.lastname || "",
         email: userInfo.email || "",
+        usertype: userInfo.usertype || "",
         mobilenumber: userInfo.mobilenumber || "",
+        dealerEmail: userInfo?.dealerEmail || "",
         branch: userInfo.branch || [],
+        manageremail: userInfo.manageremail || [],
       },
     };
 
@@ -295,6 +361,7 @@ const CreateComplaint = () => {
     setOpenSuccessModal(false);
     // Clear form after modal close
     setSelectedSerialNumber("");
+    setSearchTerm("");
     setSelectedComplaintType("");
     setSelectedProductGroup("");
     setSelectedProblemType("");
@@ -319,16 +386,16 @@ const CreateComplaint = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-        <div className="flex items-center p-4 py-6 text-white">
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+        <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
             onClick={() => navigate("/complaints")}
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-xl font-bold text-white">
               Create New Complaint
             </h1>
           </div>
@@ -337,52 +404,73 @@ const CreateComplaint = () => {
 
       <div className="max-w-4xl mx-auto p-3">
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Serial Number Selection Card */}
-          <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
-            <div className="p-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Search & Select Serial Number
-                </label>
-                <p className="text-xs text-gray-500 mb-3">
-                  Start typing to search for equipment serial numbers
-                </p>
-                {loadingSerialNumbers ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                    <span className="ml-3 text-gray-600">
-                      Loading serial numbers...
-                    </span>
-                  </div>
-                ) : (
-                  <Autocomplete
-                    id="serialNumber"
-                    options={serialNumbers}
-                    getOptionLabel={(option) => option}
-                    onChange={(event, newValue) => {
-                      setSelectedSerialNumber(newValue);
-                      setEquipmentDetails(null);
-                      setSpareOptions([]);
-                      setAmcDateDetails(null);
-                      setCustomerDetails(null);
-                      setErrors({ ...errors, serialNumber: false });
-                    }}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        variant="outlined"
-                        className="mt-1 block w-full"
-                        label="Serial Number"
-                        error={errors.serialNumber}
-                        helperText={
-                          errors.serialNumber ? "This field is required" : ""
-                        }
-                      />
-                    )}
+          {/* Enhanced Serial Number Selection Card with Search */}
+          <div className="bg-white rounded-xl  shadow-lg border border-gray-100 p-4  animate-fade-in-up">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+              <h3 className="text-lg font-semibold text-gray-800">
+                Search Equipment
+              </h3>
+            </div>
+
+            <div className="relative">
+              <Autocomplete
+                options={serialNumbers}
+                getOptionLabel={(option) => option}
+                value={selectedSerialNumber || ""}
+                inputValue={searchTerm}
+                loading={loadingSerialNumbers}
+                onChange={handleEquipmentChange}
+                onInputChange={handleInputChange}
+                placeholder="Type at least 5 characters to search..."
+                noOptionsText={
+                  loadingSerialNumbers
+                    ? "Searching..."
+                    : searchTerm.length < 5
+                    ? "Type at least 5 characters to search"
+                    : "No equipment found"
+                }
+                filterOptions={(options) => options}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search & Select Serial No"
+                    variant="outlined"
+                    error={errors.serialNumber}
+                    helperText={
+                      errors.serialNumber
+                        ? "This field is required"
+                        : searchTerm.length < 5 && searchTerm.length > 0
+                        ? `Type ${
+                            5 - searchTerm.length
+                          } more character(s) to search`
+                        : serialNumbers.length === 100
+                        ? "Showing first 100 results. Type to search for specific serial numbers."
+                        : `Found ${serialNumbers.length} equipment(s)`
+                    }
                   />
                 )}
-              </div>
+              />
             </div>
+
+            {error && (
+              <p className="text-red-500 text-sm mt-2 flex items-center">
+                <svg
+                  className="w-4 h-4 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                {error}
+              </p>
+            )}
           </div>
 
           {/* Equipment Details Card */}
@@ -507,8 +595,9 @@ const CreateComplaint = () => {
             </div>
           )}
 
+          {/* Rest of the form remains the same... */}
           {/* Complaint Details Card */}
-          <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-lg shadow-lg pb-16 border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
               <h3 className="text-lg font-semibold text-white">
                 Complaint Details
@@ -755,26 +844,28 @@ const CreateComplaint = () => {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-center w-full">
-            <button
-              type="submit"
-              className={`px-8 py-4 w-full bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white text-center font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
-                loadingSubmit ? "cursor-wait opacity-75 transform-none" : ""
-              }`}
-              disabled={loadingSubmit}
-            >
-              {loadingSubmit ? (
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Submitting Complaint...</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center space-x-2">
-                  <CheckCircle size={20} />
-                  <span>Submit Complaint</span>
-                </div>
-              )}
-            </button>
+          <div className="fixed bottom-0 left-0 p-3 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
+            <div className="flex justify-center w-full">
+              <button
+                type="submit"
+                className={`px-8 py-4 w-full bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white text-center font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
+                  loadingSubmit ? "cursor-wait opacity-75 transform-none" : ""
+                }`}
+                disabled={loadingSubmit}
+              >
+                {loadingSubmit ? (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Submitting Complaint...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center space-x-2">
+                    <CheckCircle size={20} />
+                    <span>Submit Complaint</span>
+                  </div>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -808,6 +899,24 @@ const CreateComplaint = () => {
           </div>
         </div>
       )}
+
+      {/* Add the same CSS animations from EquipmentDetail */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.6s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };

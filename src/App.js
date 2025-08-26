@@ -52,6 +52,10 @@ import OnCallQuoteGeneration from './Component/OnCallService/OnCallQuoteGenerati
 import OnCallCNoteGen from './Component/OnCallService/OnCallCNoteGen';
 import OnCallCompletedOrder from './Component/OnCallService/OnCallCompletedOrder';
 import OnCallQuoteDownload from './Component/OnCallService/OnCallQuoteDownload';
+import RegionsPage from './Component/PreventiveMaintenance/RegionsPage';
+import CitiesPage from './Component/PreventiveMaintenance/CitiesPage';
+import CustomersPage from './Component/PreventiveMaintenance/CustomersPage';
+import PmsPage from './Component/PreventiveMaintenance/PmsPage';
 const platform = Capacitor.getPlatform();
 
 
@@ -174,6 +178,22 @@ function App() {
           <Route
             path="/preventive-maintenance"
             element={<PrivateRoute element={PreventiveMaintenance} />}
+          />
+          <Route
+            path="/pm-regions"
+            element={<PrivateRoute element={RegionsPage} />}
+          />
+          <Route
+            path="/pm-cities/:region"
+            element={<PrivateRoute element={CitiesPage} />}
+          />
+          <Route
+            path="/pm-customers/:region/:city"
+            element={<PrivateRoute element={CustomersPage} />}
+          />
+          <Route
+            path="/pm-list/:region/:city/:customerCode"
+            element={<PrivateRoute element={PmsPage} />}
           />
 
           <Route

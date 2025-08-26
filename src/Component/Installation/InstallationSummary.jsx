@@ -21,6 +21,9 @@ import {
   Loader2,
   X,
   FileText,
+  ChevronDown,
+  ChevronUp,
+  Eye,
 } from "lucide-react";
 
 function InstallationSummary() {
@@ -55,6 +58,9 @@ function InstallationSummary() {
   // Document information state
   const [documentInfo, setDocumentInfo] = useState({});
 
+  // NEW: Accordion state for each machine's checklist
+  const [expandedChecklists, setExpandedChecklists] = useState({});
+
   // Progress data
   const [progressData, setProgressData] = useState({
     status: "initializing",
@@ -77,14 +83,106 @@ function InstallationSummary() {
     email: "",
     dealerEmail: "",
     dealerCode: "",
+    dealerName: "",
     usertype: "",
+    states: [],
+    stateNames: [],
+    stateIds: [],
+    cities: [],
+    regions: [],
+    countries: [],
+    geos: [],
+    branches: [],
+    branchCodes: [],
     manageremail: [],
   });
+
+  // Toggle accordion for checklist details
+  const toggleChecklistAccordion = (index) => {
+    setExpandedChecklists((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  // Add a new async function inside the component to handle abort with email API call
+  const handleAbortInstallation = async () => {
+    if (installItems.length === 0) {
+      toast.error("No installations to abort.");
+      setShowAbortModal(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage("Aborting installation, sending email...");
+
+    try {
+      // Prepare products data in required format for API
+      const products = installItems.map((item, index) => ({
+        name: item.pendingInstallationData?.description || "N/A",
+        slno: item.serialNumber || "N/A",
+        no: index + 1,
+      }));
+
+      // Compose user and branch/dealer info from userInfo state
+      const payload = {
+        products,
+        userId: userInfo.userid || "",
+        employeeId: userInfo.employeeId || "",
+        userName: `${userInfo.firstName || ""} ${
+          userInfo.lastName || ""
+        }`.trim(),
+        branchOrDealerCode: userInfo.dealerCode || "",
+        branchOrDealerName: userInfo.dealerEmail || "",
+        city: customer?.city || "",
+
+        // User demographic information
+        userStates: userInfo.states || [],
+        userStateNames: userInfo.stateNames || [],
+        userStateIds: userInfo.stateIds || [],
+        userCities: userInfo.cities || [],
+        userRegions: userInfo.regions || [],
+        userCountries: userInfo.countries || [],
+        userGeos: userInfo.geos || [],
+        userBranches: userInfo.branches || [],
+        userBranchCodes: userInfo.branchCodes || [],
+
+        // Additional user info
+        usertype: userInfo.usertype || "",
+        userEmail: userInfo.email || "",
+        managerEmails: userInfo.manageremail || [],
+      };
+
+      // Call your abort installation email API endpoint
+      await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/collections/abort-installation`,
+        payload
+      );
+      toast.success("Abort email sent successfully.");
+    } catch (error) {
+      console.error("Error sending abort installation email:", error);
+      toast.error("Failed to send abort email.");
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage("");
+      setShowAbortModal(false);
+      navigate("/installation");
+    }
+  };
 
   // Load user info on mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
+      // Extract all demographic data
+      const demographics = storedUser.demographics || [];
+      const stateData = demographics.find((demo) => demo.type === "state");
+      const cityData = demographics.find((demo) => demo.type === "city");
+      const regionData = demographics.find((demo) => demo.type === "region");
+      const countryData = demographics.find((demo) => demo.type === "country");
+      const geoData = demographics.find((demo) => demo.type === "geo");
+      const branchData = demographics.find((demo) => demo.type === "branch");
+
       setUserInfo({
         firstName: storedUser.firstname,
         lastName: storedUser.lastname,
@@ -94,6 +192,23 @@ function InstallationSummary() {
         usertype: storedUser.usertype,
         dealerEmail: storedUser.dealerInfo?.dealerEmail,
         dealerCode: storedUser.dealerInfo?.dealerCode,
+        dealerName: storedUser.dealerInfo?.dealerName,
+
+        // State information
+        states: stateData?.values || [],
+        stateNames: stateData?.values?.map((state) => state.name) || [],
+        stateIds: stateData?.values?.map((state) => state.id) || [],
+
+        // Other demographic information
+        cities: cityData?.values || [],
+        regions: regionData?.values || [],
+        countries: countryData?.values || [],
+        geos: geoData?.values || [],
+        branches: branchData?.values || [],
+
+        // Branch array from root level
+        branchCodes: storedUser.branch || [],
+
         manageremail: Array.isArray(storedUser.manageremail)
           ? storedUser.manageremail
           : storedUser.manageremail
@@ -145,7 +260,7 @@ function InstallationSummary() {
       const {
         serialNumber,
         pendingInstallationData,
-        palNumber,
+        palNumber, // This now contains the procurement number if it's an AERB item
         checklistResults = [],
       } = item;
 
@@ -154,7 +269,7 @@ function InstallationSummary() {
       let calibrationDate = "";
       if (checklistResults.length > 0) {
         equipmentUsed = checklistResults[0].equipmentUsedSerial || "";
-        calibrationDate = checklistResults[0].calibrationDueDate || "";
+        calibrationDate = checklistResults.calibrationDueDate || "";
       }
 
       const warrantyStartDate = new Date();
@@ -171,6 +286,7 @@ function InstallationSummary() {
         serialnumber: serialNumber,
         materialdescription: pendingInstallationData?.description || "",
         materialcode: pendingInstallationData?.material || "",
+        key: pendingInstallationData?.key || "",
         currentcustomer: customer?.customercodeid || "",
         status: pendingInstallationData?.status || "N/A",
         name: `${pendingInstallationData?.customername1 || "N/A"} ${
@@ -180,11 +296,13 @@ function InstallationSummary() {
         custWarrantyenddate: warrantyEndDate
           ? warrantyEndDate.toISOString()
           : "",
-        palnumber: pendingInstallationData?.palnumber || palNumber || "",
+        // Updated: Use palNumber which now contains procurement number for AERB items
+        palnumber: palNumber || "", // This will be the procurement number if user entered it
         equipmentUsedSerial: equipmentUsed,
         calibrationDueDate: calibrationDate,
       };
 
+      console.log("pendingInstallationData", pendingInstallationData?.key);
       equipmentPayloads.push(equipPayload);
 
       // Get document info for this material
@@ -206,7 +324,7 @@ function InstallationSummary() {
       userInfo,
       dateOfInstallation: new Date().toLocaleDateString("en-GB"),
       customerId: customer?.customercodeid || "",
-      customerName: customer?.hospitalname || "",
+      customerName: customer?.customername || "",
       hospitalName: customer?.hospitalname || "",
       phoneNumber: customer?.telephone || "",
       street: customer?.street || "",
@@ -264,18 +382,80 @@ function InstallationSummary() {
     });
   };
 
-  // Confirm => send OTP
+  // Confirm => send OTP with installation details
   const handleConfirmAndCompleteInstallation = async () => {
     setLoadingMessage("Sending OTP...");
     setIsLoading(true);
 
     try {
+      // Prepare equipment/products data for email template
+      const products = installItems.map((item) => {
+        const { serialNumber, pendingInstallationData } = item;
+
+        // Calculate warranty dates
+        const warrantyStartDate = new Date();
+        let warrantyEndDate = null;
+
+        if (pendingInstallationData?.warrantyMonths) {
+          warrantyEndDate = new Date(
+            new Date().setMonth(
+              new Date().getMonth() + pendingInstallationData.warrantyMonths
+            )
+          );
+        }
+
+        return {
+          serialNumber: serialNumber,
+          material: pendingInstallationData?.material || "N/A",
+          description: pendingInstallationData?.description || "N/A",
+          warrantyStartDate: warrantyStartDate.toLocaleDateString("en-GB"), // DD/MM/YYYY format
+          warrantyEndDate: warrantyEndDate
+            ? warrantyEndDate.toLocaleDateString("en-GB")
+            : "N/A",
+          warrantyPeriod: pendingInstallationData?.mtl_grp4 || "N/A",
+        };
+      });
+
+      // Prepare installation location details
+      const installationLocation = {
+        customerName: customer?.customername || "N/A",
+        hospitalName: customer?.hospitalname || "",
+        street: customer?.street || "",
+        city: customer?.city || "",
+        region: customer?.region || "",
+        postalCode: customer?.postalcode || "",
+        // Create formatted address similar to your template
+        formattedAddress: `${
+          customer?.hospitalname || customer?.customername || "N/A"
+        }${customer?.street ? `,\n${customer.street}` : ""}${
+          customer?.city ? `,\n${customer.city}` : ""
+        }${customer?.region ? `\n${customer.region}` : ""}`,
+      };
+
+      // Send OTP with complete installation data
       await axios.post(
         `${process.env.REACT_APP_BASE_URL}/collections/send-otp`,
         {
           email: customer?.email,
+          products: products,
+          installationLocation: installationLocation,
+          customerDetails: {
+            customerCode: customer?.customercodeid || "N/A",
+            customerName: customer?.customername || "N/A",
+            phone: customer?.telephone || "N/A",
+            email: customer?.email || "N/A",
+          },
+          // Optional: Include service engineer details
+          serviceEngineer: {
+            name: `${userInfo.firstName || ""} ${
+              userInfo.lastName || ""
+            }`.trim(),
+            employeeId: userInfo.employeeId || "",
+            email: userInfo.email || "",
+          },
         }
       );
+
       toast.success("OTP sent to customer's email.");
       setShowOtpModal(true);
     } catch (error) {
@@ -407,6 +587,31 @@ function InstallationSummary() {
       setIsVerifyingOtp(false);
     }
   };
+  const parseAndFormatDate = (dateStr) => {
+    if (!dateStr || dateStr === "N/A") return "N/A";
+
+    // Try parsing directly
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString();
+    }
+
+    // Try parsing yyyy-mm-dd format manually
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      const parsedDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day)
+      );
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toLocaleDateString();
+      }
+    }
+
+    return "Invalid Date";
+  };
 
   // Checklist functions
   const handleOpenChecklist = async (machineIndex) => {
@@ -469,31 +674,26 @@ function InstallationSummary() {
   return (
     <div className="w-full mb-4">
       {/* Header */}
-      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
-        <button className="mr-2 text-white" onClick={() => navigate(-1)}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="36"
-            height="36"
-            fill="currentColor"
-            className="bi bi-arrow-left-short"
-            viewBox="0 0 16 16"
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+        <div className="flex items-center p-4 py-4 text-white">
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            onClick={() => navigate(-1)}
           >
-            <path
-              fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-            />
-          </svg>
-        </button>
-        <h2 className="text-xl font-bold">Installation Summary</h2>
+            <ArrowLeft className="w-4 h-4 text-white" />
+          </button>
+          <h1 className="text-2xl font-bold text-white">
+            Installation Summary
+          </h1>
+        </div>
       </div>
 
-      <div className="px-4 space-y-4">
+      <div className="px-3 space-y-3 mt-2">
         {/* Machines List */}
-        <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
-            <h2 className="flex items-center gap-2 text-blue-900 text-xl font-semibold">
-              <Settings className="h-5 w-5" />
+        <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3">
+            <h2 className="flex items-center gap-2 text-blue-900 text-base font-semibold">
+              <Settings className="h-4 w-4" />
               Selected Machines ({installItems.length})
             </h2>
           </div>
@@ -504,10 +704,10 @@ function InstallationSummary() {
                 pendingInstallationData,
                 palNumber,
                 checklistResults = [],
+                materialCodeExists,
               } = item;
               const warrantyStartDate = new Date();
               let warrantyEndDate = null;
-
               if (pendingInstallationData?.warrantyMonths) {
                 warrantyEndDate = new Date(
                   new Date().setMonth(
@@ -516,34 +716,32 @@ function InstallationSummary() {
                   )
                 );
               }
-
-              // Get document info for this material
               const materialCode = pendingInstallationData?.material;
               const docInfo = documentInfo[materialCode];
 
               return (
                 <div
                   key={idx}
-                  className="p-6 border-b last:border-b-0 hover:bg-slate-50/50 transition-colors"
+                  className="p-3 border-b last:border-b-0 hover:bg-slate-50/75 transition-colors"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-700 font-bold">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-700 font-bold text-xs">
                           #{idx + 1}
                         </span>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg text-gray-900">
+                        <h3 className="font-semibold text-sm text-gray-900 truncate max-w-[140px]">
                           {pendingInstallationData?.description || "N/A"}
                         </h3>
-                        <p className="text-gray-600 text-sm">
+                        <p className="text-gray-600 text-xs">
                           Serial: {serialNumber}
                         </p>
                       </div>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                         pendingInstallationData?.status === "Ready"
                           ? "bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-800"
@@ -553,33 +751,33 @@ function InstallationSummary() {
                     </span>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Hash className="h-4 w-4 text-gray-400" />
+                  <div className="grid md:grid-cols-2 gap-2 text-xs mb-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Hash className="h-3 w-3 text-gray-400" />
                         <span className="text-gray-600">Part No:</span>
                         <span className="font-medium">
                           {pendingInstallationData?.material || "N/A"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-gray-400" />
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3 text-gray-400" />
                         <span className="text-gray-600">Warranty:</span>
                         <span className="font-medium">
                           {pendingInstallationData?.mtl_grp4 || "N/A"}
                         </span>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <div className="text-sm">
+                    <div className="space-y-1">
+                      <div>
                         <span className="text-gray-600">Warranty Period:</span>
                         <div className="font-medium text-green-700">
                           {warrantyStartDate.toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
-                          })}{" "}
-                          -{" "}
+                          })}
+                          {" - "}
                           {warrantyEndDate
                             ? warrantyEndDate.toLocaleDateString("en-US", {
                                 month: "short",
@@ -594,30 +792,29 @@ function InstallationSummary() {
 
                   {/* Document Information Section */}
                   {docInfo && (
-                    <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                      <h4 className="font-medium text-purple-900 mb-3 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-purple-600" />
-                        Document Information
-                        <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                    <div className="mb-2 p-2 bg-purple-50 rounded border border-purple-200">
+                      <h4 className="font-medium text-purple-900 mb-1 flex items-center gap-2 text-xs">
+                        <FileText className="h-3 w-3 text-purple-600" />
+                        Document Info
+                        <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] rounded-full">
                           {docInfo.productGroup}
                         </span>
                       </h4>
-
                       {docInfo.documents && docInfo.documents.length > 0 && (
-                        <div className="mb-3">
-                          <h5 className="text-sm font-medium text-purple-800 mb-2">
+                        <div className="mb-1">
+                          <h5 className="text-xs font-medium text-purple-800 mb-1">
                             Documents:
                           </h5>
                           <div className="space-y-1">
                             {docInfo.documents.map((doc, docIdx) => (
                               <div
                                 key={docIdx}
-                                className="flex items-center justify-between text-sm bg-white p-2 rounded border border-purple-100"
+                                className="flex items-center justify-between text-xs bg-white p-1 rounded border border-purple-100"
                               >
                                 <span className="text-purple-700 font-medium">
                                   CHL No: {doc.chlNo}
                                 </span>
-                                <span className="text-purple-600 text-xs">
+                                <span className="text-purple-600 text-[10px]">
                                   Rev: {doc.revNo}
                                 </span>
                               </div>
@@ -625,22 +822,21 @@ function InstallationSummary() {
                           </div>
                         </div>
                       )}
-
                       {docInfo.formats && docInfo.formats.length > 0 && (
                         <div>
-                          <h5 className="text-sm font-medium text-purple-800 mb-2">
+                          <h5 className="text-xs font-medium text-purple-800 mb-1">
                             Formats:
                           </h5>
                           <div className="space-y-1">
                             {docInfo.formats.map((format, formatIdx) => (
                               <div
                                 key={formatIdx}
-                                className="flex items-center justify-between text-sm bg-white p-2 rounded border border-purple-100"
+                                className="flex items-center justify-between text-xs bg-white p-1 rounded border border-purple-100"
                               >
                                 <span className="text-purple-700 font-medium">
                                   CHL No: {format.chlNo}
                                 </span>
-                                <span className="text-purple-600 text-xs">
+                                <span className="text-purple-600 text-[10px]">
                                   Rev: {format.revNo}
                                 </span>
                               </div>
@@ -651,47 +847,151 @@ function InstallationSummary() {
                     </div>
                   )}
 
-                  {/* Checklist Results */}
+                  {/* Checklist Results - Enhanced with Accordion */}
                   {checklistResults.length > 0 && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Checklist Results
-                      </h4>
-                      <div className="space-y-1">
-                        {checklistResults.map((res) => (
-                          <div
-                            key={res._id}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span className="text-gray-600">
-                              {res.checkpoint}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`px-2 py-1 rounded text-xs font-medium ${
-                                  res.result === "Yes"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {res.result}
-                              </span>
-                              {res.result === "No" && res.remark && (
-                                <span className="text-red-600 italic text-xs">
-                                  ({res.remark})
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                    <div className="mb-2 bg-gray-50 rounded border border-gray-200">
+                      {/* Checklist Header - Always visible */}
+                      <div className="p-2 flex items-center justify-between">
+                        <h4 className="font-medium text-gray-900 flex items-center gap-1 text-xs">
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                          Checklist Completed ({checklistResults.length} items)
+                        </h4>
+                        <button
+                          onClick={() => toggleChecklistAccordion(idx)}
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span className="text-xs font-medium">
+                            {expandedChecklists[idx] ? "Hide" : "View"}
+                          </span>
+                          {expandedChecklists[idx] ? (
+                            <ChevronUp className="h-3 w-3" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3" />
+                          )}
+                        </button>
                       </div>
+
+                      {/* Expandable Checklist Details */}
+                      {expandedChecklists[idx] && (
+                        <div className="px-2 pb-2 space-y-2 border-t border-gray-200 bg-white">
+                          {/* Equipment Information */}
+                          {(checklistResults[0]?.equipmentUsedSerial ||
+                            checklistResults?.calibrationDueDate) && (
+                            <div className="bg-blue-50 p-2 rounded border border-blue-100">
+                              <h5 className="text-xs font-semibold text-blue-900 mb-1">
+                                Equipment Information
+                              </h5>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-xs">
+                                <div>
+                                  <span className="text-blue-700 font-medium">
+                                    Equipment Serial:
+                                  </span>
+                                  <div className="text-blue-800">
+                                    {checklistResults[0]?.equipmentUsedSerial ||
+                                      "N/A"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="text-blue-700 font-medium">
+                                    Calibration Due:
+                                  </span>
+                                  <div className="text-blue-800">
+                                    {parseAndFormatDate(
+                                      checklistResults[0]?.calibrationDueDate
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Individual Checklist Items */}
+                          <div className="space-y-1">
+                            <h5 className="text-xs font-semibold text-gray-700">
+                              Checklist Items:
+                            </h5>
+                            {checklistResults.map((res, resIdx) => (
+                              <div
+                                key={resIdx}
+                                className="bg-gray-50 p-2 rounded border border-gray-100"
+                              >
+                                <div className="flex items-start justify-between mb-1">
+                                  <span className="text-xs text-gray-700 font-medium flex-1 pr-2">
+                                    {res.checkpoint}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                        res.result === "Yes" ||
+                                        res.result === "OK" ||
+                                        res.result === "Pass"
+                                          ? "bg-green-100 text-green-800"
+                                          : res.result === "No" ||
+                                            res.result === "NOT OK" ||
+                                            res.result === "Failed"
+                                          ? "bg-red-100 text-red-800"
+                                          : "bg-yellow-100 text-yellow-800"
+                                      }`}
+                                    >
+                                      {res.result || "N/A"}
+                                    </span>
+                                  </div>
+                                </div>
+                                {res.remark && (
+                                  <div className="mt-1 p-1 bg-white rounded border border-gray-200">
+                                    <span className="text-[10px] font-medium text-gray-600">
+                                      Remark:{" "}
+                                    </span>
+                                    <span className="text-[10px] text-gray-800">
+                                      {res.remark}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Global Remark if exists */}
+                          {globalChecklistRemark && (
+                            <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+                              <h5 className="text-xs font-semibold text-yellow-900 mb-1">
+                                Global Remark:
+                              </h5>
+                              <p className="text-xs text-yellow-800">
+                                {globalChecklistRemark}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
+                  {palNumber && palNumber.trim() !== "" && (
+                    <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span className="text-blue-700 font-medium">
+                            {materialCodeExists
+                              ? "Procurement No (AERB):"
+                              : "PAL Number:"}
+                          </span>
+                          {materialCodeExists && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-800 text-[10px] rounded-full">
+                              AERB
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-blue-900">
+                          {palNumber}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={() => handleOpenChecklist(idx)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2 px-3 rounded-lg font-semibold transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02] flex items-center justify-center gap-2 text-sm mt-2 border border-blue-500"
                   >
                     <Settings className="h-4 w-4" />
                     Open Checklist
@@ -703,43 +1003,43 @@ function InstallationSummary() {
         </div>
 
         {/* Global Site Data */}
-        <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6">
-            <h2 className="flex items-center gap-2 text-amber-900 text-xl font-semibold">
-              <Zap className="h-5 w-5" />
+        <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3">
+            <h2 className="flex items-center gap-2 text-amber-900 text-base font-semibold">
+              <Zap className="h-4 w-4" />
               Site Conditions
             </h2>
           </div>
-          <div className="p-6">
-            <div className="grid md:grid-cols-2 gap-6">
+          <div className="p-3">
+            <div className="grid md:grid-cols-2 gap-2">
               <div>
-                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2 text-xs">
+                  <AlertTriangle className="h-3 w-3 text-amber-500" />
                   Abnormal Conditions
                 </h4>
-                <p className="text-gray-700 bg-amber-50 p-3 rounded-lg">
+                <p className="text-gray-700 bg-amber-50 p-2 rounded text-xs">
                   {abnormalCondition || "None reported"}
                 </p>
               </div>
               <div>
-                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-blue-500" />
+                <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2 text-xs">
+                  <Zap className="h-3 w-3 text-blue-500" />
                   Voltage Readings
                 </h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center p-1 bg-blue-50 rounded text-xs">
                     <span className="text-gray-600">L-N / R-Y:</span>
                     <span className="font-medium text-blue-700">
                       {voltageData.lnry || "N/A"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                  <div className="flex justify-between items-center p-1 bg-blue-50 rounded text-xs">
                     <span className="text-gray-600">L-G / Y-B:</span>
                     <span className="font-medium text-blue-700">
                       {voltageData.lgyb || "N/A"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                  <div className="flex justify-between items-center p-1 bg-blue-50 rounded text-xs">
                     <span className="text-gray-600">N-G / B-R:</span>
                     <span className="font-medium text-blue-700">
                       {voltageData.ngbr || "N/A"}
@@ -752,68 +1052,61 @@ function InstallationSummary() {
         </div>
 
         {/* Customer Details */}
-        <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6">
-            <h2 className="flex items-center gap-2 text-green-900 text-xl font-semibold">
-              <Building className="h-5 w-5" />
+        <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3">
+            <h2 className="flex items-center gap-2 text-green-900 text-base font-semibold">
+              <Building className="h-4 w-4" />
               Customer Information
             </h2>
           </div>
-          <div className="p-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Building className="h-5 w-5 text-gray-400" />
+          <div className="p-3">
+            <div className="grid md:grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-600">Hospital Name</p>
-                    <p className="font-medium text-gray-900">
-                      {customer?.hospitalname || "N/A"}
+                    <p className="text-xs text-gray-600 mb-0.5">Name</p>
+                    <p className="font-medium text-gray-900 text-xs">
+                      {customer?.customername || "N/A"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Hash className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-600">Customer Code</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-xs text-gray-600 mb-0.5">
+                      Customer Code
+                    </p>
+                    <p className="font-medium text-gray-900 text-xs">
                       {customer?.customercodeid || "N/A"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-xs text-gray-600 mb-0.5">Phone</p>
+                    <p className="font-medium text-gray-900 text-xs">
                       {customer?.telephone || "N/A"}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-gray-400" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-xs text-gray-600 mb-0.5">Email</p>
+                    <p className="font-medium text-gray-900 text-xs">
                       {customer?.email || "N/A"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-600">Location</p>
-                    <p className="font-medium text-gray-900">
-                      {customer?.city || "N/A"}, {customer?.postalcode || "N/A"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Address</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-xs text-gray-600 mb-0.5">Address</p>
+                    <p className="font-medium text-gray-900 text-xs">
                       {customer?.street || "N/A"}
                     </p>
                   </div>
@@ -823,181 +1116,180 @@ function InstallationSummary() {
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2 mt-3">
           <button
             onClick={handleConfirmAndCompleteInstallation}
-            className="flex-1 text-nowrap bg-gradient-to-r  from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-6 rounded-lg text-lg font-medium shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 text-nowrap bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-2 px-2 rounded-lg text-base font-medium shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             {isLoading ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Processing...
               </>
             ) : (
               <>
-                <CheckCircle className="h-5 w-5" />
+                <CheckCircle className="h-4 w-4" />
                 Confirm & Complete Installation
               </>
             )}
           </button>
           <button
             onClick={() => setShowAbortModal(true)}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg text-lg font-medium shadow-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-2 rounded-lg text-base font-medium shadow-lg transition-colors flex items-center justify-center gap-2"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
             Abort Installation
           </button>
         </div>
-      </div>
 
-      {/* Progress Modal */}
-      {showProgressModal && (
-        <ProgressModal
-          progressData={progressData}
-          onClose={() => {
-            setShowProgressModal(false);
-            setShowSuccessModal(true);
-          }}
-        />
-      )}
+        {/* Progress Modal */}
+        {showProgressModal && (
+          <ProgressModal
+            progressData={progressData}
+            onClose={() => {
+              setShowProgressModal(false);
+              setShowSuccessModal(true);
+            }}
+          />
+        )}
 
-      {/* Checklist Modal */}
-      {isChecklistModalOpen && (
-        <ChecklistModal
-          isOpen={isChecklistModalOpen}
-          onClose={() => {
-            setIsChecklistModalOpen(false);
-            setActiveMachineIndex(null);
-          }}
-          checklistItems={tempChecklistResults}
-          onFinish={handleFinishChecklist}
-          initialGlobalRemark={globalChecklistRemark}
-          voltageData={voltageData}
-        />
-      )}
+        {/* Checklist Modal */}
+        {isChecklistModalOpen && (
+          <ChecklistModal
+            isOpen={isChecklistModalOpen}
+            onClose={() => {
+              setIsChecklistModalOpen(false);
+              setActiveMachineIndex(null);
+            }}
+            checklistItems={tempChecklistResults}
+            onFinish={handleFinishChecklist}
+            initialGlobalRemark={globalChecklistRemark}
+            voltageData={voltageData}
+          />
+        )}
 
-      {/* OTP Verification Modal */}
-      {showOtpModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6 text-center border-b">
-              <h2 className="text-xl font-semibold mb-2">OTP Verification</h2>
-              <p className="text-gray-600">
-                An OTP has been sent to <strong>{customer?.email}</strong>
-              </p>
-            </div>
-            <div className="p-6 space-y-4">
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="Enter 6-digit OTP"
-                className="w-full p-3 border border-gray-300 rounded-lg text-center text-lg tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                maxLength={6}
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowOtpModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={verifyOtpAndSubmit}
-                  disabled={isVerifyingOtp || otp.length !== 6}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isVerifyingOtp ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify OTP"
-                  )}
-                </button>
+        {/* OTP Verification Modal */}
+        {showOtpModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+              <div className="p-6 text-center border-b">
+                <h2 className="text-xl font-semibold mb-2">OTP Verification</h2>
+                <p className="text-gray-600">
+                  An OTP has been sent to <strong>{customer?.email}</strong>
+                </p>
+              </div>
+              <div className="p-6 space-y-4">
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter 4-digit OTP"
+                  className="w-full p-3 border border-gray-300 rounded-lg text-center text-lg tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  maxLength={4}
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowOtpModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={verifyOtpAndSubmit}
+                    disabled={isVerifyingOtp || otp.length !== 4}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isVerifyingOtp ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify OTP"
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-green-800 mb-2">
-                Installation Complete!
-              </h2>
-              <p className="text-gray-600 mb-6">
-                All selected machines have been installed successfully.
-              </p>
-              <button
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  navigate("/installation");
-                }}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Abort Confirmation Modal */}
-      {showAbortModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="h-8 w-8 text-red-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-red-800 mb-2">
-                Abort Installation
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to abort this installation? This action
-                cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAbortModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-green-800 mb-2">
+                  Installation Complete!
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  All selected machines have been installed successfully.
+                </p>
                 <button
                   onClick={() => {
-                    setShowAbortModal(false);
+                    setShowSuccessModal(false);
                     navigate("/installation");
                   }}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
                 >
-                  Yes, Abort
+                  Continue
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Global Spinner Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-          <div className="bg-white p-6 rounded-xl shadow-2xl flex items-center space-x-3">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-            <span className="font-medium text-gray-900">{loadingMessage}</span>
+        {/* Abort Confirmation Modal */}
+        {showAbortModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="h-8 w-8 text-red-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-red-800 mb-2">
+                  Abort Installation
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to abort this installation? This action
+                  cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowAbortModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAbortInstallation}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  >
+                    Yes, Abort
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Global Spinner Overlay */}
+        {isLoading && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+            <div className="bg-white p-6 rounded-xl shadow-2xl flex items-center space-x-3">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              <span className="font-medium text-gray-900">
+                {loadingMessage}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

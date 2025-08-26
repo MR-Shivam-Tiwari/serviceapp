@@ -10,23 +10,23 @@ import {
 function OnCallService() {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="relative">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-          <div className="flex items-center p-4 py-6 text-white">
-            <button
-              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-6 w-6 text-white" />
-            </button>
-            <h1 className="text-2xl font-bold text-white">On Call Services</h1>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col">
+      {/* Fixed Header */}
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+        <div className="flex items-center p-4 py-4 text-white">
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <h1 className="text-2xl font-bold text-white">On Call Services</h1>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="px-4 py-5 relative z-10">
+      {/* Scrollable Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 py-5">
           <div className="max-w-lg mx-auto space-y-6">
             {/* Pending Proposal Card */}
             <div className="group">

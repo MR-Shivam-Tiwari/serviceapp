@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
 
 export default function CreateProposal() {
   const navigate = useNavigate();
@@ -10,14 +9,24 @@ export default function CreateProposal() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [view, setView] = useState("customers"); // 'customers' or 'equipment'
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch(
-      `${process.env.REACT_APP_BASE_URL}/upload/contract/contract-proposals`
-    )
-      .then((res) => res.json())
-      .then((data) => setEquipmentData(data))
-      .catch((err) => console.error("Error fetching data:", err));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/upload/contract/contract-proposals`
+        );
+        const data = await res.json();
+        setEquipmentData(data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   // Group equipment by customer
@@ -52,7 +61,7 @@ export default function CreateProposal() {
           .includes(searchTerm.toLowerCase()) ||
         equipment.some(
           (eq) =>
-            eq.serialnumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            eq.serialnumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             eq.materialdescription
               .toLowerCase()
               .includes(searchTerm.toLowerCase())
@@ -106,10 +115,14 @@ export default function CreateProposal() {
   };
 
   return (
-    <div className="">
-      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
+    <div className="max-w-6xl mx-auto p-4">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-6 rounded-md shadow-md">
         {view === "equipment" ? (
-          <button className="mr-2 text-white" onClick={handleBackToCustomers}>
+          <button
+            className="mr-2 text-white hover:opacity-80 transition"
+            onClick={handleBackToCustomers}
+            aria-label="Back to Customers"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="36"
@@ -130,8 +143,9 @@ export default function CreateProposal() {
           </button>
         ) : (
           <button
-            className="mr-2 text-white"
+            className="mr-2 text-white hover:opacity-80 transition"
             onClick={() => navigate("/contract-proposal")}
+            aria-label="Back to Contract Proposal"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -152,12 +166,12 @@ export default function CreateProposal() {
             </svg>
           </button>
         )}
-        <h2 className="text-xl font-bold">
+        <h2 className="text-2xl font-bold">
           {view === "customers" ? "Select Customer" : "Select Equipment"}
         </h2>
       </div>
-      <div className="mb-5">
-        <main className="  px-4">
+      <div className="mb-6">
+        <main>
           {/* Search input */}
           <input
             type="text"
@@ -166,9 +180,10 @@ export default function CreateProposal() {
                 ? "Search by customer name or ID"
                 : "Search by serial or material"
             }
-            className="w-full mt-2 p-2 border rounded-lg bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full mt-2 p-3 border rounded-lg bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search input"
           />
 
           {/* City filter dropdown (only show in customers view) */}
@@ -176,7 +191,8 @@ export default function CreateProposal() {
             <select
               value={cityFilter}
               onChange={(e) => setCityFilter(e.target.value)}
-              className="w-full p-2 border rounded bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary mt-4"
+              className="w-full p-3 border rounded bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary mt-4"
+              aria-label="City filter"
             >
               <option value="">All Cities</option>
               {cities.map((city) => (
@@ -187,13 +203,48 @@ export default function CreateProposal() {
             </select>
           )}
 
+          {loading && (
+            <div className="flex justify-center my-6">
+              <svg
+                className="animate-spin h-8 w-8 text-primary"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-label="Loading"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                ></path>
+              </svg>
+            </div>
+          )}
+
           {view === "customers" ? (
-            /* Customers list */
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 py-4">
+            // Customers list
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 py-4">
               {filteredCustomers.map(({ customer, equipment }) => (
                 <div
                   key={customer?.customercodeid || "unknown"}
-                  className="flex flex-col justify-between p-4 bg-white border rounded-lg shadow"
+                  className="flex flex-col justify-between p-6 bg-white border rounded-lg shadow hover:shadow-lg transition"
+                  tabIndex={0}
+                  role="button"
+                  onClick={() => handleSelectCustomer({ customer, equipment })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleSelectCustomer({ customer, equipment });
+                    }
+                  }}
+                  aria-label={`Select customer ${customer?.customername || "Unknown"}`}
                 >
                   <div>
                     <h3 className="font-semibold text-lg">
@@ -210,10 +261,12 @@ export default function CreateProposal() {
                     </p>
                   </div>
                   <button
-                    onClick={() =>
-                      handleSelectCustomer({ customer, equipment })
-                    }
                     className="mt-4 w-full py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectCustomer({ customer, equipment });
+                    }}
+                    aria-label={`Select customer ${customer?.customername || "Unknown"}`}
                   >
                     Select
                   </button>
@@ -221,19 +274,16 @@ export default function CreateProposal() {
               ))}
             </div>
           ) : (
-            /* Equipment list for selected customer */
+            // Equipment list for selected customer
             <div className="py-4">
-              <div className="mb-4 p-4 bg-white rounded-lg shadow">
+              <div className="mb-6 p-6 bg-white rounded-lg shadow">
                 <h3 className="font-bold text-lg">
-                  {selectedCustomer.customer?.customername ||
-                    "Unknown Customer"}
+                  {selectedCustomer.customer?.customername || "Unknown Customer"}
                 </h3>
-                <p className="text-gray-600">
-                  {selectedCustomer.customer?.city || "N/A"}
-                </p>
+                <p className="text-gray-600">{selectedCustomer.customer?.city || "N/A"}</p>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredEquipment.map((item) => {
                   const { equipment } = item;
                   const selected = selectedItems.some(
@@ -242,31 +292,37 @@ export default function CreateProposal() {
                   return (
                     <div
                       key={equipment._id}
-                      className={`flex flex-col justify-between p-4 bg-white border rounded-lg shadow ${
+                      className={`flex flex-col justify-between p-6 bg-white border rounded-lg shadow cursor-pointer transition ${
                         selected ? "border-primary ring-2 ring-primary" : ""
                       }`}
+                      onClick={() => handleSelectEquipment(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          handleSelectEquipment(item);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-pressed={selected}
+                      aria-label={`Select equipment ${equipment.name} serial ${equipment.serialnumber}`}
                     >
                       <div>
-                        <h3 className="font-semibold text-lg">
-                          {equipment.name}
-                        </h3>
-                        <p className="text-gray-500 text-xs">
-                          Serial: {equipment.serialnumber}
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          Code: {equipment.materialcode}
-                        </p>
-                        <p className="text-gray-600 text-sm">
-                          {equipment.materialdescription}
-                        </p>
+                        <h3 className="font-semibold text-lg">{equipment.name}</h3>
+                        <p className="text-gray-500 text-xs">Serial: {equipment.serialnumber}</p>
+                        <p className="text-gray-500 text-xs">Code: {equipment.materialcode}</p>
+                        <p className="text-gray-600 text-sm">{equipment.materialdescription}</p>
                       </div>
                       <button
-                        onClick={() => handleSelectEquipment(item)}
-                        className={`mt-4 w-full py-2 rounded-lg font-medium ${
+                        className={`mt-4 w-full py-2 rounded-lg font-medium transition ${
                           selected
                             ? "bg-red-500 text-white hover:bg-red-600"
                             : "bg-primary text-white hover:bg-primary-dark"
-                        } transition`}
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectEquipment(item);
+                        }}
+                        aria-label={`${selected ? "Remove" : "Select"} equipment ${equipment.name}`}
                       >
                         {selected ? "Remove" : "Select"}
                       </button>
@@ -277,18 +333,18 @@ export default function CreateProposal() {
             </div>
           )}
         </main>
-        <footer className="bg-white fixed bottom-0 w-full z-10 p-4 pb-10 border-t shadow-sm">
+
+        {/* Next button */}
+        <footer className="bg-white fixed bottom-0 left-0 right-0 z-20 p-4 pb-6 border-t shadow-md max-w-6xl mx-auto">
           {view === "equipment" && (
             <button
               onClick={handleNext}
-              className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition"
+              className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next ({selectedItems.length} selected)
             </button>
           )}
         </footer>
-
-        {/* Next button (only show in equipment view) */}
       </div>
     </div>
   );

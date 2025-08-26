@@ -239,7 +239,7 @@ export default function UserProfile() {
         </div>
 
         {/* Dealer Information */}
-        {userData.dealerInfo && (
+        {userData.usertype === "dealer" && userData.dealerInfo && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <button
               onClick={() => toggleSection("dealer")}

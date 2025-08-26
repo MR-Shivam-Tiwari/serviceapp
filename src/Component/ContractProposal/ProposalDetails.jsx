@@ -7,7 +7,16 @@ export default function ProposalDetails() {
   const { state } = useLocation();
   const items = state?.items || [];
   const [submitError, setSubmitError] = useState(null);
-  // initialize per-item selection state
+  const [loading, setLoading] = useState(false);
+  const [prices, setPrices] = useState({});
+  const [tdsPercentage, setTdsPercentage] = useState(0);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
+  const [gstPercentage, setGstPercentage] = useState(0);
+  const [remark, setRemark] = useState("");
+  const [tdsOptions, setTdsOptions] = useState([]);
+  const [gstOptions, setGstOptions] = useState([]);
+  const [discountOptions, setDiscountOptions] = useState([]);
+
   const [selections, setSelections] = useState(() =>
     items.reduce((acc, { equipment }) => {
       acc[equipment._id] = { cmc: false, ncmc: false, years: 1 };
@@ -15,23 +24,12 @@ export default function ProposalDetails() {
     }, {})
   );
 
-  const [prices, setPrices] = useState({});
-  const [tdsPercentage, setTdsPercentage] = useState(0);
-  const [discountPercentage, setDiscountPercentage] = useState(0);
-  const [gstPercentage, setGstPercentage] = useState(0);
-  const [remark, setRemark] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [tdsOptions, setTdsOptions] = useState([]);
-  const [gstOptions, setGstOptions] = useState([]);
-  const [discountOptions, setDiscountOptions] = useState([]);
-
   // Check if any item has CMC or NCMC selected
   const hasSelectedWarranty = Object.values(selections).some(
     (selection) => selection.cmc || selection.ncmc
   );
 
   useEffect(() => {
-    // Fetch all required data when component mounts
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -87,7 +85,7 @@ export default function ProposalDetails() {
   }
 
   const customer = items[0].customer;
-  const equipmentdealer = items[0].equipment;
+  const equipmentdealer = items.equipment;
 
   const handleToggle = (id, field) => {
     setSelections((prev) => {
@@ -111,11 +109,10 @@ export default function ProposalDetails() {
     }));
   };
 
-  // Helper function to extract numeric value from percentage strings
   const extractPercentageValue = (str) => {
     if (!str) return 0;
-    const match = str.match(/(\d+)%/);
-    return match ? parseInt(match[1], 10) : 0;
+    const match = str.match(/(\d*\.?\d*)%/);
+    return match ? parseFloat(match[1]) : 0;
   };
 
   const calculateTotalAmount = () => {
@@ -173,18 +170,23 @@ export default function ProposalDetails() {
 
     const calculation = calculateTotalAmount();
 
-    // Prepare the complete proposal data
+    // Generate a serialNumber to send (example: current timestamp in ms)
+    const serialNumber = Date.now();
+
     const proposalData = {
+      serialNumber,
+
       customer: {
         customercodeid: customer?.customercodeid,
         customername: customer?.customername,
         city: customer?.city,
         postalcode: customer?.postalcode,
-        taxnumber1: customer?.taxnumber1, // PAN
-        taxnumber2: customer?.taxnumber2, // GST
+        taxnumber1: customer?.taxnumber1,
+        taxnumber2: customer?.taxnumber2,
         telephone: customer?.telephone,
         email: customer?.email,
       },
+
       items: items.map(({ equipment }) => {
         const sel = selections[equipment._id];
         const materialCode = equipment.materialcode;
@@ -209,6 +211,7 @@ export default function ProposalDetails() {
           subtotal: basePrice * sel.years,
         };
       }),
+
       tdsPercentage,
       discountPercentage,
       gstPercentage,
@@ -220,20 +223,17 @@ export default function ProposalDetails() {
       afterTds: calculation.afterTds,
       gstAmount: calculation.gstAmount,
       finalAmount: calculation.finalAmount,
-      status: "submitted", // Initial status
+      status: "submitted",
     };
 
     try {
       setLoading(true);
 
-      // Save to backend API
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/phone/proposal`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(proposalData),
         }
       );
@@ -244,7 +244,6 @@ export default function ProposalDetails() {
 
       const savedProposal = await response.json();
 
-      // Navigate to summary with the saved data (including generated proposal number)
       navigate("/create-proposal", {
         state: {
           ...proposalData,
@@ -265,11 +264,12 @@ export default function ProposalDetails() {
   const calculation = calculateTotalAmount();
 
   return (
-    <div className=" ">
-      <div className="flex items-center bg-primary p-3 py-5 text-white mb-4">
+    <div className="max-w-5xl mx-auto p-4">
+      <div className="flex items-center bg-primary p-3 py-5 text-white mb-6 rounded-md shadow-md">
         <button
-          className="mr-2 text-white"
+          className="mr-2 text-white hover:opacity-80 transition"
           onClick={() => navigate("/create-proposal")}
+          aria-label="Back"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -285,44 +285,53 @@ export default function ProposalDetails() {
             />
           </svg>
         </button>
-        <h2 className="text-xl font-bold">Proposal Details</h2>
+        <h2 className="text-2xl font-bold">Proposal Details</h2>
       </div>
 
-      <main className="  px-4 space-y-6">
-        {/* Customer */}
-        <section className="bg-white p-4 rounded-lg shadow">
-          <h3 className="font-semibold mb-2">Customer Info</h3>
-          <p>
-            <strong>Code:</strong> {customer?.customercodeid}
-          </p>
-          <p>
-            <strong>Name:</strong> {customer?.customername}
-          </p>
-          <p>
-            <strong>City:</strong> {customer?.city}
-          </p>
-          <p>
-            <strong>Pincode:</strong> {customer?.postalcode}
-          </p>
-          <p>
-            <strong>Pan Number:</strong> {customer?.taxnumber1}
-          </p>
-          <p>
-            <strong>GST Number:</strong> {customer?.taxnumber2}
-          </p>
-          <p>
-            <strong>Phone Number:</strong> {customer?.telephone}
-          </p>
-          <p>
-            <strong>Email :</strong> {customer?.email}
-          </p>
-          <p>
-            <strong>Dealer :</strong> {equipmentdealer.dealer}
-          </p>
+      {loading && (
+        <div className="flex justify-center mb-4">
+          <svg
+            className="animate-spin h-8 w-8 text-primary"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            ></path>
+          </svg>
+        </div>
+      )}
+
+      <main className="space-y-8">
+        {/* Customer Section */}
+        <section className="bg-white p-6 rounded-lg shadow-lg">
+          <h3 className="font-semibold text-xl mb-4 border-b pb-2">Customer Info</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-8 text-gray-700">
+            <p><strong>Code:</strong> {customer?.customercodeid || "-"}</p>
+            <p><strong>Name:</strong> {customer?.customername || "-"}</p>
+            <p><strong>City:</strong> {customer?.city || "-"}</p>
+            <p><strong>Pincode:</strong> {customer?.postalcode || "-"}</p>
+            <p><strong>Pan Number:</strong> {customer?.taxnumber1 || "-"}</p>
+            <p><strong>GST Number:</strong> {customer?.taxnumber2 || "-"}</p>
+            <p><strong>Phone Number:</strong> {customer?.telephone || "-"}</p>
+            <p><strong>Email :</strong> {customer?.email || "-"}</p>
+            <p><strong>Dealer :</strong> {equipmentdealer?.dealer || "-"}</p>
+          </div>
         </section>
 
-        {/* Each proposal with its own controls and calculations */}
-        <section className="space-y-4">
+        {/* Equipment Items */}
+        <section className="space-y-6">
           {items.map(({ equipment }) => {
             const sel = selections[equipment._id];
             const itemCalc = calculation.itemCalculations.find(
@@ -330,71 +339,54 @@ export default function ProposalDetails() {
             );
 
             return (
-              <div
-                key={equipment._id}
-                className="bg-white p-4 rounded-lg shadow"
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div key={equipment._id} className="bg-white p-5 rounded-lg shadow-lg" aria-label={`Equipment ${equipment.name}`}>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
                   <div className="flex-1">
                     <h4 className="font-semibold text-lg">{equipment.name}</h4>
-                    <p className="text-gray-600 text-sm">
-                      {equipment.materialdescription}
-                    </p>
-                    <p className="text-gray-500 text-xs">
-                      Code: {equipment.materialcode}
-                    </p>
+                    <p className="text-gray-600 text-sm mb-1">{equipment.materialdescription}</p>
+                    <p className="text-gray-500 text-xs">Code: {equipment.materialcode}</p>
                   </div>
 
-                  <div className="mt-4 md:mt-0 flex items-center space-x-3">
-                    <label className="flex items-center">
+                  <div className="flex items-center space-x-6">
+                    <label className="flex items-center cursor-pointer space-x-2">
                       <input
                         type="radio"
                         name={`warranty-${equipment._id}`}
                         checked={sel.cmc}
                         onChange={() => handleToggle(equipment._id, "cmc")}
-                        className="form-radio h-5 w-5 text-primary mr-2"
+                        className="form-radio h-5 w-5 text-primary"
                       />
-                      CMC
+                      <span>CMC</span>
                     </label>
-                    <label className="flex items-center">
+                    <label className="flex items-center cursor-pointer space-x-2">
                       <input
                         type="radio"
                         name={`warranty-${equipment._id}`}
                         checked={sel.ncmc}
                         onChange={() => handleToggle(equipment._id, "ncmc")}
-                        className="form-radio h-5 w-5 text-primary mr-2"
+                        className="form-radio h-5 w-5 text-primary"
                       />
-                      NCMC
+                      <span>NCMC</span>
                     </label>
 
-                    <div className="flex items-center">
-                      <label
-                        htmlFor={`years-${equipment._id}`}
-                        className="mr-2"
-                      >
-                        Years:
-                      </label>
+                    <div className="flex items-center space-x-2">
+                      <label htmlFor={`years-${equipment._id}`} className="mr-2">Years:</label>
                       <select
                         id={`years-${equipment._id}`}
                         value={sel.years}
-                        onChange={(e) =>
-                          handleYearsChange(equipment._id, e.target.value)
-                        }
-                        className="border w-[90px] rounded p-1 focus:outline-none"
+                        onChange={(e) => handleYearsChange(equipment._id, e.target.value)}
+                        className="border rounded p-1 w-20 focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {[1, 2, 3, 4, 5].map((y) => (
-                          <option key={y} value={y}>
-                            {y}
-                          </option>
+                          <option key={y} value={y}>{y}</option>
                         ))}
                       </select>
                     </div>
                   </div>
                 </div>
 
-                {/* Individual Item Calculation */}
                 {(sel.cmc || sel.ncmc) && (
-                  <div className="mt-4 border-t pt-4">
+                  <div className="mt-5 border-t pt-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-gray-500">Warranty Type</p>
@@ -402,9 +394,7 @@ export default function ProposalDetails() {
                       </div>
                       <div>
                         <p className="text-gray-500">Price/Year</p>
-                        <p className="font-medium">
-                          ₹{itemCalc?.pricePerYear?.toFixed(2)}
-                        </p>
+                        <p className="font-medium">₹{itemCalc?.pricePerYear?.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Years</p>
@@ -412,9 +402,7 @@ export default function ProposalDetails() {
                       </div>
                       <div>
                         <p className="text-gray-500">Subtotal</p>
-                        <p className="font-medium">
-                          ₹{itemCalc?.subtotal?.toFixed(2)}
-                        </p>
+                        <p className="font-medium">₹{itemCalc?.subtotal?.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
@@ -427,72 +415,51 @@ export default function ProposalDetails() {
         {/* Grand Total Calculation */}
         {hasSelectedWarranty && (
           <>
-            <section className="bg-white p-4 rounded-lg shadow space-y-4">
-              <h3 className="font-semibold text-lg">Grand Total Calculation</h3>
+            <section className="bg-white p-6 rounded-lg shadow-lg space-y-6">
+              <h3 className="font-semibold text-xl border-b pb-2">Grand Total Calculation</h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    TDS (%)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">TDS (%)</label>
                   <select
                     value={tdsPercentage}
-                    onChange={(e) =>
-                      setTdsPercentage(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                    onChange={(e) => setTdsPercentage(parseFloat(e.target.value) || 0)}
+                    className="block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="0">Select TDS</option>
                     {tdsOptions.map((option) => (
-                      <option key={option._id} value={option.tds}>
-                        {option.tds}%
-                      </option>
+                      <option key={option._id} value={option.tds}>{option.tds}%</option>
                     ))}
                   </select>
                 </div>
 
-                {/* <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Discount (%)
-                  </label>
+                {/* Discount (commented out as per original) */}
+                {/* 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
                   <select
                     value={discountPercentage}
-                    onChange={(e) =>
-                      setDiscountPercentage(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                    onChange={(e) => setDiscountPercentage(parseFloat(e.target.value) || 0)}
+                    className="block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="0">Select Discount</option>
                     {discountOptions.map((option) => (
-                      <option
-                        key={option._id}
-                        value={extractPercentageValue(option.discount)}
-                      >
-                        {option.discount}
-                      </option>
+                      <option key={option._id} value={extractPercentageValue(option.discount)}>{option.discount}</option>
                     ))}
                   </select>
-                </div> */}
+                </div>
+                */}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    GST (%)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">GST (%)</label>
                   <select
                     value={gstPercentage}
-                    onChange={(e) =>
-                      setGstPercentage(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                    onChange={(e) => setGstPercentage(parseFloat(e.target.value) || 0)}
+                    className="block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="0">Select GST</option>
                     {gstOptions.map((option) => (
-                      <option
-                        key={option._id}
-                        value={extractPercentageValue(option.gst)}
-                      >
-                        {option.gst}
-                      </option>
+                      <option key={option._id} value={extractPercentageValue(option.gst)}>{option.gst}</option>
                     ))}
                   </select>
                 </div>
@@ -500,17 +467,9 @@ export default function ProposalDetails() {
 
               <div className="bg-gray-100 p-4 rounded-md">
                 <h4 className="font-semibold mb-2">Grand Total Summary</h4>
-                <div className="space-y-1">
+                <div className="space-y-1 text-gray-800">
                   <div className="flex justify-between">
-                    <span>
-                      Total Subtotal (
-                      {
-                        calculation.itemCalculations.filter(
-                          (item) => item.warrantyType !== "None"
-                        ).length
-                      }{" "}
-                      items):
-                    </span>
+                    <span>Total Subtotal ({calculation.itemCalculations.filter(item => item.warrantyType !== "None").length} items):</span>
                     <span>₹{calculation.grandSubTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
@@ -542,11 +501,11 @@ export default function ProposalDetails() {
             </section>
 
             {/* Remark */}
-            <section className="bg-white p-4 rounded-lg shadow">
-              <h3 className="font-semibold mb-2">Remark</h3>
+            <section className="bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="font-semibold mb-2 text-lg">Remark</h3>
               <textarea
                 maxLength={400}
-                className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+                className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
                 rows={4}
                 value={remark}
                 onChange={(e) => setRemark(e.target.value)}
@@ -566,7 +525,7 @@ export default function ProposalDetails() {
           </>
         )}
 
-        {/* Submit Button */}
+        {/* Submit Error & Validation */}
         {submitError && (
           <div className="text-red-500 text-center mb-4">
             Error: {submitError.message || "Failed to save proposal"}
@@ -577,14 +536,11 @@ export default function ProposalDetails() {
             Final amount must be greater than zero to submit the proposal.
           </div>
         )}
-        <div className="flex justify-center">
+        <div className="flex justify-center mb-8">
           <button
             onClick={handleSubmit}
             disabled={
-              loading ||
-              !hasSelectedWarranty ||
-              isNaN(calculation.finalAmount) ||
-              calculation.finalAmount <= 0
+              loading || !hasSelectedWarranty || isNaN(calculation.finalAmount) || calculation.finalAmount <= 0
             }
             className={`bg-primary text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ${
               loading ||
@@ -596,9 +552,9 @@ export default function ProposalDetails() {
             }`}
           >
             {loading ? (
-              <span className="flex items-center">
+              <span className="flex items-center justify-center space-x-2">
                 <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  className="animate-spin h-5 w-5 text-white"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -614,10 +570,10 @@ export default function ProposalDetails() {
                   <path
                     className="opacity-75"
                     fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                   ></path>
                 </svg>
-                Saving...
+                <span>Saving...</span>
               </span>
             ) : (
               "Submit to Customer"

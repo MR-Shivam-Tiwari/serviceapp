@@ -54,11 +54,15 @@ function CNoteGen() {
     try {
       setIsGenerating(true);
 
-      // Call your backend API to generate CNote
+      // Extract serialNumber from proposal object received via location.state
+      const serialNumber = proposal?.serialNumber || "";
+
+      // Call backend API to generate CNote, sending serialNumber from proposal
       const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/phone/cnote`,
         {
           proposalId: proposal._id,
+          serialNumber: serialNumber, // pass the serialNumber here exactly
         },
         {
           headers: {
@@ -137,7 +141,7 @@ function CNoteGen() {
             />
           </svg>
         </button>
-        <h2 className="text-xl font-bold">Proposal Details</h2>
+        <h2 className="text-xl font-bold">Proposal Detailsd</h2>
       </div>
 
       {/* Main Content */}

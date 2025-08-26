@@ -151,7 +151,7 @@ function AddNewCustomer() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Enhanced Header */}
       <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg shadow-lg sticky top-0 z-40">
-        <div className="flex items-center p-4 py-6 text-white">
+        <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
             onClick={() => navigate("/customer")}
@@ -474,11 +474,11 @@ function AddNewCustomer() {
 
       {/* Enhanced Fixed Footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg z-30">
-        <div className="max-w-4xl mx-auto p-6">
+        <div className="max-w-4xl mx-auto p-3">
           <button
             type="submit"
             form="customerForm"
-            className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
+            className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
               isLoading ? "cursor-wait opacity-75 transform-none" : ""
             }`}
             disabled={isLoading}

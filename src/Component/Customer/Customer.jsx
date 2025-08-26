@@ -10,13 +10,13 @@ export default function Customer() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="relative">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-          <div className="flex items-center p-4 py-6 text-white">
+        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+          <div className="flex items-center p-4 py-4 text-white">
             <button
               className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
               onClick={() => navigate("/")}
             >
-              <ArrowLeft className="h-6 w-6 text-white" />
+              <ArrowLeft className="w-5 h-5 text-white" />
             </button>
             <h1 className="text-2xl font-bold text-white">
               Customer Management
