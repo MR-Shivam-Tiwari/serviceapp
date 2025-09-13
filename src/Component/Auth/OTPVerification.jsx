@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { ArrowLeft } from "lucide-react";
 
 const OTPVerification = () => {
   const navigate = useNavigate();
@@ -182,32 +183,20 @@ const OTPVerification = () => {
 
   return (
     <div className="h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-4 shadow-lg">
-        <div className="flex items-center text-white">
+      <div className="fixed  left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+        <div className="flex items-center p-4 py-4 text-white">
           <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
             onClick={() => navigate(-1)}
-            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all duration-200 transform hover:scale-110 active:scale-95"
             disabled={isLoading || isResending}
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <h2 className="text-lg font-bold">Verify OTP</h2>
+          <div>
+            <h1 className="text-xl font-bold text-white">Verify OTP</h1>
+          </div>
         </div>
       </div>
-
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">

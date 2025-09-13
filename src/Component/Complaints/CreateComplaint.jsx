@@ -171,7 +171,7 @@ const CreateComplaint = () => {
   const fetchProductGroups = async () => {
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}/collections/productgroup`
+        `${process.env.REACT_APP_BASE_URL}/collections/productgroupall`
       );
       if (Array.isArray(response.data.productGroups)) {
         setProductGroups(response.data.productGroups);
@@ -190,8 +190,8 @@ const CreateComplaint = () => {
       const response = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/complaints/problemtype`
       );
-      if (Array.isArray(response.data.problemtype)) {
-        setProblemTypes(response.data.problemtype);
+      if (Array.isArray(response.data.problemtypes)) {
+        setProblemTypes(response.data.problemtypes);
       } else {
         console.error("Error: problemTypes is not an array", response.data);
         setProblemTypes([]);
@@ -209,8 +209,8 @@ const CreateComplaint = () => {
       const response = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/complaints/problemname`
       );
-      if (Array.isArray(response.data.problemname)) {
-        setProblemNames(response.data.problemname);
+      if (Array.isArray(response.data.problemnames)) {
+        setProblemNames(response.data.problemnames);
       } else {
         console.error("Error: problemNames is not an array", response.data);
         setProblemNames([]);
@@ -386,7 +386,7 @@ const CreateComplaint = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -402,8 +402,8 @@ const CreateComplaint = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-3">
-        <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="max-w-4xl mx-auto p-3 py-20">
+        <form onSubmit={handleSubmit} className="space-y-3 pb-20">
           {/* Enhanced Serial Number Selection Card with Search */}
           <div className="bg-white rounded-xl  shadow-lg border border-gray-100 p-4  animate-fade-in-up">
             <div className="flex items-center mb-4">
@@ -844,7 +844,7 @@ const CreateComplaint = () => {
           </div>
 
           {/* Submit Button */}
-          <div className="fixed bottom-0 left-0 p-3 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
+          <div className="fixed bottom-0 pb-14 left-0 p-3 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
             <div className="flex justify-center w-full">
               <button
                 type="submit"

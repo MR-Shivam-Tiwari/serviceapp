@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
@@ -93,13 +94,14 @@ function OnCallRevision() {
       group.spares.forEach((spare) => {
         const chargesValue = parseFloat(spare?.Charges) || 0;
         const dpValue = spare?.DP || 0;
+        const rateValue = spare?.Rate || 0; // Add this line
 
         if (onCall?.currentRevision === 0) {
           // For currentRevision = 0, max discount is Rate - DP
-          maxDiscount += Math.max(0, spare?.Rate - dpValue);
+          maxDiscount += Math.max(0, rateValue - dpValue);
         } else {
           // For currentRevision > 0, max discount is Rate - Charges
-          maxDiscount += Math.max(0, spare?.Rate - chargesValue);
+          maxDiscount += Math.max(0, rateValue - chargesValue);
         }
       });
     });
@@ -117,27 +119,24 @@ function OnCallRevision() {
       group.spares.forEach((spare) => {
         const chargesValue = parseFloat(spare?.Charges) || 0;
         const dpValue = spare?.DP || 0;
+        const rateValue = spare?.Rate || 0; // Add this line
 
         if (onCall?.currentRevision === 0) {
           // For currentRevision = 0
-          // Subtotal: Rate
-          // Max discount: Rate - DP
-          grandSubTotal += spare?.Rate;
-          applicableDiscountBase += Math.max(0, spare?.Rate - dpValue);
+          grandSubTotal += rateValue;
+          applicableDiscountBase += Math.max(0, rateValue - dpValue);
         } else {
           // For currentRevision > 0
           if (pricingMode === "rate") {
-            // Rate mode: Subtotal = Rate, Max discount = Rate - Charges
-            grandSubTotal += spare?.Rate;
-            applicableDiscountBase += Math.max(0, spare?.Rate - chargesValue);
+            grandSubTotal += rateValue;
+            applicableDiscountBase += Math.max(0, rateValue - chargesValue);
           } else if (pricingMode === "exchange") {
-            // Exchange mode: Subtotal = Charges (if available), Max discount = Rate - Charges
             if (chargesValue > 0) {
               grandSubTotal += chargesValue;
             } else {
-              grandSubTotal += spare?.Rate;
+              grandSubTotal += rateValue;
             }
-            applicableDiscountBase += Math.max(0, spare?.Rate - chargesValue);
+            applicableDiscountBase += Math.max(0, rateValue - chargesValue);
           }
         }
       });
@@ -269,26 +268,16 @@ function OnCallRevision() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white">
-          <button
-            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
-            onClick={() => navigate(-1)}
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-4 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              onClick={() => navigate(-1)}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-          <h1 className="text-lg font-semibold">OnCall Revision</h1>
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <h1 className="text-2xl font-bold text-white">OnCall Revision</h1>
+          </div>
         </div>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
@@ -300,26 +289,16 @@ function OnCallRevision() {
   if (error && !onCall) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white">
-          <button
-            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
-            onClick={() => navigate(-1)}
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-4 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              onClick={() => navigate(-1)}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-          <h1 className="text-lg font-semibold">OnCall Revision</h1>
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <h1 className="text-2xl font-bold text-white">OnCall Revision</h1>
+          </div>
         </div>
         <div className="p-3">
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
@@ -351,26 +330,16 @@ function OnCallRevision() {
   if (!onCall) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white">
-          <button
-            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
-            onClick={() => navigate(-1)}
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-4 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              onClick={() => navigate(-1)}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-          <h1 className="text-lg font-semibold">OnCall Revision</h1>
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <h1 className="text-2xl font-bold text-white">OnCall Revision</h1>
+          </div>
         </div>
         <div className="p-3 text-center">
           <div className="bg-white rounded-lg shadow-sm p-6">
@@ -402,29 +371,19 @@ function OnCallRevision() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white shadow-lg">
-        <button
-          className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
-          onClick={() => navigate(-1)}
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <h1 className="text-lg font-semibold">OnCall Revision</h1>
-      </div>
 
-      <div className="p-3 space-y-3">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+        <div className="flex items-center p-4 py-4 text-white">
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <h1 className="text-2xl font-bold text-white">OnCall Revision</h1>
+        </div>
+      </div>
+      <div className="p-3 space-y-3 py-20">
         {/* OnCall Info */}
         <div className="bg-white rounded-lg shadow-sm p-3">
           <div className="flex items-center justify-between mb-3">
@@ -556,24 +515,25 @@ function OnCallRevision() {
                   {group.spares.map((spare, spareIndex) => {
                     const chargesValue = parseFloat(spare?.Charges) || 0;
                     const dpValue = spare?.DP || 0;
+                    const rateValue = spare?.Rate || 0; // Always use this for Rate
 
                     let discountableAmount, effectivePrice;
 
                     if (onCall?.currentRevision === 0) {
                       // For currentRevision = 0
-                      discountableAmount = Math.max(0, spare?.Rate - dpValue);
-                      effectivePrice = spare?.Rate; // Subtotal shows Rate
+                      discountableAmount = Math.max(0, rateValue - dpValue);
+                      effectivePrice = rateValue;
                     } else {
                       // For currentRevision > 0
                       discountableAmount = Math.max(
                         0,
-                        spare?.Rate - chargesValue
+                        rateValue - chargesValue
                       );
                       if (pricingMode === "rate") {
-                        effectivePrice = spare?.Rate; // Subtotal shows Rate
+                        effectivePrice = rateValue;
                       } else {
                         effectivePrice =
-                          chargesValue > 0 ? chargesValue : spare?.Rate; // Subtotal shows Charges or Rate
+                          chargesValue > 0 ? chargesValue : rateValue;
                       }
                     }
 
@@ -605,7 +565,7 @@ function OnCallRevision() {
                             <p className="text-gray-600">
                               Rate:{" "}
                               <span className="font-medium">
-                                ₹{spare?.Rate.toFixed(2)}
+                                ₹{rateValue.toFixed(2)}
                               </span>
                             </p>
                             <p className="text-gray-600">

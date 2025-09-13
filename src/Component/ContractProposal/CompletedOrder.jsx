@@ -8,7 +8,11 @@ import {
   IndianRupee,
   TrendingUp,
   Building2,
+  Clock,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
+
 function CompletedOrder() {
   const navigate = useNavigate();
   const [proposals, setProposals] = useState([]);
@@ -38,6 +42,18 @@ function CompletedOrder() {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  const formatCurrency = (value) => {
+    if (typeof value === "number") {
+      return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+    }
+    if (value !== null && value !== undefined && !isNaN(Number(value))) {
+      return `₹${Number(value).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+      })}`;
+    }
+    return "₹0.00";
+  };
+
   const handleCardClick = (proposal) => {
     setSelectedProposal(proposal);
   };
@@ -46,545 +62,673 @@ function CompletedOrder() {
     setSelectedProposal(null);
   };
 
+  // Helper function to get revision status and approval summary
+  const getRevisionStatusInfo = (revision, isCurrentRevision) => {
+    if (revision.status === "approved") {
+      return {
+        status: "approved",
+        color: "green",
+        icon: CheckCircle,
+        summary: `Approved by ${
+          revision.approvalHistory?.length || 0
+        } approvers`,
+        approvers: revision.approvalHistory?.reduce((acc, approval) => {
+          const type = approval.approvalType;
+          if (!acc[type]) acc[type] = [];
+          acc[type].push(approval);
+          return acc;
+        }, {}),
+      };
+    } else if (revision.status === "pending") {
+      const requiredApprovals =
+        selectedProposal.discountPercentage > 10
+          ? ["RSH", "NSH"]
+          : selectedProposal.discountPercentage >= 6
+          ? ["RSH"]
+          : [];
+
+      const receivedApprovals =
+        revision.approvalHistory?.reduce((acc, approval) => {
+          acc[approval.approvalType] = true;
+          return acc;
+        }, {}) || {};
+
+      const pendingApprovals = requiredApprovals.filter(
+        (type) => !receivedApprovals[type]
+      );
+
+      return {
+        status: "pending",
+        color: pendingApprovals.length > 0 ? "orange" : "blue",
+        icon: Clock,
+        summary:
+          pendingApprovals.length > 0
+            ? `Pending with ${pendingApprovals.join(", ")}`
+            : "Processing approval",
+        pendingWith: pendingApprovals,
+      };
+    } else {
+      return {
+        status: "rejected",
+        color: "red",
+        icon: XCircle,
+        summary: "Rejected",
+        pendingWith: [],
+      };
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex mt-64 items-center justify-center">
-        <span className="loader"></span>
+      <div className="min-h-screen bg-gray-50">
+        <div className="fixed  left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-4 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
+              onClick={() => navigate("/contract-proposal")}
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <h1 className="text-2xl font-bold text-white">Completed Orders</h1>
+          </div>
+        </div>
+        <div className="pt-20 flex justify-center items-center h-64">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+            <p className="text-gray-500 text-sm">Loading orders...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (selectedProposal) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div className="min-h-screen bg-gray-50">
+        {/* Fixed Header */}
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
           <div className="flex items-center p-4 py-4 text-white">
             <button
-              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
               onClick={handleBackToList}
             >
-              <ArrowLeft className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+              <ArrowLeft className="w-5 h-5 text-white" />
             </button>
             <div>
-              <h1 className="text-2xl text-nowrap font-bold text-white tracking-wide">
-                Order Details
-              </h1>
-              <p className="text-sm text-nowrap font-bold text-white tracking-wide">
-                Completed Order #{selectedProposal.proposalNumber}
+              <h1 className="text-xl font-bold text-white">Order Details</h1>
+              <p className="text-xs text-white/80">
+                #{selectedProposal.proposalNumber}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto p-4 pb-20 space-y-6">
+        <main className="py-20 p-3 space-y-3">
           {/* Status Badge */}
           <div className="flex justify-center">
-            <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+            <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-md text-xs font-medium">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
               Order Completed
             </div>
           </div>
 
           {/* Customer Information */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                  <svg
-                    className="w-4 h-4 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800 flex items-center text-sm">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                 Customer Information
-              </h2>
+              </h3>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-slate-500">
-                      Full Name
-                    </label>
-                    <p className="text-slate-800 font-medium">
-                      {selectedProposal.customer?.customername}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-500">
-                      Email Address
-                    </label>
-                    <p className="text-slate-800">
-                      {selectedProposal.customer?.email}
-                    </p>
-                  </div>
+            <div className="p-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">Name</p>
+                  <p className="font-medium text-sm">
+                    {selectedProposal.customer?.customername}
+                  </p>
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-slate-500">
-                      Phone Number
-                    </label>
-                    <p className="text-slate-800">
-                      {selectedProposal.customer?.telephone}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-500">
-                      Location
-                    </label>
-                    <p className="text-slate-800">
-                      {selectedProposal.customer?.city},{" "}
-                      {selectedProposal.customer?.postalcode}
-                    </p>
-                  </div>
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">Phone</p>
+                  <p className="font-medium text-sm">
+                    {selectedProposal.customer?.telephone}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">Email</p>
+                  <p className="font-medium text-sm break-all">
+                    {selectedProposal.customer?.email}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">Location</p>
+                  <p className="font-medium text-sm">
+                    {selectedProposal.customer?.city},{" "}
+                    {selectedProposal.customer?.postalcode}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Proposal Information */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                  <svg
-                    className="w-4 h-4 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-3 py-2 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800 flex items-center text-sm">
+                <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
                 Proposal Information
-              </h2>
+              </h3>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                    <span className="text-slate-500 font-medium">
-                      Proposal Number
-                    </span>
-                    <span className="text-slate-800 font-semibold">
-                      {selectedProposal.proposalNumber}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                    <span className="text-slate-500 font-medium">
-                      CNote Number
-                    </span>
-                    <span className="text-slate-800 font-semibold">
-                      {selectedProposal.cnoteNumber}
-                    </span>
-                  </div>
+            <div className="p-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">Proposal Number</p>
+                  <p className="font-medium text-sm">
+                    {selectedProposal.proposalNumber}
+                  </p>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                    <span className="text-slate-500 font-medium">
-                      Created Date
-                    </span>
-                    <span className="text-slate-800">
-                      {formatDate(selectedProposal.createdAt)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                    <span className="text-slate-500 font-medium">Status</span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
-                      {selectedProposal.status}
-                    </span>
-                  </div>
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">CNote Number</p>
+                  <p className="font-medium text-sm">
+                    {selectedProposal.cnoteNumber}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">Created Date</p>
+                  <p className="font-medium text-sm">
+                    {formatDate(selectedProposal.createdAt)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded p-2">
+                  <p className="text-xs text-gray-500 mb-1">Current Revision</p>
+                  <p className="font-medium text-sm">
+                    Rev {selectedProposal.currentRevision}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Items */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
-                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                  <svg
-                    className="w-4 h-4 text-orange-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                    />
-                  </svg>
-                </div>
-                Order Items ({selectedProposal.items.length})
-              </h2>
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 px-3 py-2 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800 flex items-center text-sm">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                Order Items ({selectedProposal.items?.length || 0})
+              </h3>
             </div>
-            <div className="p-6">
-              <div className="space-y-6">
-                {selectedProposal.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="bg-slate-50 rounded-lg p-5 border border-slate-200"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-800">
-                          {item.equipment.name}
-                        </h3>
-                        <p className="text-slate-600 text-sm mt-1">
-                          {item.equipment.materialdescription}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-slate-800">
-                          ₹{item.subtotal.toLocaleString()}
-                        </p>
-                        <p className="text-sm text-slate-500">Total Amount</p>
-                      </div>
-                    </div>
+            <div className="p-3 space-y-3">
+              {selectedProposal.items?.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-50 rounded-md p-3 border border-gray-200"
+                >
+                  <div className="flex items-center mb-2">
+                    <span className="bg-orange-500 text-white text-xs rounded w-5 h-5 flex items-center justify-center mr-2 font-medium">
+                      {index + 1}
+                    </span>
+                    <h4 className="font-semibold text-gray-800 text-sm">
+                      {item?.equipment?.materialdescription}
+                    </h4>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-slate-500">
-                            Material Code
-                          </span>
-                          <span className="text-sm font-medium text-slate-700">
-                            {item.equipment.materialcode}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-slate-500">Dealer</span>
-                          <span className="text-sm font-medium text-slate-700">
-                            {item.equipment.dealer}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-slate-500">
-                            Warranty Type
-                          </span>
-                          <span className="text-sm font-medium text-slate-700">
-                            {item.warrantyType}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-slate-500">
-                            Duration
-                          </span>
-                          <span className="text-sm font-medium text-slate-700">
-                            {item.years} years
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-slate-500">
-                            Price per Year
-                          </span>
-                          <span className="text-sm font-medium text-slate-700">
-                            ₹{item.pricePerYear.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="bg-white rounded p-2">
+                      <p className="text-xs text-gray-500 mb-1">
+                        Material Code
+                      </p>
+                      <p className="font-medium text-xs">
+                        {item?.equipment?.materialcode}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <p className="text-xs text-gray-500 mb-1">Dealer</p>
+                      <p className="font-medium text-xs">
+                        {item?.equipment?.dealer}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <p className="text-xs text-gray-500 mb-1">
+                        Serial Number
+                      </p>
+                      <p className="font-medium text-xs">
+                        {item?.equipment?.serialnumber}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <p className="text-xs text-gray-500 mb-1">Warranty</p>
+                      <p className="font-medium text-xs">
+                        {item?.warrantyType} - {item?.years} years
+                      </p>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <p className="text-xs text-gray-500 mb-1">Amount</p>
+                      <p className="font-bold text-xs text-green-600">
+                        {formatCurrency(item?.subtotal)}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Approval Status for each item */}
+                  {selectedProposal.discountPercentage >= 6 && (
+                    <div className="bg-white rounded p-2 mt-2">
+                      <p className="text-xs text-gray-500 mb-1">
+                        Approval Status
+                      </p>
+                      <div className="flex gap-2">
+                        {selectedProposal.discountPercentage >= 6 && (
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              item.RSHApproval?.approved
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            RSH:{" "}
+                            {item.RSHApproval?.approved
+                              ? "Approved"
+                              : "Pending"}
+                          </span>
+                        )}
+                        {selectedProposal.discountPercentage > 10 && (
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              item.NSHApproval?.approved
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            NSH:{" "}
+                            {item.NSHApproval?.approved
+                              ? "Approved"
+                              : "Pending"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Financial Summary */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                  <svg
-                    className="w-4 h-4 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                    />
-                  </svg>
-                </div>
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-3 py-2 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800 flex items-center text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 Financial Summary
-              </h2>
+              </h3>
             </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                  <span className="text-slate-600">Grand Subtotal</span>
-                  <span className="text-slate-800 font-semibold">
-                    ₹{selectedProposal.grandSubTotal.toLocaleString()}
+            <div className="p-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-600 text-xs">Grand Subtotal:</span>
+                  <span className="font-medium text-sm">
+                    {formatCurrency(selectedProposal.grandSubTotal)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    Discount ({selectedProposal.discountPercentage}%)
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-600 text-xs">
+                    Discount ({selectedProposal.discountPercentage}%):
                   </span>
-                  <span className="text-red-600 font-semibold">
-                    -₹{selectedProposal.discountAmount.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                  <span className="text-slate-600">After Discount</span>
-                  <span className="text-slate-800 font-semibold">
-                    ₹{selectedProposal.afterDiscount.toLocaleString()}
+                  <span className="text-red-600 font-medium text-sm">
+                    -{formatCurrency(selectedProposal.discountAmount)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    TDS ({selectedProposal.tdsPercentage}%)
-                  </span>
-                  <span className="text-red-600 font-semibold">
-                    -₹{selectedProposal.tdsAmount.toLocaleString()}
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-600 text-xs">After Discount:</span>
+                  <span className="font-medium text-sm">
+                    {formatCurrency(selectedProposal.afterDiscount)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                  <span className="text-slate-600">After TDS</span>
-                  <span className="text-slate-800 font-semibold">
-                    ₹{selectedProposal.afterTds.toLocaleString()}
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-600 text-xs">
+                    TDS ({selectedProposal.tdsPercentage}%):
+                  </span>
+                  <span className="text-red-600 font-medium text-sm">
+                    -{formatCurrency(selectedProposal.tdsAmount)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    GST ({selectedProposal.gstPercentage}%)
-                  </span>
-                  <span className="text-green-600 font-semibold">
-                    +₹{selectedProposal.gstAmount.toLocaleString()}
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-600 text-xs">After TDS:</span>
+                  <span className="font-medium text-sm">
+                    {formatCurrency(selectedProposal.afterTds)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-4 bg-slate-50 rounded-lg px-4 mt-4">
-                  <span className="text-lg font-bold text-slate-800">
-                    Final Amount
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-600 text-xs">
+                    GST ({selectedProposal.gstPercentage}%):
                   </span>
-                  <span className="text-2xl font-bold text-slate-800">
-                    ₹{selectedProposal.finalAmount.toLocaleString()}
+                  <span className="text-green-600 font-medium text-sm">
+                    +{formatCurrency(selectedProposal.gstAmount)}
                   </span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 mt-2">
+                  <div className="flex justify-between items-center bg-green-50 rounded p-2">
+                    <span className="font-bold text-gray-800 text-sm">
+                      Final Amount:
+                    </span>
+                    <span className="text-lg font-bold text-green-600">
+                      {formatCurrency(selectedProposal.finalAmount)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Approval History */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-800 flex items-center">
-                <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
-                  <svg
-                    className="w-4 h-4 text-indigo-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                Approval History
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-6">
-                {selectedProposal.revisions.map((revision, index) => (
-                  <div
-                    key={index}
-                    className="border border-slate-200 rounded-lg p-5"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-sm font-bold text-green-600">
-                            {revision.revisionNumber}
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-800">
-                            Revision {revision.revisionNumber}
-                          </h3>
-                          <p className="text-sm text-slate-500">
-                            {formatDate(revision.revisionDate)}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
-                        {revision.status}
-                      </span>
-                    </div>
+          {/* Enhanced Revision History */}
+          {selectedProposal.revisions?.length > 0 && (
+            <div className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2 border-b border-gray-100">
+                <h3 className="font-semibold text-gray-800 flex items-center text-sm">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                  Revision History ({selectedProposal.revisions.length})
+                </h3>
+              </div>
+              <div className="p-3 space-y-3">
+                {selectedProposal.revisions
+                  .sort((a, b) => b.revisionNumber - a.revisionNumber)
+                  .map((revision, index) => {
+                    const isCurrentRevision =
+                      revision.revisionNumber ===
+                      selectedProposal.currentRevision;
+                    const isSuperseded =
+                      revision.revisionNumber <
+                      selectedProposal.currentRevision;
+                    const statusInfo = getRevisionStatusInfo(
+                      revision,
+                      isCurrentRevision
+                    );
+                    const StatusIcon = statusInfo.icon;
 
-                    <div className="mb-4">
-                      <p className="text-sm text-slate-600">
-                        <span className="font-medium">Remark:</span>{" "}
-                        {revision.changes.remark || "No remark provided"}
-                      </p>
-                    </div>
-
-                    {revision.approvalHistory.length > 0 && (
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <h4 className="font-medium text-slate-700 mb-3">
-                          Approval Details
-                        </h4>
-                        <div className="space-y-2">
-                          {revision.approvalHistory.map((approval, idx) => (
+                    return (
+                      <div
+                        key={index}
+                        className={`rounded-md p-3 border transition-all ${
+                          isSuperseded
+                            ? "bg-gray-100 border-gray-300 opacity-60"
+                            : isCurrentRevision
+                            ? "bg-blue-50 border-blue-300 ring-1 ring-blue-200"
+                            : `bg-${statusInfo.color}-50 border-${statusInfo.color}-200`
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
                             <div
-                              key={idx}
-                              className="flex items-center justify-between py-2 border-b border-slate-200 last:border-b-0"
+                              className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${
+                                isSuperseded
+                                  ? "bg-gray-400"
+                                  : isCurrentRevision
+                                  ? "bg-blue-500"
+                                  : `bg-${statusInfo.color}-500`
+                              }`}
                             >
-                              <div>
-                                <span className="font-medium text-slate-700">
-                                  {approval.approvalType}
-                                </span>
-                                <p className="text-sm text-slate-500">
-                                  {approval.remark || "No remark"}
-                                </p>
-                              </div>
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
-                                {approval.status}
+                              <span className="text-xs font-bold text-white">
+                                {revision.revisionNumber}
                               </span>
                             </div>
-                          ))}
+                            <div>
+                              <h4
+                                className={`font-semibold text-sm flex items-center ${
+                                  isSuperseded
+                                    ? "text-gray-500"
+                                    : "text-gray-800"
+                                }`}
+                              >
+                                Revision {revision.revisionNumber}
+                                {isCurrentRevision && (
+                                  <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">
+                                    Current
+                                  </span>
+                                )}
+                                {isSuperseded && (
+                                  <span className="ml-2 bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded">
+                                    Superseded
+                                  </span>
+                                )}
+                              </h4>
+                              <p
+                                className={`text-xs ${
+                                  isSuperseded
+                                    ? "text-gray-400"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                {formatDate(revision.revisionDate)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center">
+                            <StatusIcon
+                              className={`w-4 h-4 mr-1 ${
+                                isSuperseded
+                                  ? "text-gray-400"
+                                  : `text-${statusInfo.color}-600`
+                              }`}
+                            />
+                            <span
+                              className={`text-xs font-medium px-2 py-1 rounded capitalize ${
+                                isSuperseded
+                                  ? "bg-gray-200 text-gray-600"
+                                  : statusInfo.status === "approved"
+                                  ? "bg-green-100 text-green-800"
+                                  : statusInfo.status === "pending"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {revision.status}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Status Summary */}
+                        <div
+                          className={`rounded p-2 mb-2 ${
+                            isSuperseded
+                              ? "bg-gray-200"
+                              : isCurrentRevision
+                              ? "bg-blue-100"
+                              : "bg-white"
+                          }`}
+                        >
+                          <p
+                            className={`text-xs ${
+                              isSuperseded ? "text-gray-500" : "text-gray-700"
+                            }`}
+                          >
+                            <span className="font-medium">Status:</span>{" "}
+                            {statusInfo.summary}
+                          </p>
+                          <p
+                            className={`text-xs ${
+                              isSuperseded ? "text-gray-500" : "text-gray-600"
+                            }`}
+                          >
+                            <span className="font-medium">Remark:</span>{" "}
+                            {revision.changes?.remark || "No remark provided"}
+                          </p>
+                          <p
+                            className={`text-xs mt-1 ${
+                              isSuperseded ? "text-gray-500" : "text-gray-600"
+                            }`}
+                          >
+                            <span className="font-medium">Discount:</span>{" "}
+                            {revision.changes?.discountPercentage}%
+                            <span className="ml-2 font-medium">
+                              Final Amount:
+                            </span>{" "}
+                            {formatCurrency(revision.changes?.finalAmount)}
+                          </p>
+                        </div>
+
+                        {/* Detailed Approval History - only for current/recent revisions */}
+                        {!isSuperseded &&
+                          revision.approvalHistory?.length > 0 && (
+                            <div className="bg-white rounded p-2">
+                              <h5 className="font-medium text-gray-700 mb-2 text-xs">
+                                Approval Details
+                              </h5>
+                              <div className="space-y-1">
+                                {Object.values(
+                                  revision.approvalHistory.reduce(
+                                    (acc, approval) => {
+                                      const key = approval.approvalType;
+                                      if (
+                                        !acc[key] ||
+                                        new Date(approval.changedAt) >
+                                          new Date(acc[key].changedAt)
+                                      ) {
+                                        acc[key] = approval;
+                                      }
+                                      return acc;
+                                    },
+                                    {}
+                                  )
+                                ).map((approval, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center justify-between py-1 border-b border-gray-100 last:border-b-0"
+                                  >
+                                    <div>
+                                      <span className="font-medium text-gray-700 text-xs">
+                                        {approval.approvalType}
+                                      </span>
+                                      <p className="text-xs text-gray-500">
+                                        {formatDate(approval.changedAt)}
+                                      </p>
+                                    </div>
+                                    <span className="bg-green-100 text-green-800 text-xs font-medium px-1 py-0.5 rounded capitalize">
+                                      {approval.status}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             </div>
-          </div>
-        </div>
+          )}
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="">
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+    <div className="min-h-screen bg-gray-50">
+      {/* Fixed Header */}
+      <div className="fixed  left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
-            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
             onClick={() => navigate("/contract-proposal")}
           >
-            <ArrowLeft className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <div className="flex items-center space-x-3">
-            <h1 className="text-2xl text-nowrap font-bold text-white tracking-wide">
-              Completed Proposals
-            </h1>
-          </div>
+          <h1 className="text-2xl font-bold text-white">Completed Orders</h1>
         </div>
       </div>
 
-      <div className="max-w-6xl bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 mx-auto">
-        {/* Header */}
-
-        {/* Proposals Grid */}
+      {/* Main Content */}
+      <main className="py-20 p-3">
         {proposals.length === 0 ? (
-          <div className="flex flex-col justify-center items-center h-96 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <FileText className="w-8 h-8 text-gray-400" />
+          <div className="text-center py-16">
+            <div className="mb-4">
+              <FileText className="w-16 h-16 text-gray-300 mx-auto" />
             </div>
             <p className="text-gray-500 text-lg font-medium">
-              No proposals found
+              No completed orders found
             </p>
             <p className="text-gray-400 text-sm mt-1">
-              Create your first proposal to get started
+              Orders will appear here once completed
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-3">
             {proposals.map((proposal, index) => (
               <div
                 key={proposal._id}
-                className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 hover:border-blue-200"
+                className="bg-white rounded-md shadow-sm border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => handleCardClick(proposal)}
-                style={{
-                  animationDelay: `${index * 100}ms`,
-                }}
               >
-                {/* Company Info */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-white" />
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center mr-3">
+                      <Building2 className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-semibold text-gray-800 text-sm">
                         {proposal.customer?.customername}
                       </h3>
+                      <p className="text-xs text-gray-500 flex items-center">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {proposal.customer?.city}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-1 text-gray-500 mb-3">
-                    <MapPin className="w-4 h-4" />
-                    <span className="text-sm">{proposal.customer?.city}</span>
+                  <div className="text-right">
+                    <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-md">
+                      Completed
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Rev {proposal.currentRevision}
+                    </p>
                   </div>
                 </div>
 
-                {/* Proposal Number */}
-                <div className="flex items-center gap-2 mb-4 p-3 bg-gray-50 rounded-lg">
-                  <FileText className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-mono text-gray-600">
-                    {proposal.proposalNumber}
-                  </span>
+                {/* Content */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="bg-gray-50 rounded p-2">
+                    <p className="text-xs text-gray-500 mb-1">
+                      Proposal Number
+                    </p>
+                    <p className="font-medium text-sm font-mono">
+                      {proposal.proposalNumber}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded p-2">
+                    <p className="text-xs text-gray-500 mb-1">CNote Number</p>
+                    <p className="font-medium text-sm font-mono">
+                      {proposal.cnoteNumber}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Amount */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                      <IndianRupee className="w-4 h-4 text-green-600" />
+                {/* Amount & Date */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-6 h-6 bg-green-100 rounded flex items-center justify-center mr-2">
+                      <IndianRupee className="w-3 h-3 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">
-                        ₹{proposal.finalAmount.toLocaleString("en-IN")}
+                      <p className="font-bold text-gray-900 text-lg">
+                        {formatCurrency(proposal.finalAmount)}
                       </p>
                       <p className="text-xs text-gray-500">Final Amount</p>
                     </div>
                   </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 flex items-center">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {formatDate(proposal.createdAt)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {proposal.items?.length || 0} items
+                    </p>
+                  </div>
                 </div>
-
-                {/* Date */}
-                <div className="flex items-center gap-2 text-gray-500 pt-4 border-t border-gray-100">
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-sm">
-                    Created {formatDate(proposal.createdAt)}
-                  </span>
-                </div>
-
-                {/* Hover Effect Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

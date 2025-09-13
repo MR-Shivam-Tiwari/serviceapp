@@ -2,27 +2,23 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Autocomplete from "@mui/joy/Autocomplete";
 import { TextField } from "@mui/joy";
-import { ArrowLeft, Package, MapPin, Building2, Search } from "lucide-react";
+import { ArrowLeft, MapPin, Building2, Search } from "lucide-react";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 function CheckStock() {
-  // Material list (for Autocomplete)
   const [materialOptions, setMaterialOptions] = useState([]);
-  // Track which material is selected (for display in the text field)
-  const [selectedMaterial, setSelectedMaterial] = useState("");
-
-  // Store HubStock & DealerStock data
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [inputValue, setInputValue] = useState("");
   const [hubStockData, setHubStockData] = useState([]);
   const [dealerStockData, setDealerStockData] = useState([]);
-
-  // Loading states
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
   const [isLoadingStock, setIsLoadingStock] = useState(false);
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   const navigate = useNavigate();
 
-  // ----------------------------------
-  // Fetch the material list on mount
-  // ----------------------------------
   useEffect(() => {
     const fetchMaterialList = async () => {
       setIsLoadingMaterials(true);
@@ -31,48 +27,23 @@ function CheckStock() {
           `${process.env.REACT_APP_BASE_URL}/collections/hubstocks/material-list`
         );
         const data = await response.json();
-        // data example:
-        // [
-        //   { materialcode: "ABC123", materialdescription: "Description 1" },
-        //   { materialcode: "XYZ789", materialdescription: "Description 2" }
-        // ]
-        setMaterialOptions(data);
+        setMaterialOptions(data || []);
       } catch (error) {
         console.error("Error fetching material list:", error);
       } finally {
         setIsLoadingMaterials(false);
       }
     };
-
     fetchMaterialList();
   }, []);
 
-  // ----------------------------------
-  // Handle selection in Autocomplete
-  // ----------------------------------
-  const handleMaterialSelect = async (event, value) => {
-    if (!value) {
-      // Reset if nothing is selected
-      setSelectedMaterial("");
-      setHubStockData([]);
-      setDealerStockData([]);
-      return;
-    }
-
-    // Display "CODE (DESCRIPTION)" in text field
-    setSelectedMaterial(`${value.materialcode} (${value.materialdescription})`);
-
-    // Only pass code to the backend
-    const codeToSend = value.materialcode;
-
+  const fetchStock = async (code) => {
     setIsLoadingStock(true);
     try {
-      // Fetch combined stock data (Hub + Dealer)
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/collections/hubstocks/check-material/${codeToSend}`
+        `${process.env.REACT_APP_BASE_URL}/collections/hubstocks/check-material/${code}`
       );
       const data = await response.json();
-      // data should look like { hubStockData: [...], dealerStockData: [...] }
       setHubStockData(data.hubStockData || []);
       setDealerStockData(data.dealerStockData || []);
     } catch (error) {
@@ -84,10 +55,20 @@ function CheckStock() {
     }
   };
 
+  const handleMaterialChange = (event, value) => {
+    setSelectedOption(value);
+    if (!value) {
+      setHubStockData([]);
+      setDealerStockData([]);
+      return;
+    }
+    fetchStock(value.materialcode);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header with Glassmorphism Effect */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      {/* HEADER: UNCHANGED */}
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -97,145 +78,130 @@ function CheckStock() {
           </button>
           <div className="flex items-center space-x-3">
             <h1 className="text-2xl font-bold text-white tracking-wide">
-            Check Stock 
+              Check Stock
             </h1>
           </div>
         </div>
       </div>
 
-      <div className="p-3 max-w-4xl mx-auto">
-        {/* Search Section with Enhanced Design */}
-        <div className="mb-5">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-5">
-            <div className="flex items-center space-x-2 mb-3">
-              <Search className="w-5 h-5 text-blue-600" />
-              <label className="text-lg font-semibold text-gray-800">
+      <div className="p-3 max-w-4xl mx-auto py-20">
+        {/* Search Section compact */}
+        <div className="mb-4">
+          <div className="bg-white/85 backdrop-blur-sm rounded-xl shadow border border-white/30 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="w-4 h-4 text-blue-600" />
+              <label className="text-sm font-semibold text-gray-800">
                 Search & Select Material Code
               </label>
             </div>
 
             {isLoadingMaterials ? (
-              <div className="flex justify-center py-8">
+              <div className="flex justify-center py-5">
                 <div className="relative">
-                  <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                  <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-purple-400 rounded-full animate-spin animate-reverse"></div>
+                  <div className="w-8 h-8 border-[3px] border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                  <div className="absolute inset-0 w-8 h-8 border-[3px] border-transparent border-t-purple-400 rounded-full animate-spin [animation-direction:reverse]" />
                 </div>
               </div>
             ) : (
-              <div className="relative">
-                <div className="">
-                  {isLoadingMaterials ? (
-                    <div className="flex justify-center mt-4">
-                      <span className="loader"></span>
-                    </div>
-                  ) : (
-                    <Autocomplete
-                      // Provide array of objects
-                      placeholder="Search Material Code"
-                      options={materialOptions}
-                      // Show "CODE (DESCRIPTION)" in the text field after selection
-                      getOptionLabel={(option) =>
-                        `${option.materialcode} (${option.materialdescription})`
-                      }
-                      // Render the dropdown items with a bit of styling
-                      renderOption={(props, option) => (
-                        <li
-                          {...props}
-                          style={{ padding: "8px 12px", cursor: "pointer" }}
-                        >
-                          {option.materialcode} - {option.materialdescription}
-                        </li>
-                      )}
-                      // The 'value' for the text field
-                      value={
-                        selectedMaterial
-                          ? {
-                              materialcode: selectedMaterial,
-                              materialdescription: "",
-                            }
-                          : null
-                      }
-                      // We'll manage the displayed text ourselves
-                      isOptionEqualToValue={(option, val) =>
-                        // Since val might be a string "CODE (DESC)", we can do a contains check
-                        `${option.materialcode} (${option.materialdescription})` ===
-                        val.materialcode
-                      }
-                      onChange={handleMaterialSelect}
-                      // Text field styling
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Search & Select Material Code"
-                          variant="outlined"
-                          size="md"
-                          sx={{
-                            backgroundColor: "#f3f3f3",
-                            borderRadius: "8px",
-                            "& .MuiOutlinedInput-root": {
-                              padding: "8px 12px",
-                            },
-                          }}
-                        />
-                      )}
-                      sx={{
-                        borderRadius: "8px",
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
+              <Autocomplete
+                size="sm"
+                variant="soft"
+                placeholder="Search Material Code"
+                options={materialOptions}
+                value={selectedOption}
+                inputValue={inputValue}
+                onChange={handleMaterialChange}
+                onInputChange={(_, val) => setInputValue(val)}
+                getOptionLabel={(option) =>
+                  option?.materialcode
+                    ? `${option.materialcode} (${option.materialdescription})`
+                    : ""
+                }
+                isOptionEqualToValue={(opt, val) =>
+                  opt.materialcode === val.materialcode
+                }
+                renderOption={(props, option) => (
+                  <li
+                    {...props}
+                    className="px-3 py-2 text-[13px] text-gray-800"
+                  >
+                    <span className="font-medium">{option.materialcode}</span>{" "}
+                    <span className="text-gray-500">
+                      — {option.materialdescription}
+                    </span>
+                  </li>
+                )}
+                slotProps={{
+                  listbox: { className: "py-1 max-h-64" },
+                  popupIndicator: { className: "text-gray-600" },
+                  clearIndicator: { className: "text-gray-600" },
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="sm"
+                    variant="soft"
+                    label="Material Code"
+                    sx={{
+                      "--Input-minHeight": "36px",
+                      "--Input-paddingInline": "10px",
+                      "--Input-decoratorChildHeight": "28px",
+                      "& .MuiInput-input": { fontSize: 13 },
+                    }}
+                  />
+                )}
+                sx={{ borderRadius: 1 }}
+              />
             )}
           </div>
         </div>
 
-        {/* Loading State for Stock Data */}
+        {/* Stock Loading */}
         {isLoadingStock ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-6">
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-purple-400 rounded-full animate-spin animate-reverse"></div>
+              <div className="w-10 h-10 border-[3px] border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+              <div className="absolute inset-0 w-10 h-10 border-[3px] border-transparent border-t-purple-400 rounded-full animate-spin [animation-direction:reverse]" />
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Hub Stock Section */}
-            {hubStockData && hubStockData.length > 0 ? (
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 overflow-hidden">
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-white/20 rounded-full">
-                      <Building2 className="w-6 h-6 text-white" />
+          <div className="space-y-5 mb-20">
+            {/* Hub Stock */}
+            {hubStockData?.length > 0 ? (
+              <div className="bg-white/85 backdrop-blur-sm rounded-xl shadow border border-white/30 overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white/25 rounded-full">
+                      <Building2 className="w-4 h-4 text-white" />
                     </div>
-                    <h2 className="text-xl font-bold text-white">
-                      Hub Stock Data
+                    <h2 className="text-sm font-semibold text-white">
+                      Hub Stock
                     </h2>
                   </div>
                 </div>
-
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gradient-to-r from-gray-50 to-emerald-50">
-                        <th className="px-6 py-4 text-left font-semibold text-gray-800 border-b border-emerald-100">
+                        <th className="px-3 py-2 text-left text-[13px] font-semibold text-gray-800 border-b border-emerald-100">
                           Storage Location
                         </th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-800 border-b border-emerald-100">
-                          Quantity
+                        <th className="px-3 py-2 text-left text-[13px] font-semibold text-gray-800 border-b border-emerald-100">
+                          Qty
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {hubStockData.map((item, index) => (
+                      {hubStockData.map((item, idx) => (
                         <tr
-                          key={index}
-                          className="hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition-all duration-200"
+                          key={idx}
+                          className="hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition"
                         >
-                          <td className="px-6 py-4 border-b border-gray-100 text-gray-700 font-medium">
+                          <td className="px-3 py-2 border-b border-gray-100 text-[13px] text-gray-700">
                             {item.storagelocation}
                           </td>
-                          <td className="px-6 py-4 border-b border-gray-100">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+                          <td className="px-3 py-2 border-b border-gray-100">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                               {item.quantity}
                             </span>
                           </td>
@@ -245,54 +211,53 @@ function CheckStock() {
                   </table>
                 </div>
               </div>
-            ) : selectedMaterial ? (
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-8 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Building2 className="w-8 h-8 text-gray-400" />
+            ) : selectedOption ? (
+              <div className="bg-white/85 backdrop-blur-sm rounded-xl shadow border border-white/30 p-5 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Building2 className="w-6 h-6 text-gray-400" />
                 </div>
-                <p className="text-gray-500 text-lg">
-                  No Hub Stock data available for this material.
+                <p className="text-gray-500 text-sm">
+                  No Hub Stock data found.
                 </p>
               </div>
             ) : null}
 
-            {/* Dealer Stock Section */}
-            {dealerStockData && dealerStockData.length > 0 ? (
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-white/20 rounded-full">
-                      <MapPin className="w-6 h-6 text-white" />
+            {/* Dealer Stock */}
+            {dealerStockData?.length > 0 ? (
+              <div className="bg-white/85 backdrop-blur-sm rounded-xl shadow border border-white/30 overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white/25 rounded-full">
+                      <MapPin className="w-4 h-4 text-white" />
                     </div>
-                    <h2 className="text-xl font-bold text-white">
-                      Dealer Stock Data
+                    <h2 className="text-sm font-semibold text-white">
+                      Dealer Stock
                     </h2>
                   </div>
                 </div>
-
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gradient-to-r from-gray-50 to-blue-50">
-                        <th className="px-6 py-4 text-left font-semibold text-gray-800 border-b border-blue-100">
+                        <th className="px-3 py-2 text-left text-[13px] font-semibold text-gray-800 border-b border-blue-100">
                           Dealer City
                         </th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-800 border-b border-blue-100">
-                          Unrestricted Quantity
+                        <th className="px-3 py-2 text-left text-[13px] font-semibold text-gray-800 border-b border-blue-100">
+                          Qty
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {dealerStockData.map((item, index) => (
+                    <tbody className="text-[13px]">
+                      {dealerStockData.map((item, idx) => (
                         <tr
-                          key={index}
-                          className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200"
+                          key={idx}
+                          className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition"
                         >
-                          <td className="px-6 py-4 border-b border-gray-100 text-gray-700 font-medium">
+                          <td className="px-3 py-2 border-b border-gray-100 text-gray-700">
                             {item.dealercity}
                           </td>
-                          <td className="px-6 py-4 border-b border-gray-100">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                          <td className="px-3 py-2 border-b border-gray-100">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {item.unrestrictedquantity}
                             </span>
                           </td>
@@ -302,28 +267,33 @@ function CheckStock() {
                   </table>
                 </div>
               </div>
-            ) : selectedMaterial ? (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MapPin className="w-8 h-8 text-gray-400" />
+            ) : selectedOption ? (
+              <div className="bg-white/85 backdrop-blur-sm rounded-xl shadow border border-white/30 p-5 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <MapPin className="w-6 h-6 text-gray-400" />
                 </div>
-                <p className="text-gray-500 text-lg">
-                  No Dealer Stock data available for this material.
+                <p className="text-gray-500 text-sm">
+                  No Dealer Stock data found.
                 </p>
               </div>
             ) : null}
           </div>
         )}
 
-        {/* Enhanced OK Button */}
-        <div className="mt-8">
-          <button
-            onClick={() => navigate("/")}
-            className="px-8 w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
-          >
-            <span className="text-lg tracking-wide">Continue</span>
-          </button>
-        </div>
+        {/* Continue button compact */}
+        {/* <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-30">
+          <div className="max-w-6xl mx-auto">
+            <button
+              onClick={() => navigate("/")}
+              className="px-8 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <span>Continue</span>
+              </div>
+            </button>
+          </div>
+        </div> */}
+        <ShortcutFooter safeAreaInsets={safeAreaInsets} />
       </div>
     </div>
   );

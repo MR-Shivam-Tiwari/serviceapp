@@ -4,6 +4,7 @@ import Autocomplete from "@mui/joy/Autocomplete";
 import { TextField } from "@mui/joy";
 import CircularProgress from "@mui/joy/CircularProgress";
 import { ArrowLeft } from "lucide-react";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 const EquipmentDetail = () => {
   const navigate = useNavigate();
@@ -20,7 +21,10 @@ const EquipmentDetail = () => {
   const [modalImage, setModalImage] = useState("");
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   // Fetch equipment serial numbers with search and pagination
   const fetchEquipmentSerials = async (search = "") => {
     setLoading(true);
@@ -86,13 +90,15 @@ const EquipmentDetail = () => {
       }
 
       const data = await response.json();
-      setEquipmentDetails(data);
+      // Handle both old and new API response formats
+      const processedData = data.data ? data.data : data;
+      setEquipmentDetails(processedData);
 
       // Fetch spares if materialcode exists
-      if (data?.equipment?.materialcode) {
+      if (processedData?.equipment?.materialcode) {
         try {
           const sparesResponse = await fetch(
-            `${process.env.REACT_APP_BASE_URL}/collections/search/${data.equipment.materialcode}`
+            `${process.env.REACT_APP_BASE_URL}/collections/search/${processedData.equipment.materialcode}`
           );
 
           if (!sparesResponse.ok) {
@@ -144,10 +150,24 @@ const EquipmentDetail = () => {
     setSearchTerm(newInputValue);
   };
 
+  // Helper function to format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (error) {
+      return "Invalid Date";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col">
       {/* Fixed Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-40">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -162,7 +182,7 @@ const EquipmentDetail = () => {
       </div>
 
       {/* Scrollable Content Container */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto py-16">
         <div className="max-w-6xl mx-auto p-3 pb-24">
           {/* Search Section */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 mb-4 animate-fade-in-up">
@@ -198,7 +218,9 @@ const EquipmentDetail = () => {
                     variant="outlined"
                     helperText={
                       searchTerm.length < 5 && searchTerm.length > 0
-                        ? `Type ${5 - searchTerm.length} more character(s) to search`
+                        ? `Type ${
+                            5 - searchTerm.length
+                          } more character(s) to search`
                         : equipmentSerials.length === 100
                         ? "Showing first 100 results. Type to search for specific serial numbers."
                         : `Found ${equipmentSerials.length} equipment(s)`
@@ -271,7 +293,18 @@ const EquipmentDetail = () => {
                       <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wide">
-                          Part Number
+                          Serial Number
+                        </p>
+                        <p className="font-semibold text-gray-800">
+                          {equipmentDetails.equipment?.serialnumber || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">
+                          Material Code
                         </p>
                         <p className="font-semibold text-gray-800">
                           {equipmentDetails.equipment?.materialcode || "N/A"}
@@ -287,6 +320,17 @@ const EquipmentDetail = () => {
                         <p className="font-semibold text-gray-800">
                           {equipmentDetails.equipment?.materialdescription ||
                             "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">
+                          Equipment Name
+                        </p>
+                        <p className="font-semibold text-gray-800">
+                          {equipmentDetails.equipment?.name || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -309,7 +353,7 @@ const EquipmentDetail = () => {
                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        Warranty & AMC
+                        Warranty & AMC Details
                       </h3>
                     </div>
                     <div className="p-4 space-y-4">
@@ -317,28 +361,56 @@ const EquipmentDetail = () => {
                         <div className="flex items-center p-3 bg-orange-50 rounded-xl border border-orange-200">
                           <div>
                             <p className="text-xs text-orange-600 uppercase tracking-wide font-medium">
-                              Warranty Start
+                              Customer Warranty Start
                             </p>
                             <p className="font-bold text-orange-800">
-                              {equipmentDetails.equipment?.custWarrantystartdate
-                                ? new Date(
-                                    equipmentDetails.equipment.custWarrantystartdate
-                                  ).toLocaleDateString()
-                                : "N/A"}
+                              {formatDate(
+                                equipmentDetails.equipment
+                                  ?.custWarrantystartdate
+                              )}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center p-3 bg-orange-50 rounded-xl border border-orange-200">
                           <div>
                             <p className="text-xs text-orange-600 uppercase tracking-wide font-medium">
-                              Warranty End
+                              Customer Warranty End
                             </p>
                             <p className="font-bold text-orange-800">
-                              {equipmentDetails.equipment?.custWarrantyenddate
-                                ? new Date(
-                                    equipmentDetails.equipment.custWarrantyenddate
-                                  ).toLocaleDateString()
-                                : "N/A"}
+                              {formatDate(
+                                equipmentDetails.equipment?.custWarrantyenddate
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center p-3 bg-purple-50 rounded-xl border border-purple-200">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-purple-600 uppercase tracking-wide font-medium">
+                              Dealer Warranty Start
+                            </p>
+                            <p className="font-bold text-purple-800">
+                              {formatDate(
+                                equipmentDetails.equipment
+                                  ?.dealerwarrantystartdate
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-purple-50 rounded-xl border border-purple-200">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-purple-600 uppercase tracking-wide font-medium">
+                              Dealer Warranty End
+                            </p>
+                            <p className="font-bold text-purple-800">
+                              {formatDate(
+                                equipmentDetails.equipment
+                                  ?.dealerwarrantyenddate
+                              )}
                             </p>
                           </div>
                         </div>
@@ -348,113 +420,99 @@ const EquipmentDetail = () => {
                         <div className="flex items-center p-3 bg-gray-50 rounded-xl">
                           <div>
                             <p className="text-xs text-gray-500 uppercase tracking-wide">
-                              AMC Start
+                              AMC Start Date
                             </p>
                             <p className="font-semibold text-gray-800">
-                              {equipmentDetails.amcContract?.startdate
-                                ? new Date(
-                                    equipmentDetails.amcContract.startdate
-                                  ).toLocaleDateString()
-                                : "N/A"}
+                              {formatDate(
+                                equipmentDetails.amcContract?.startdate
+                              )}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center p-3 bg-gray-50 rounded-xl">
                           <div>
                             <p className="text-xs text-gray-500 uppercase tracking-wide">
-                              AMC End
+                              AMC End Date
                             </p>
                             <p className="font-semibold text-gray-800">
-                              {equipmentDetails.amcContract?.enddate
-                                ? new Date(
-                                    equipmentDetails.amcContract.enddate
-                                  ).toLocaleDateString()
-                                : "N/A"}
+                              {formatDate(
+                                equipmentDetails.amcContract?.enddate
+                              )}
                             </p>
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center p-3 bg-purple-50 rounded-xl border border-purple-200">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                        <div>
-                          <p className="text-xs text-purple-600 uppercase tracking-wide font-medium">
-                            Dealer Warranty Start Date
-                          </p>
-                          <p className="font-bold text-purple-800">
-                            {equipmentDetails.equipment?.dealerwarrantystartdate
-                              ? new Date(
-                                  equipmentDetails.equipment.dealerwarrantystartdate
-                                ).toLocaleDateString()
-                              : "N/A"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center p-3 bg-purple-50 rounded-xl border border-purple-200">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                        <div>
-                          <p className="text-xs text-purple-600 uppercase tracking-wide font-medium">
-                            Dealer Warranty End Date
-                          </p>
-                          <p className="font-bold text-purple-800">
-                            {equipmentDetails.equipment?.dealerwarrantyenddate
-                              ? new Date(
-                                  equipmentDetails.equipment.dealerwarrantyenddate
-                                ).toLocaleDateString()
-                              : "N/A"}
-                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Customer Information Section */}
-                  <div className="">
-                    <div className="px-4">
-                      <h3 className="text-lg font-semibold text-black flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-6 4h6"
-                          />
-                        </svg>
-                        Customer Information
-                      </h3>
-                    </div>
-                    <div className="p-4">
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="flex items-center p-3 bg-teal-50 rounded-xl border border-teal-200">
-                          <div className="w-2 h-2 bg-teal-500 rounded-full mr-3"></div>
-                          <div>
-                            <p className="text-xs text-teal-600 uppercase tracking-wide font-medium">
-                              Customer Code
-                            </p>
-                            <p className="font-bold text-teal-800">
-                              {equipmentDetails.equipment?.currentcustomer ||
-                                "N/A"}
-                            </p>
-                          </div>
+                {/* Enhanced Customer Information Card */}
+                <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden animate-fade-in-up animation-delay-200">
+                  <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center">
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                      Customer Information
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="grid md:grid-cols-1 gap-4">
+                      {/* Customer Code */}
+                      <div className="flex items-center p-3 bg-teal-50 rounded-xl border border-teal-200">
+                        <div className="w-2 h-2 bg-teal-500 rounded-full mr-3"></div>
+                        <div className="flex-1">
+                          <p className="text-xs text-teal-600 uppercase tracking-wide font-medium">
+                            Customer Code
+                          </p>
+                          <p className="font-bold text-teal-800">
+                            {equipmentDetails.customer?.customercodeid ||
+                              equipmentDetails.equipment?.currentcustomer ||
+                              "N/A"}
+                          </p>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-xl">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-wide">
-                              Hospital Name
-                            </p>
-                            <p className="font-semibold text-gray-800">
-                              {equipmentDetails.customer?.hospitalname || "N/A"}
-                            </p>
-                          </div>
+                      </div>
+
+                      {/* Customer Name */}
+                      <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Customer Name
+                          </p>
+                          <p className="font-semibold text-gray-800">
+                            {equipmentDetails.customer?.customername || "N/A"}
+                          </p>
                         </div>
+                      </div>
+
+                      {/* Hospital Name */}
+                      <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Hospital Name
+                          </p>
+                          <p className="font-semibold text-gray-800">
+                            {equipmentDetails.customer?.hospitalname || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Address Information */}
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center p-3 bg-gray-50 rounded-xl">
-                          <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                           <div>
                             <p className="text-xs text-gray-500 uppercase tracking-wide">
                               City
@@ -468,32 +526,186 @@ const EquipmentDetail = () => {
                           <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                           <div>
                             <p className="text-xs text-gray-500 uppercase tracking-wide">
-                              Pin Code
+                              Postal Code
                             </p>
                             <p className="font-semibold text-gray-800">
-                              {equipmentDetails.customer?.pincode || "N/A"}
+                              {equipmentDetails.customer?.postalcode || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Street Address */}
+                      <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Street Address
+                          </p>
+                          <p className="font-semibold text-gray-800">
+                            {equipmentDetails.customer?.street || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* District and State */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                              District
+                            </p>
+                            <p className="font-semibold text-gray-800">
+                              {equipmentDetails.customer?.district || "N/A"}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center p-3 bg-gray-50 rounded-xl">
-                          <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
                           <div>
                             <p className="text-xs text-gray-500 uppercase tracking-wide">
-                              Telephone
+                              State
                             </p>
                             <p className="font-semibold text-gray-800">
-                              {equipmentDetails.customer?.telephone || "N/A"}
+                              {equipmentDetails.customer?.state || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Region and Country */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                          <div className="w-2 h-2 bg-red-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                              Region
+                            </p>
+                            <p className="font-semibold text-gray-800">
+                              {equipmentDetails.customer?.region || "N/A"}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center p-3 bg-gray-50 rounded-xl">
-                          <div className="w-2 h-2 bg-pink-500 rounded-full mr-3"></div>
+                          <div className="w-2 h-2 bg-red-500 rounded-full mr-3"></div>
                           <div>
                             <p className="text-xs text-gray-500 uppercase tracking-wide">
-                              Email
+                              Country
                             </p>
-                            <p className="font-semibold text-gray-800 break-all">
-                              {equipmentDetails.customer?.email || "N/A"}
+                            <p className="font-semibold text-gray-800">
+                              {equipmentDetails.customer?.country || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contact Information */}
+                      <div className="flex items-center p-3 bg-blue-50 rounded-xl border border-blue-200">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-600 uppercase tracking-wide font-medium">
+                            Telephone
+                          </p>
+                          <p className="font-bold text-blue-800">
+                            {equipmentDetails.customer?.telephone || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                        <div className="w-2 h-2 bg-pink-500 rounded-full mr-3"></div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Email Address
+                          </p>
+                          <p className="font-semibold text-gray-800 break-all">
+                            {equipmentDetails.customer?.email || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Tax Information */}
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="flex items-center p-3 bg-yellow-50 rounded-xl border border-yellow-200">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                          <div className="flex-1">
+                            <p className="text-xs text-yellow-600 uppercase tracking-wide font-medium">
+                              PAN Number
+                            </p>
+                            <p className="font-bold text-yellow-800 font-mono">
+                              {equipmentDetails.customer?.taxnumber1 || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-green-50 rounded-xl border border-green-200">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                          <div className="flex-1">
+                            <p className="text-xs text-green-600 uppercase tracking-wide font-medium">
+                              GST Number
+                            </p>
+                            <p className="font-bold text-green-800 font-mono">
+                              {equipmentDetails.customer?.taxnumber2 || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Additional Customer Information */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                              Customer Type
+                            </p>
+                            <p className="font-semibold text-gray-800">
+                              {equipmentDetails.customer?.customertype || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                              Status
+                            </p>
+                            <p
+                              className={`font-semibold ${
+                                equipmentDetails.customer?.status === "Active"
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {equipmentDetails.customer?.status || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Creation and Modification Dates */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                          <div className="w-2 h-2 bg-gray-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                              Created At
+                            </p>
+                            <p className="font-semibold text-gray-800">
+                              {formatDate(equipmentDetails.customer?.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+                          <div className="w-2 h-2 bg-gray-500 rounded-full mr-3"></div>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                              Modified At
+                            </p>
+                            <p className="font-semibold text-gray-800">
+                              {formatDate(
+                                equipmentDetails.customer?.modifiedAt
+                              )}
                             </p>
                           </div>
                         </div>
@@ -574,7 +786,8 @@ const EquipmentDetail = () => {
                           <div className="flex items-center mb-4">
                             <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
                             <h4 className="text-lg font-semibold text-gray-800">
-                              Installation Base Equipment
+                              Installation Base Equipment (
+                              {equipmentDetails.customerEquipments.length})
                             </h4>
                           </div>
                           <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -585,10 +798,13 @@ const EquipmentDetail = () => {
                                     Serial No
                                   </th>
                                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Part No
+                                    Material Code
                                   </th>
                                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Product
+                                    Equipment Name
+                                  </th>
+                                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    Product Description
                                   </th>
                                 </tr>
                               </thead>
@@ -596,17 +812,20 @@ const EquipmentDetail = () => {
                                 {equipmentDetails.customerEquipments.map(
                                   (equip, index) => (
                                     <tr
-                                      key={equip.serialnumber}
+                                      key={equip.serialnumber || index}
                                       className="hover:bg-gray-50 transition-colors duration-200"
                                     >
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                        {equip.serialnumber}
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
+                                        {equip.serialnumber || "N/A"}
                                       </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                        {equip.materialcode}
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono">
+                                        {equip.materialcode || "N/A"}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {equip.name || "N/A"}
                                       </td>
                                       <td className="px-6 py-4 text-sm text-gray-700">
-                                        {equip.materialdescription}
+                                        {equip.materialdescription || "N/A"}
                                       </td>
                                     </tr>
                                   )
@@ -632,8 +851,12 @@ const EquipmentDetail = () => {
                               />
                             </svg>
                           </div>
-                          <p className="text-gray-500">
-                            No Installation Base Data Found.
+                          <p className="text-gray-500 font-medium">
+                            No Installation Base Data Found
+                          </p>
+                          <p className="text-gray-400 text-sm mt-1">
+                            This customer has no other equipment in the
+                            installation base.
                           </p>
                         </div>
                       )}
@@ -647,7 +870,7 @@ const EquipmentDetail = () => {
                           <div className="flex items-center mb-4">
                             <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
                             <h4 className="text-lg font-semibold text-gray-800">
-                              Spare Parts Base
+                              Available Spare Parts ({sparesData.length})
                             </h4>
                           </div>
                           <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -658,10 +881,13 @@ const EquipmentDetail = () => {
                                     Serial No
                                   </th>
                                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Part No
+                                    Part Number
                                   </th>
                                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                    Product
+                                    Description
+                                  </th>
+                                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    Image
                                   </th>
                                 </tr>
                               </thead>
@@ -672,22 +898,33 @@ const EquipmentDetail = () => {
                                     className="hover:bg-gray-50 transition-colors duration-200"
                                   >
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                      <button
-                                        className="text-blue-600 hover:text-blue-800 font-semibold hover:underline transition-colors duration-200"
-                                        onClick={() => {
-                                          setModalImage(spare.Image);
-                                          setIsImageLoading(true);
-                                          setShowModal(true);
-                                        }}
-                                      >
+                                      <span className="text-blue-600 font-semibold">
                                         {selectedSerial}
-                                      </button>
+                                      </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                      {spare.PartNumber}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono">
+                                      {spare.PartNumber || "N/A"}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-700">
-                                      {spare.Description}
+                                      {spare.Description || "N/A"}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      {spare.Image ? (
+                                        <button
+                                          className="text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors duration-200"
+                                          onClick={() => {
+                                            setModalImage(spare.Image);
+                                            setIsImageLoading(true);
+                                            setShowModal(true);
+                                          }}
+                                        >
+                                          View Image
+                                        </button>
+                                      ) : (
+                                        <span className="text-gray-400 text-sm">
+                                          No Image
+                                        </span>
+                                      )}
                                     </td>
                                   </tr>
                                 ))}
@@ -718,7 +955,13 @@ const EquipmentDetail = () => {
                               />
                             </svg>
                           </div>
-                          <p className="text-gray-500">No Spare Data Found.</p>
+                          <p className="text-gray-500 font-medium">
+                            No Spare Parts Data Found
+                          </p>
+                          <p className="text-gray-400 text-sm mt-1">
+                            No spare parts are available for this equipment
+                            model.
+                          </p>
                         </div>
                       )}
                     </>
@@ -747,10 +990,11 @@ const EquipmentDetail = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                Select Equipment
+                Select Equipment to View Details
               </h3>
               <p className="text-gray-500">
-                Type at least 5 characters or select a serial number from the dropdown to view detailed information.
+                Type at least 5 characters or select a serial number from the
+                dropdown to view comprehensive equipment information.
               </p>
             </div>
           )}
@@ -758,7 +1002,7 @@ const EquipmentDetail = () => {
       </div>
 
       {/* Fixed Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-30">
+      {/* <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-30">
         <div className="max-w-6xl mx-auto">
           <button
             onClick={() => navigate("/")}
@@ -769,8 +1013,8 @@ const EquipmentDetail = () => {
             </div>
           </button>
         </div>
-      </div>
-
+      </div> */}
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
       {/* Enhanced Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -796,6 +1040,7 @@ const EquipmentDetail = () => {
                 </svg>
               </button>
             </div>
+
             <div className="p-6">
               {isImageLoading && (
                 <div className="flex justify-center items-center h-96">

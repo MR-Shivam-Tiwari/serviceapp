@@ -1,15 +1,20 @@
 "use client";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Plus, AlertTriangle, FileText } from "lucide-react";
+import ShortcutFooter from "../Home/ShortcutFooter";
+import { useState } from "react";
 
 const Complaints = () => {
   const navigate = useNavigate();
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="w-full">
         {/* Enhanced Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
           <div className="flex items-center p-4 py-4 text-white">
             <button
               className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -27,7 +32,7 @@ const Complaints = () => {
           </div>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 pt-20">
           {/* Action Cards */}
           <div className="space-y-6">
             {/* Pending Complaints Card */}
@@ -108,6 +113,7 @@ const Complaints = () => {
           </div>
         </div>
       </div>
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
     </div>
   );
 };

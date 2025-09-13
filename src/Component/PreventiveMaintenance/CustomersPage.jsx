@@ -11,6 +11,7 @@ import {
   Search,
   ChevronRight,
 } from "lucide-react";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 function CustomersPage() {
   const navigate = useNavigate();
@@ -19,7 +20,10 @@ function CustomersPage() {
   const decodedCity = decodeURIComponent(city);
   const [allPms, setAllPms] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   useEffect(() => {
     const storedPms = localStorage.getItem("allPmsData");
     if (storedPms) {
@@ -56,8 +60,8 @@ function CustomersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-        <div className="flex items-center p-4 py-5 text-white">
+      <div className="fixed  left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+        <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
             onClick={handleBackToCities}
@@ -66,8 +70,9 @@ function CustomersPage() {
             <ArrowLeft className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
           </button>
           <div className="flex items-center space-x-3">
-            <h1 className="text-2xl text-nowrap font-bold text-white tracking-wide">
-              Customers - {decodedCity}
+            <h1 className="text-xl flex-col flex text-nowrap font-bold text-white tracking-wide">
+              Customers
+              <span className="text-xs">{decodedCity}</span>
             </h1>
           </div>
         </div>
@@ -233,6 +238,7 @@ function CustomersPage() {
           </div>
         </div>
       </div>
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
     </div>
   );
 }

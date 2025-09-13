@@ -200,3 +200,121 @@ body {
       transform: rotate(360deg);
     }
   } 
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom);
+  --safe-area-inset-left: env(safe-area-inset-left);
+  --safe-area-inset-right: env(safe-area-inset-right);
+}
+
+/* Body with proper status bar background */
+body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Status bar area background */
+  background: linear-gradient(
+    to bottom,
+    #000000 0%,
+    #000000 env(safe-area-inset-top, 30px),
+    #ffffff env(safe-area-inset-top, 30px),
+    #ffffff 100%
+  );
+}
+
+/* Alternative: White status bar */
+.status-bar-light body {
+  background: linear-gradient(
+    to bottom,
+    #ffffff 0%,
+    #ffffff env(safe-area-inset-top, 30px),
+    #f8fafc env(safe-area-inset-top, 30px),
+    #f8fafc 100%
+  );
+}
+
+/* Safe area container with proper colors */
+.safe-area-container {
+  padding-top: max(env(safe-area-inset-top), 30px);
+  padding-bottom: max(env(safe-area-inset-bottom), 30px);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+}
+
+/* Status bar overlay */
+.safe-area-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: max(env(safe-area-inset-top), 30px);
+  background-color: #000000; /* Black for status bar */
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* White status bar variant */
+.status-bar-light .safe-area-container::before {
+  background-color: #ffffff;
+}
+
+/* Fixed header safe area with proper positioning */
+.fixed-header-safe {
+  position: fixed;
+  top: max(env(safe-area-inset-top), 30px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+}
+
+/* Content safe area */
+.content-safe-area {
+  padding-bottom: max(env(safe-area-inset-bottom), 34px);
+  margin-bottom: 90px; /* Extra space for navigation */
+}
+
+/* Bottom safe area for navigation */
+.bottom-safe-area {
+  padding-bottom: max(env(safe-area-inset-bottom), 20px);
+  background-color: #ffffff;
+}
+
+/* Scroll container */
+.scroll-container {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: max(env(safe-area-inset-top), 30px);
+}
+
+/* Device specific adjustments */
+@supports (padding: max(0px)) {
+  .safe-area-container {
+    padding-top: max(env(safe-area-inset-top), 30px);
+    padding-bottom: max(env(safe-area-inset-bottom), 20px);
+  }
+}
+
+/* iPhone 14 Pro */
+@media screen and (device-width: 393px) and (device-height: 852px) {
+  .safe-area-container::before {
+    height: max(env(safe-area-inset-top), 47px);
+  }
+  .fixed-header-safe {
+    top: max(env(safe-area-inset-top), 47px);
+  }
+}
+
+/* iPhone 11 Pro */
+@media screen and (device-width: 414px) and (device-height: 896px) {
+  .safe-area-container::before {
+    height: max(env(safe-area-inset-top), 44px);
+  }
+  .fixed-header-safe {
+    top: max(env(safe-area-inset-top), 44px);
+  }
+}

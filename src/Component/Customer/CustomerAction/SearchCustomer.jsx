@@ -14,7 +14,7 @@ const SearchCustomer = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [error, setError] = useState("");
-  
+
   // Ref to prevent unnecessary API calls
   const abortControllerRef = useRef(null);
 
@@ -50,13 +50,17 @@ const SearchCustomer = () => {
     try {
       let url = "";
       if (query && query.trim() !== "") {
-        url = `${process.env.REACT_APP_BASE_URL}/collections/searchcustomer?page=${page}&limit=${PAGE_SIZE}&q=${encodeURIComponent(query.trim())}`;
+        url = `${
+          process.env.REACT_APP_BASE_URL
+        }/collections/searchcustomerphone?page=${page}&limit=${PAGE_SIZE}&q=${encodeURIComponent(
+          query.trim()
+        )}`;
       } else {
-        url = `${process.env.REACT_APP_BASE_URL}/collections/customer?page=${page}&limit=${PAGE_SIZE}`;
+        url = `${process.env.REACT_APP_BASE_URL}/collections/customerphone?page=${page}&limit=${PAGE_SIZE}`;
       }
 
       const response = await fetch(url, {
-        signal: abortControllerRef.current.signal
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -64,13 +68,13 @@ const SearchCustomer = () => {
       }
 
       const data = await response.json();
-      
+
       setCustomers(data.customers || []);
       setTotalPages(data.totalPages || 1);
       setTotalCustomers(data.totalCustomers || 0);
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Fetch error:', err);
+      if (err.name !== "AbortError") {
+        console.error("Fetch error:", err);
         setError("Failed to fetch customers. Please try again.");
         setCustomers([]);
         setTotalPages(1);
@@ -152,9 +156,9 @@ const SearchCustomer = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className=" flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Fixed Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg flex-shrink-0">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
@@ -169,7 +173,7 @@ const SearchCustomer = () => {
       </div>
 
       {/* Fixed Search Section */}
-      <div className="bg-white shadow-sm border-b flex-shrink-0">
+      <div className="bg-white shadow-sm border-b flex-shrink-0 pt-16">
         <div className="max-w-4xl mx-auto p-3">
           <div className="">
             <div className="relative">
@@ -219,13 +223,15 @@ const SearchCustomer = () => {
                 </button>
               )}
             </div>
-            
+
             {/* Results count */}
             {(debouncedSearchQuery || totalCustomers > 0) && !loading && (
               <p className="mt-2 text-sm text-gray-600">
                 {totalCustomers} result
                 {totalCustomers !== 1 ? "s" : ""}{" "}
-                {debouncedSearchQuery ? `found for "${debouncedSearchQuery}"` : ""}
+                {debouncedSearchQuery
+                  ? `found for "${debouncedSearchQuery}"`
+                  : ""}
               </p>
             )}
 
@@ -240,7 +246,7 @@ const SearchCustomer = () => {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-20">
         <div className="max-w-4xl mx-auto p-3">
           {/* Loading State */}
           {loading ? (
@@ -250,7 +256,9 @@ const SearchCustomer = () => {
                 <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-600 rounded-full animate-spin animation-delay-150"></div>
               </div>
               <p className="mt-6 text-gray-600 font-medium">
-                {debouncedSearchQuery ? "Searching customers..." : "Loading customers..."}
+                {debouncedSearchQuery
+                  ? "Searching customers..."
+                  : "Loading customers..."}
               </p>
               <p className="mt-2 text-sm text-gray-500">
                 Please wait while we fetch the latest data
@@ -262,7 +270,8 @@ const SearchCustomer = () => {
               {customers.length > 0 ? (
                 <div className="space-y-4 pb-6">
                   {customers.map((customer, index) => {
-                    const displayHospitalName = getDisplayHospitalName(customer);
+                    const displayHospitalName =
+                      getDisplayHospitalName(customer);
                     const displayEmail = customer?.email || "";
                     return (
                       <div
@@ -460,8 +469,8 @@ const SearchCustomer = () => {
       </div>
 
       {/* Fixed Pagination */}
-      <div className="bg-white shadow-lg border-t flex-shrink-0">
-        <div className="max-w-4xl mx-auto  p-3">
+      <div className="fixed bottom-0 left-0 right-0 pb-12 bg-white shadow-lg border-t">
+        <div className="max-w-4xl mx-auto p-3">
           <Pagination />
         </div>
       </div>

@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ArrowLeft } from "lucide-react";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 function Installation() {
   const navigate = useNavigate();
@@ -25,7 +26,11 @@ function Installation() {
     dealerEmail: "",
     manageremail: [],
   });
-
+  // const [safeAreaInsets] = useState({ bottom: 20 });
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   // Load user info on mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -75,6 +80,12 @@ function Installation() {
   // Add these states near your other state declarations
   const [abnormalConditionError, setAbnormalConditionError] = useState("");
   const [voltageError, setVoltageError] = useState("");
+  const [voltageFieldErrors, setVoltageFieldErrors] = useState({
+    lnry: "",
+    lgyb: "",
+    ngbr: "",
+  });
+  const [palNumberError, setPalNumberError] = useState("");
 
   // NEW: Function to check if material code exists in AERB
   const checkMaterialCodeInAERB = async (materialCode) => {
@@ -294,12 +305,42 @@ function Installation() {
       setAbnormalConditionError("");
     }
 
-    // Validate Voltage - at least one voltage field should be filled
-    if (!voltageData.lnry && !voltageData.lgyb && !voltageData.ngbr) {
-      setVoltageError("Please enter at least one voltage reading");
+    // Validate Voltage - all three voltage fields are mandatory
+    const voltageErrors = {};
+    if (!voltageData.lnry.trim()) {
+      voltageErrors.lnry = "L-N/R-Y voltage reading is required";
       isValid = false;
     } else {
+      voltageErrors.lnry = "";
+    }
+    if (!voltageData.lgyb.trim()) {
+      voltageErrors.lgyb = "L-G/Y-B voltage reading is required";
+      isValid = false;
+    } else {
+      voltageErrors.lgyb = "";
+    }
+    if (!voltageData.ngbr.trim()) {
+      voltageErrors.ngbr = "N-G/B-R voltage reading is required";
+      isValid = false;
+    } else {
+      voltageErrors.ngbr = "";
+    }
+
+    setVoltageFieldErrors(voltageErrors);
+
+    // Set general voltage error if any field is missing
+    if (!isValid) {
+      setVoltageError("All voltage readings are required");
+    } else {
       setVoltageError("");
+    }
+
+    // Validate PAL Number - required when material exists in AERB and no existing PAL number
+    if (shouldShowProcurementInput() && !palNumber.trim()) {
+      setPalNumberError("Please enter the Procurement Number (PAL Number)");
+      isValid = false;
+    } else {
+      setPalNumberError("");
     }
 
     if (!isValid) {
@@ -375,7 +416,14 @@ function Installation() {
         ...prev,
         [field]: val,
       }));
-      // Clear voltage error when user starts typing
+      // Clear individual field error when user starts typing
+      if (val && voltageFieldErrors[field]) {
+        setVoltageFieldErrors((prev) => ({
+          ...prev,
+          [field]: "",
+        }));
+      }
+      // Clear general voltage error when user starts typing
       if (val && voltageError) {
         setVoltageError("");
       }
@@ -458,8 +506,7 @@ function Installation() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
-
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -474,7 +521,7 @@ function Installation() {
       </div>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 px-1 pt-0 py-4 pb-32 overflow-y-auto">
+      <main className="flex-1 px-1  pt-16 pb-64 overflow-y-auto">
         {/* Enhanced Search Section with Custom Autocomplete */}
         <div className="bg-white rounded-md shadow-sm p-4 mb-4">
           <div className="mb-3 relative">
@@ -729,10 +776,22 @@ function Installation() {
                 <input
                   type="text"
                   placeholder="Enter Procurement No (PAL Number)"
-                  className="w-full px-3 py-3 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                  className={`w-full px-3 py-3 border ${
+                    palNumberError
+                      ? "border-red-500 bg-red-50"
+                      : "border-green-300"
+                  } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white`}
                   value={palNumber}
-                  onChange={(e) => handlePalNumberChange(e.target.value)}
+                  onChange={(e) => {
+                    handlePalNumberChange(e.target.value);
+                    if (e.target.value.trim()) {
+                      setPalNumberError("");
+                    }
+                  }}
                 />
+                {palNumberError && (
+                  <p className="mt-1 text-red-500 text-sm">{palNumberError}</p>
+                )}
               </div>
             ) : null}
           </div>
@@ -866,33 +925,63 @@ function Installation() {
               Voltage Readings <span className="text-red-500">*</span>
             </label>
             <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="L-N / R-Y"
-                value={voltageData.lnry}
-                onChange={(e) => handleVoltageInput("lnry", e.target.value)}
-                className={`w-full px-3 py-3 border ${
-                  voltageError ? "border-red-500 bg-red-50" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-              />
-              <input
-                type="text"
-                placeholder="L-G / Y-B"
-                value={voltageData.lgyb}
-                onChange={(e) => handleVoltageInput("lgyb", e.target.value)}
-                className={`w-full px-3 py-3 border ${
-                  voltageError ? "border-red-500 bg-red-50" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-              />
-              <input
-                type="text"
-                placeholder="N-G / B-R"
-                value={voltageData.ngbr}
-                onChange={(e) => handleVoltageInput("ngbr", e.target.value)}
-                className={`w-full px-3 py-3 border ${
-                  voltageError ? "border-red-500 bg-red-50" : "border-gray-300"
-                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-              />
+              <div>
+                <input
+                  type="text"
+                  placeholder="L-N / R-Y"
+                  value={voltageData.lnry}
+                  onChange={(e) => handleVoltageInput("lnry", e.target.value)}
+                  className={`w-full px-3 py-3 border ${
+                    voltageFieldErrors.lnry
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300"
+                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  required
+                />
+                {voltageFieldErrors.lnry && (
+                  <p className="mt-1 text-red-500 text-sm">
+                    {voltageFieldErrors.lnry}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="L-G / Y-B"
+                  value={voltageData.lgyb}
+                  onChange={(e) => handleVoltageInput("lgyb", e.target.value)}
+                  className={`w-full px-3 py-3 border ${
+                    voltageFieldErrors.lgyb
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300"
+                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  required
+                />
+                {voltageFieldErrors.lgyb && (
+                  <p className="mt-1 text-red-500 text-sm">
+                    {voltageFieldErrors.lgyb}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="N-G / B-R"
+                  value={voltageData.ngbr}
+                  onChange={(e) => handleVoltageInput("ngbr", e.target.value)}
+                  className={`w-full px-3 py-3 border ${
+                    voltageFieldErrors.ngbr
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300"
+                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  required
+                />
+                {voltageFieldErrors.ngbr && (
+                  <p className="mt-1 text-red-500 text-sm">
+                    {voltageFieldErrors.ngbr}
+                  </p>
+                )}
+              </div>
             </div>
             {voltageError && (
               <p className="mt-2 text-red-500 text-sm">{voltageError}</p>
@@ -902,8 +991,8 @@ function Installation() {
       </main>
 
       {/* FOOTER */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-10">
-        <div className="px-4 py-4 pb-8">
+      <footer className="fixed bottom-20 left-0 right-0 bg-white border-t shadow-lg z-10">
+        <div className="px-2 py-2 pb-7">
           <div className="space-y-3">
             <button
               className={`w-full px-4 py-3 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
@@ -925,6 +1014,7 @@ function Installation() {
           </div>
         </div>
       </footer>
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
     </div>
   );
 }

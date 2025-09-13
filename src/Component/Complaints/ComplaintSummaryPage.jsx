@@ -126,7 +126,8 @@ const ComplaintSummaryPage = () => {
           roleName: userData.role?.roleName || "",
           roleId: userData.role?.roleId || "",
           dealerName: userData.dealerInfo?.dealerName || "",
-          dealerId: userData.dealerInfo?.dealerId || "",
+          dealerId: userData.dealerInfo?.dealerCode || "",
+          dealerCode: userData.dealerInfo?.dealerCode || "",
           dealerEmail: userData.dealerInfo?.dealerEmail || "",
           location: userData.location || [],
           skills: userData.skills || "",
@@ -299,6 +300,7 @@ const ComplaintSummaryPage = () => {
           // Dealer Information
           dealerName: userInfo.dealerName || "",
           dealerId: userInfo.dealerId || "",
+          dealerCode: userInfo.dealerCode || "",
           dealerEmail: userInfo.dealerEmail || "",
 
           // Manager Emails (Array)
@@ -335,7 +337,7 @@ const ComplaintSummaryPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
 
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -346,7 +348,7 @@ const ComplaintSummaryPage = () => {
           <h1 className="text-2xl font-bold text-white"> Complaint Summary</h1>
         </div>
       </div>
-      <div className="p-3 max-w-4xl mx-auto">
+      <div className="p-3 max-w-4xl mx-auto py-20">
         {/* Complaint Information Card */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-3">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 border-b border-gray-200">

@@ -6,6 +6,7 @@ import { useParams, useNavigate } from "react-router-dom";
 const ComplaintDetailsPage = () => {
   const { complaintId } = useParams(); // Get complaintId from URL
   const navigate = useNavigate();
+  const [onCallStatus, setOnCallStatus] = useState(null);
 
   const [complaint, setComplaint] = useState(null);
   const [customer, setCustomer] = useState(null);
@@ -127,7 +128,6 @@ const ComplaintDetailsPage = () => {
     }
   }, [complaint]);
 
-  // NEW: Check oncall status for NW and NC complaint types
   useEffect(() => {
     if (complaint && complaint.notificationtype) {
       if (
@@ -140,22 +140,39 @@ const ComplaintDetailsPage = () => {
         )
           .then((response) => response.json())
           .then((data) => {
-            if (data.success && data.data && data.data.status === "completed") {
-              setShowCloseButton(true);
+            console.log("OnCall API Response:", data); // Debug log
+
+            if (data.success === true && data.data) {
+              // OnCall exists - show status, hide button
+              setOnCallStatus(data.data.status); // "completed", "submitted", "in-progress", etc.
+              setOnCallExists(true);
+
+              if (data.data.status === "completed") {
+                setShowCloseButton(true);
+              } else {
+                setShowCloseButton(false);
+              }
             } else {
+              // OnCall doesn't exist (success: false) - show button, hide status
+              setOnCallStatus(null);
+              setOnCallExists(false);
               setShowCloseButton(false);
             }
           })
           .catch((error) => {
             console.error("Error fetching oncall status:", error);
-            setShowCloseButton(false); // Hide button if API fails
+            setOnCallStatus(null);
+            setOnCallExists(false);
+            setShowCloseButton(false);
           });
       } else {
-        // For other complaint types, show the close button
+        // For other complaint types
         setShowCloseButton(true);
+        setOnCallStatus(null);
+        setOnCallExists(false);
       }
     }
-  }, [complaint]);
+  }, [complaint?.notification_complaintid]);
 
   // Fetch spare parts based on complaint number (acting as part number)
   useEffect(() => {
@@ -295,7 +312,7 @@ const ComplaintDetailsPage = () => {
       {!showUpdateForm ? (
         <>
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+          <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
             <div className="flex items-center p-4 py-4 text-white">
               <button
                 className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -304,13 +321,13 @@ const ComplaintDetailsPage = () => {
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
               <h1 className="text-2xl font-bold text-white">
-                Complaint Details
+                Complaint Detailss
               </h1>
             </div>
           </div>
 
           {/* Main Content */}
-          <div className="p-3 max-w-4xl mx-auto">
+          <div className="p-3 py-20 max-w-4xl mx-auto">
             {/* Complaint Information Card */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-3">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 border-b border-gray-200">
@@ -458,16 +475,44 @@ const ComplaintDetailsPage = () => {
               )}
             </div>
 
-            {/* On Call Estimation Button */}
+            {/* Complaint Information Card में यह add करें Problem Reported के बाद */}
+            {/* On Call Estimation Button - Show when API returns success: false */}
+            {/* On-Call Status - Show only when OnCall exists (success: true) */}
             {(complaint.notificationtype === "NW" ||
               complaint.notificationtype === "NC") &&
-              !onCallExists && (
-                <div key={`oncall-${onCallExists}`} className="w-full">
+              onCallStatus && ( // Show when status exists
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                  <span className="font-medium text-gray-600 text-xs">
+                    On-Call Status:
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      onCallStatus === "completed"
+                        ? "bg-green-100 text-green-800"
+                        : onCallStatus === "submitted"
+                        ? "bg-blue-100 text-blue-800"
+                        : onCallStatus === "in-progress"
+                        ? "bg-orange-100 text-orange-800"
+                        : onCallStatus === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {onCallStatus.charAt(0).toUpperCase() +
+                      onCallStatus.slice(1)}
+                  </span>
+                </div>
+              )}
+            {/* On Call Estimation Button - Show only when no OnCall exists (success: false) */}
+            {(complaint.notificationtype === "NW" ||
+              complaint.notificationtype === "NC") &&
+              !onCallExists && ( // Show when OnCall doesn't exist
+                <div className="w-full mb-3">
                   <button
                     className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2.5 px-4 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold text-sm"
                     onClick={handleCreateEstimation}
                   >
-                    On Call Estimation
+                    Create On-Call Estimation
                   </button>
                 </div>
               )}
@@ -479,7 +524,7 @@ const ComplaintDetailsPage = () => {
        ========================= */
         <div className="min-h-screen bg-gray-50">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+          <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
             <div className="flex items-center p-4 py-4 text-white">
               <button
                 className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -494,7 +539,7 @@ const ComplaintDetailsPage = () => {
           </div>
 
           {/* Form Content */}
-          <div className="p-3 max-w-4xl mx-auto">
+          <div className="p-3 max-w-4xl mx-auto py-20">
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 border-b border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-800">

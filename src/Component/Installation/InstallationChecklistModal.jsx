@@ -8,6 +8,8 @@ import {
   ChevronRight,
   CheckCircle,
   AlertCircle,
+  Settings,
+  AlertTriangle,
 } from "lucide-react";
 
 const ChecklistModal = ({
@@ -34,6 +36,10 @@ const ChecklistModal = ({
 
   // New state for manual voltage input
   const [manualVoltageInput, setManualVoltageInput] = useState("");
+  const [showFailurePopup, setShowFailurePopup] = useState(false);
+  const [failedItems, setFailedItems] = useState([]);
+  const [editingFailedItem, setEditingFailedItem] = useState(null);
+  const [tempVoltageInput, setTempVoltageInput] = useState("");
 
   // Initialize values when checklist items change
   useEffect(() => {
@@ -170,6 +176,93 @@ const ChecklistModal = ({
         calibrationDueDate,
       };
     }
+
+    // Find failed checklist items
+    const failures = updatedResults.filter((item) => {
+      if (!item.result) return false;
+      const failKeywords = ["No", "NOT OK", "Failed"];
+      return failKeywords.includes(item.result);
+    });
+
+    if (failures.length > 0) {
+      // Show failure popup
+      setFailedItems(failures);
+      setShowFailurePopup(true);
+    } else {
+      onFinish(updatedResults, globalChecklistRemark);
+      onClose();
+    }
+  };
+  const handleFailurePopupClose = () => {
+    setShowFailurePopup(false);
+    setEditingFailedItem(null);
+    setTempVoltageInput("");
+  };
+
+  const handleEditFailedItem = (item) => {
+    if (item.resulttype === "Numeric Entry") {
+      setEditingFailedItem(item);
+      setTempVoltageInput("");
+    }
+  };
+
+  const handleUpdateFailedVoltage = () => {
+    if (!editingFailedItem || !tempVoltageInput.trim()) return;
+
+    const voltageValue = parseFloat(tempVoltageInput);
+    if (isNaN(voltageValue)) {
+      toast.error("Please enter a valid voltage reading.");
+      return;
+    }
+
+    const { startVoltage, endVoltage } = editingFailedItem;
+    const start = parseFloat(startVoltage);
+    const end = parseFloat(endVoltage);
+
+    // Update the item in tempChecklistResults
+    const updatedResults = tempChecklistResults.map((item) => {
+      if (item._id === editingFailedItem._id) {
+        return {
+          ...item,
+          result:
+            voltageValue >= start && voltageValue <= end ? "Pass" : "Failed",
+          remark: `Measured: ${voltageValue}V (Range: ${start}V - ${end}V)`,
+        };
+      }
+      return item;
+    });
+
+    setTempChecklistResults(updatedResults);
+
+    // Update failed items list
+    const updatedFailures = failedItems.map((item) => {
+      if (item._id === editingFailedItem._id) {
+        return {
+          ...item,
+          result:
+            voltageValue >= start && voltageValue <= end ? "Pass" : "Failed",
+          remark: `Measured: ${voltageValue}V (Range: ${start}V - ${end}V)`,
+        };
+      }
+      return item;
+    });
+
+    setFailedItems(updatedFailures);
+    setEditingFailedItem(null);
+    setTempVoltageInput("");
+    toast.success("Voltage reading updated successfully!");
+  };
+
+  const proceedWithFailures = () => {
+    const updatedResults = [...tempChecklistResults];
+    if (updatedResults.length > 0) {
+      updatedResults[0] = {
+        ...updatedResults[0],
+        equipmentUsedSerial,
+        calibrationDueDate,
+      };
+    }
+
     onFinish(updatedResults, globalChecklistRemark);
     onClose();
   };
@@ -365,7 +458,7 @@ const ChecklistModal = ({
             <h4 className="font-medium text-blue-900 mb-2">
               Expected Voltage Range
             </h4>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm hidden text-blue-700">
               Range:{" "}
               <span className="font-semibold">
                 {start}V - {end}V
@@ -388,7 +481,7 @@ const ChecklistModal = ({
                 className="w-full p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-base font-medium"
                 required
               />
-              <p className="text-xs text-gray-500 mt-2 text-center">
+              <p className="text-xs hidden text-gray-500 mt-2 text-center">
                 Range: {start}V - {end}V
               </p>
             </div>
@@ -595,6 +688,160 @@ const ChecklistModal = ({
               </div>
             )}
         </div>
+        {/* Failure Popup Modal */}
+        {showFailurePopup && (
+          <div className="fixed inset-0   flex justify-center items-center z-[60] backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col ">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-red-600 to-red-700 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-md font-bold text-white flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      Checklist Failures Detected
+                    </h2>
+                    <p className="text-red-100 text-xs">
+                      {failedItems.length} item(s) failed. Review and fix if
+                      possible.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleFailurePopupClose}
+                    className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-auto p-4">
+                <div className="space-y-4">
+                  {failedItems.map((item, index) => (
+                    <div
+                      key={item._id}
+                      className="border border-red-200 rounded-lg p-4 bg-red-50"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-red-900 mb-1">
+                            {item.checkpoint}
+                          </h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                              Result: {item.result}
+                            </span>
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                              {item.resulttype}
+                            </span>
+                          </div>
+                          {/* {item.remark && (
+                            <p className="text-sm text-red-700 bg-red-100 p-2 rounded border">
+                              <span className="font-medium">Remark:</span>{" "}
+                              {item.remark}
+                            </p>
+                          )} */}
+                        </div>
+
+                        {/* Edit button only for voltage failures */}
+                        {item.resulttype === "Numeric Entry" && (
+                          <button
+                            onClick={() => handleEditFailedItem(item)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
+                          >
+                            <Settings className="w-3 h-3" />
+                            Re-test
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Voltage editing form */}
+                      {editingFailedItem &&
+                        editingFailedItem._id === item._id && (
+                          <div className="mt-3 p-3 bg-white border border-blue-200 rounded">
+                            <h4 className="font-medium text-blue-900 mb-2">
+                              Re-enter Voltage Reading
+                            </h4>
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Enter new voltage value"
+                                  value={tempVoltageInput}
+                                  onChange={(e) =>
+                                    setTempVoltageInput(e.target.value)
+                                  }
+                                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                                <p className="text-xs hidden text-gray-500 mt-1">
+                                  Expected Range: {item.startVoltage}V -{" "}
+                                  {item.endVoltage}V
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleUpdateFailedVoltage}
+                                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                                  disabled={!tempVoltageInput.trim()}
+                                >
+                                  Update
+                                </button>
+                                <button
+                                  onClick={() => setEditingFailedItem(null)}
+                                  className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-yellow-900">
+                        Important Notice
+                      </h4>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        Only voltage readings can be re-tested. Other failures
+                        require manual correction at the installation site. You
+                        can proceed with the installation, but these failures
+                        will be recorded in the final report.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-2 border-t border-gray-200 bg-gray-50">
+                <div className="flex flex-col gap-2 justify-between items-center">
+                  <button
+                    onClick={handleFailurePopupClose}
+                    className=" py-2 w-full text-gray-600 bg-gray-300 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                  >
+                    Go Back to Review
+                  </button>
+                  <div className="flex w-full gap-3">
+                    <button
+                      onClick={proceedWithFailures}
+                      className="bg-orange-600 w-full hover:bg-orange-700 text-white  py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      Proceed with Failures
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 bg-gradient-to-br from-gray-50 to-white">

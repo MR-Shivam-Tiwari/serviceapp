@@ -1,4 +1,3 @@
-// PmList.js
 import React from "react";
 import {
   Search,
@@ -57,13 +56,13 @@ export default function PmList({
         </div>
       </div>
 
-      {/* Loader */}
-      {/* {isLoading && (
+      {/* Loading State */}
+      {isLoading && (
         <div className="flex flex-col items-center py-14">
           <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600"></div>
-          <p className="text-gray-700 mt-4">Loading...</p>
+          <p className="text-gray-700 mt-4">Searching...</p>
         </div>
-      )} */}
+      )}
 
       {/* PM Cards */}
       {!isLoading && pms.length > 0 ? (
@@ -143,7 +142,8 @@ export default function PmList({
               );
             })}
           </div>
-          {/* Pagination */}
+          
+          {/* Pagination - Only show when searching */}
           {searchQuery.trim() && totalPages > 1 && (
             <div className="flex justify-center items-center space-x-2 mt-6">
               <button
@@ -210,9 +210,10 @@ export default function PmList({
           </div>
         )
       )}
+      
       {/* Fixed Footer with Proceed Button */}
       {selectedPmsCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-white/20 shadow-2xl p-6 z-50">
+        <div className="fixed bottom-12 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-white/20 shadow-2xl p-6 z-50">
           <div className="max-w-7xl mx-auto">
             <button
               onClick={handleProceed}

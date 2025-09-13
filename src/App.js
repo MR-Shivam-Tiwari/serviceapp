@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Route, Routes, useNavigate, useLocation } from
 import { useEffect, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-
 import { StatusBar, Style } from '@capacitor/status-bar';
 
 import ForgotPassword from './Component/Auth/ForgotPassword';
@@ -56,56 +55,86 @@ import RegionsPage from './Component/PreventiveMaintenance/RegionsPage';
 import CitiesPage from './Component/PreventiveMaintenance/CitiesPage';
 import CustomersPage from './Component/PreventiveMaintenance/CustomersPage';
 import PmsPage from './Component/PreventiveMaintenance/PmsPage';
-const platform = Capacitor.getPlatform();
+import CmcNcmcQuoteTemplate from './Component/ContractProposal/CmcNcmcQuoteTemplate';
 
-
-
+// Import auth utils
+import { setupAxiosInterceptors } from './utils/auth';
 
 const BackButtonHandler = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [routeStack, setRouteStack] = useState(['/']);
-  useEffect(() => {
-    const requestFS = async () => {
-      await Filesystem.requestPermissions();
-    };
-    requestFS();
-  }, []);
-  useEffect(() => {
-    setRouteStack(prev => {
-      if (prev[prev.length - 1] !== location.pathname) {
-        return [...prev, location.pathname];
-      }
-      return prev;
-    });
-  }, [location]);
 
   useEffect(() => {
-    // Run only on Android/iOS
-    if (Capacitor.getPlatform() !== 'web') {
-      const handler = CapacitorApp.addListener('backButton', () => {
-        if (routeStack.length > 1) {
-          const previousRoute = routeStack[routeStack.length - 2];
-          setRouteStack(prev => prev.slice(0, -1));
-          navigate(previousRoute, { replace: true });
+    if (Capacitor.getPlatform() !== "web") {
+      const handler = CapacitorApp.addListener("backButton", () => {
+        if (location.pathname === "/" || location.pathname === "/home") {
+          // Already at home → minimize or exit
+          CapacitorApp.exitApp();
         } else {
-          CapacitorApp.minimizeApp(); // App minimize karega root screen pe
+          // Go back in history
+          navigate(-1);
         }
       });
 
-      // Clean up
       return () => {
-        if (typeof handler?.remove === 'function') {
-          handler.remove();
-        }
+        handler.remove();
       };
     }
-  }, [navigate, routeStack]);
+  }, [location, navigate]);
 
   return null;
 };
 
-function App() {
+// Session Timer Component
+const SessionTimer = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    // Don't run timer on public routes
+    if (location.pathname === '/login' || location.pathname.startsWith('/reset-') || location.pathname.startsWith('/forgot-')) {
+      return;
+    }
+
+    const updateTimer = () => {
+      const expiryTime = localStorage.getItem("sessionExpiry");
+      if (!expiryTime) {
+        return;
+      }
+
+      const now = new Date();
+      const expiry = new Date(expiryTime);
+      const remaining = expiry - now;
+
+      if (remaining <= 0) {
+        // Session expired - logout user
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("sessionExpiry");
+        navigate("/login");
+        return;
+      }
+
+      setTimeLeft(remaining);
+    };
+
+    // Update immediately
+    updateTimer();
+
+    // Update every second
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [navigate, location.pathname]);
+
+  return null;
+};
+
+// Main App Content Component (this runs inside Router context)
+const AppContent = () => {
+  const navigate = useNavigate();
+
   useEffect(() => {
     const setupNativeUI = async () => {
       if (Capacitor.isNativePlatform()) {
@@ -115,6 +144,7 @@ function App() {
         try {
           await StatusBar.setStyle({ style: Style.Dark });
           await StatusBar.setBackgroundColor({ color: '#ffffff' });
+          await StatusBar.setOverlaysWebView({ overlay: false }); // Add यह line
           await SplashScreen.hide();
         } catch (error) {
           console.warn('Native UI plugin error:', error);
@@ -123,207 +153,136 @@ function App() {
     };
 
     setupNativeUI();
-  }, []);
+    setupAxiosInterceptors(navigate);
+  }, [navigate]);
 
+  return (
+    <div className="safe-area-container varela-round">
+      <BackButtonHandler />
+      <SessionTimer />
+
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<PublicRoute element={Login} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-otp" element={<OTPVerification />} />
+        <Route path="/reset-password-otp" element={<ResetPasswordOtp />} />
+
+        {/* Protected Routes */}
+        <Route path="/" element={<PrivateRoute element={Home} />} />
+        <Route path="/installation" element={<PrivateRoute element={Installation} />} />
+        <Route path="/complaints" element={<PrivateRoute element={Complaints} />} />
+        <Route path="/user-profile" element={<PrivateRoute element={UserProfile} />} />
+        <Route path="/closecomplaint" element={<PrivateRoute element={CloseComplaintPage} />} />
+        <Route path="/complaintsummary" element={<PrivateRoute element={ComplaintSummaryPage} />} />
+        <Route path="/preventive-maintenance" element={<PrivateRoute element={PreventiveMaintenance} />} />
+        <Route path="/pm-regions" element={<PrivateRoute element={RegionsPage} />} />
+        <Route path="/pm-cities/:region" element={<PrivateRoute element={CitiesPage} />} />
+        <Route path="/pm-customers/:region/:city" element={<PrivateRoute element={CustomersPage} />} />
+        <Route path="/pm-list/:region/:city/:customerCode" element={<PrivateRoute element={PmsPage} />} />
+        <Route path="/pm-details" element={<PrivateRoute element={PmDetails} />} />
+        <Route path="/equipmentdetail" element={<PrivateRoute element={EquipmentDetail} />} />
+        <Route path="/checkstock" element={<PrivateRoute element={CheckStock} />} />
+        <Route path="/ownstocks" element={<PrivateRoute element={OwnStocks} />} />
+        <Route path="/customer" element={<PrivateRoute element={Customer} />} />
+        <Route path="/searchcustomer" element={<PrivateRoute element={SearchCustomer} />} />
+        <Route path="/addnewcustomer" element={<PrivateRoute element={AddNewCustomer} />} />
+        <Route path="/createcomplaint" element={<PrivateRoute element={CreateComplaint} />} />
+        <Route path="/pendingcomplaints" element={<PrivateRoute element={PendingComplaints} />} />
+        <Route path="/createclosecomplaint" element={<PrivateRoute element={CreateCloseComplaint} />} />
+        <Route path="/pendingcomplaints/:complaintId" element={<PrivateRoute element={ComplaintDetailsPage} />} />
+        <Route path="/search-customer" element={<PrivateRoute element={SelectCustomer} />} />
+        <Route path="/installation-summary" element={<PrivateRoute element={InstallationSummary} />} />
+        <Route path="/customer-details/:id" element={<PrivateRoute element={CustomerDetails} />} />
+        <Route path="/contract-proposal" element={<PrivateRoute element={ContractProposal} />} />
+        <Route path="/create-proposal" element={<PrivateRoute element={CreateProposal} />} />
+        <Route path="/pending-proposal" element={<PrivateRoute element={PendingProposal} />} />
+        <Route path="/completed-order" element={<PrivateRoute element={CompletedOrder} />} />
+        <Route path="/oncall-completed-order" element={<PrivateRoute element={CompletedOrder} />} />
+        <Route path="/proposal-details" element={<PrivateRoute element={ProposalDetails} />} />
+        <Route path="/quote-generation" element={<PrivateRoute element={QuoteGeneration} />} />
+        <Route path="/quote-generation/:id" element={<PrivateRoute element={CNoteGen} />} />
+        <Route path="/proposal-revision/:id" element={<PrivateRoute element={ProposalRevision} />} />
+        <Route path="/oncall-service" element={<PrivateRoute element={OnCallService} />} />
+        <Route path="/create-oncall-estimation" element={<PrivateRoute element={CreateOnCallEstimationPage} />} />
+        <Route path="/on-call-pending" element={<PrivateRoute element={PendingOnCall} />} />
+        <Route path="/on-call-revision/:id" element={<PrivateRoute element={OnCallRevision} />} />
+        <Route path="/oncall-quote-generation" element={<PrivateRoute element={OnCallQuoteGeneration} />} />
+        <Route path="/oncall-quote-generation/:id" element={<PrivateRoute element={OnCallCNoteGen} />} />
+        <Route path="/on-call-completed" element={<PrivateRoute element={OnCallCompletedOrder} />} />
+        <Route path="/on-call-quote-download/:proposalId" element={<PrivateRoute element={OnCallQuoteDownload} />} />
+        <Route path="/cmc-ncmc-quote-download/:proposalId" element={<PrivateRoute element={CmcNcmcQuoteTemplate} />} />
+      </Routes>
+    </div>
+  );
+};
+
+// Main App Component
+function App() {
   return (
     <Router>
       <Toaster
         position="top-right"
         reverseOrder={false}
+        gutter={8}
+        containerStyle={{
+          top: 60, // Safe area + header के लिए top margin
+          right: 16,
+        }}
         toastOptions={{
+          duration: 3000,
           style: {
-            borderRadius: '10px',
+            borderRadius: '12px',
             background: 'white',
             color: 'black',
+            padding: '12px 16px',
+            fontSize: '14px',
+            fontWeight: '500',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)',
+            border: '1px solid rgba(0, 0, 0, 0.05)',
+            maxWidth: '300px',
+            zIndex: 9999,
+          },
+          success: {
+            style: {
+              background: '#f0f9f4',
+              color: '#166534',
+              border: '1px solid #bbf7d0',
+            },
+            iconTheme: {
+              primary: '#22c55e',
+              secondary: '#f0f9f4',
+            },
+          },
+          error: {
+            style: {
+              background: '#fef2f2',
+              color: '#dc2626',
+              border: '1px solid #fecaca',
+            },
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fef2f2',
+            },
+          },
+          loading: {
+            style: {
+              background: '#fefce8',
+              color: '#a16207',
+              border: '1px solid #fef3c7',
+            },
+            iconTheme: {
+              primary: '#eab308',
+              secondary: '#fefce8',
+            },
           },
         }}
       />
-      {/* Safe area container */}
-      <div className="safe-area-container   varela-round">
-        <BackButtonHandler />
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<PublicRoute element={Login} />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-otp" element={<OTPVerification />} />
-          <Route path="/reset-password-otp" element={<ResetPasswordOtp />} />
 
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={<PrivateRoute element={Home} />}
-          />
-          <Route
-            path="/installation"
-            element={<PrivateRoute element={Installation} />}
-          />
-          <Route
-            path="/complaints"
-            element={<PrivateRoute element={Complaints} />}
-          />
-          <Route
-            path="/user-profile"
-            element={<PrivateRoute element={UserProfile} />}
-          />
-          <Route
-            path="/closecomplaint"
-            element={<PrivateRoute element={CloseComplaintPage} />}
-          />
-          <Route
-            path="/complaintsummary"
-            element={<PrivateRoute element={ComplaintSummaryPage} />}
-          />
 
-          <Route
-            path="/preventive-maintenance"
-            element={<PrivateRoute element={PreventiveMaintenance} />}
-          />
-          <Route
-            path="/pm-regions"
-            element={<PrivateRoute element={RegionsPage} />}
-          />
-          <Route
-            path="/pm-cities/:region"
-            element={<PrivateRoute element={CitiesPage} />}
-          />
-          <Route
-            path="/pm-customers/:region/:city"
-            element={<PrivateRoute element={CustomersPage} />}
-          />
-          <Route
-            path="/pm-list/:region/:city/:customerCode"
-            element={<PrivateRoute element={PmsPage} />}
-          />
-
-          <Route
-            path="/pm-details"
-            element={<PrivateRoute element={PmDetails} />}
-          />
-          <Route
-            path="/equipmentdetail"
-            element={<PrivateRoute element={EquipmentDetail} />}
-          />
-          <Route
-            path="/checkstock"
-            element={<PrivateRoute element={CheckStock} />}
-          />
-          <Route
-            path="/ownstocks"
-            element={<PrivateRoute element={OwnStocks} />}
-          />
-          <Route
-            path="/customer"
-            element={<PrivateRoute element={Customer} />}
-          />
-          <Route
-            path="/searchcustomer"
-            element={<PrivateRoute element={SearchCustomer} />}
-          />
-          <Route
-            path="/addnewcustomer"
-            element={<PrivateRoute element={AddNewCustomer} />}
-          />
-          <Route
-            path="/createcomplaint"
-            element={<PrivateRoute element={CreateComplaint} />}
-          />
-          <Route
-            path="/pendingcomplaints"
-            element={<PrivateRoute element={PendingComplaints} />}
-          />
-          <Route
-            path="/createclosecomplaint"
-            element={<PrivateRoute element={CreateCloseComplaint} />}
-          />
-          <Route
-            path="/pendingcomplaints/:complaintId"
-            element={<PrivateRoute element={ComplaintDetailsPage} />}
-          />
-          <Route
-            path="/search-customer"
-            element={<PrivateRoute element={SelectCustomer} />}
-          />
-          <Route
-            path="/installation-summary"
-            element={<PrivateRoute element={InstallationSummary} />}
-          />
-
-          <Route
-            path="/customer-details/:id"
-            element={<PrivateRoute element={CustomerDetails} />}
-          />
-          <Route
-            path="/contract-proposal"
-            element={<PrivateRoute element={ContractProposal} />}
-          />
-          <Route
-            path="/create-proposal"
-            element={<PrivateRoute element={CreateProposal} />}
-          />
-          <Route
-            path="/pending-proposal"
-            element={<PrivateRoute element={PendingProposal} />}
-          />
-          <Route
-            path="/completed-order"
-            element={<PrivateRoute element={CompletedOrder} />}
-          />
-          <Route
-            path="/oncall-completed-order"
-            element={<PrivateRoute element={CompletedOrder} />}
-          />
-          <Route
-            path="/proposal-details"
-            element={<PrivateRoute element={ProposalDetails} />}
-          />
-          <Route
-            path="/quote-generation"
-            element={<PrivateRoute element={QuoteGeneration} />}
-          />
-          <Route
-            path="/quote-generation/:id"
-            element={<PrivateRoute element={CNoteGen} />}
-          />
-          <Route
-            path="/proposal-revision/:id"
-            element={<PrivateRoute element={ProposalRevision} />}
-          />
-
-          <Route
-            path="/oncall-service"
-            element={<PrivateRoute element={OnCallService} />}
-          />
-          <Route
-            path="/create-oncall-estimation"
-            element={<PrivateRoute element={CreateOnCallEstimationPage} />}
-          />
-          <Route
-            path="/on-call-pending"
-            element={<PrivateRoute element={PendingOnCall} />}
-          />
-          <Route
-            path="/on-call-revision/:id"
-            element={<PrivateRoute element={OnCallRevision} />}
-          />
-          <Route
-            path="/oncall-quote-generation"
-            element={<PrivateRoute element={OnCallQuoteGeneration} />}
-          />
-          <Route
-            path="/oncall-quote-generation/:id"
-            element={<PrivateRoute element={OnCallCNoteGen} />}
-          />
-          <Route
-            path="/on-call-completed"
-            element={<PrivateRoute element={OnCallCompletedOrder} />}
-          />
-          <Route
-            path="/on-call-quote-download/:proposalId"
-            element={<PrivateRoute element={OnCallQuoteDownload} />}
-          />
-        </Routes>
-      </div>
+      {/* AppContent now runs inside Router context */}
+      <AppContent />
     </Router>
   );
 }

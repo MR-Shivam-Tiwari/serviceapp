@@ -18,6 +18,11 @@ const CloseComplaintPage = () => {
   const [voltageLN_RY, setVoltageLN_RY] = useState("");
   const [voltageLG_YB, setVoltageLG_YB] = useState("");
   const [voltageNG_BR, setVoltageNG_BR] = useState("");
+  const [voltageErrors, setVoltageErrors] = useState({
+    ln_ry: false,
+    lg_yb: false,
+    ng_br: false,
+  });
 
   // Injury Modal State
   const [showInjuryModal, setShowInjuryModal] = useState(false);
@@ -73,8 +78,22 @@ const CloseComplaintPage = () => {
     setShowSpareModal(false);
   };
 
-  // "Close Complaint" => Navigate to the summary page with all data
+  const isValidVoltage = (value) => /^[0-9]{1,3}$/.test(String(value));
+
+  // "Close Complaint" => Validate then navigate to the summary page with all data
   const handleCloseComplaintSubmit = () => {
+    const errors = {
+      ln_ry: !isValidVoltage(voltageLN_RY),
+      lg_yb: !isValidVoltage(voltageLG_YB),
+      ng_br: !isValidVoltage(voltageNG_BR),
+    };
+    setVoltageErrors(errors);
+
+    const hasError = Object.values(errors).some(Boolean);
+    if (hasError) {
+      return;
+    }
+
     navigate("/complaintsummary", {
       state: {
         complaint,
@@ -97,7 +116,7 @@ const CloseComplaintPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
 
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -108,7 +127,7 @@ const CloseComplaintPage = () => {
           <h1 className="text-2xl font-bold text-white"> Close Complaint</h1>
         </div>
       </div>
-      <div className="p-3 max-w-4xl mx-auto">
+      <div className="p-3 max-w-4xl mx-auto py-20">
         {/* Complaint Basic Info Card */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-3">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 border-b border-gray-200">
@@ -212,60 +231,99 @@ const CloseComplaintPage = () => {
                   L-N / R-Y
                 </label>
                 <input
-                  type="number"
-                  className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-xs"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{1,3}"
+                  minLength={1}
+                  maxLength={3}
+                  required
+                  className={`w-full px-2 py-2 border-2 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-xs ${
+                    voltageErrors.ln_ry ? "border-red-500" : "border-gray-200"
+                  }`}
                   placeholder="0-999"
                   value={voltageLN_RY}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    if (
-                      value === "" ||
-                      (value.length <= 3 && parseInt(value) <= 999)
-                    ) {
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    if (value.length <= 3) {
                       setVoltageLN_RY(value);
                     }
                   }}
+                  onBlur={() =>
+                    setVoltageErrors((prev) => ({
+                      ...prev,
+                      ln_ry: !isValidVoltage(voltageLN_RY),
+                    }))
+                  }
                 />
+                {voltageErrors.ln_ry && (
+                  <p className="text-red-600 text-xs mt-1">Required: 1-3 digits</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   L-G / Y-B
                 </label>
                 <input
-                  type="number"
-                  className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-xs"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{1,3}"
+                  minLength={1}
+                  maxLength={3}
+                  required
+                  className={`w-full px-2 py-2 border-2 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-xs ${
+                    voltageErrors.lg_yb ? "border-red-500" : "border-gray-200"
+                  }`}
                   placeholder="0-999"
                   value={voltageLG_YB}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    if (
-                      value === "" ||
-                      (value.length <= 3 && parseInt(value) <= 999)
-                    ) {
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    if (value.length <= 3) {
                       setVoltageLG_YB(value);
                     }
                   }}
+                  onBlur={() =>
+                    setVoltageErrors((prev) => ({
+                      ...prev,
+                      lg_yb: !isValidVoltage(voltageLG_YB),
+                    }))
+                  }
                 />
+                {voltageErrors.lg_yb && (
+                  <p className="text-red-600 text-xs mt-1">Required: 1-3 digits</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   N-G / B-R
                 </label>
                 <input
-                  type="number"
-                  className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-xs"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{1,3}"
+                  minLength={1}
+                  maxLength={3}
+                  required
+                  className={`w-full px-2 py-2 border-2 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-xs ${
+                    voltageErrors.ng_br ? "border-red-500" : "border-gray-200"
+                  }`}
                   placeholder="0-999"
                   value={voltageNG_BR}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    if (
-                      value === "" ||
-                      (value.length <= 3 && parseInt(value) <= 999)
-                    ) {
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    if (value.length <= 3) {
                       setVoltageNG_BR(value);
                     }
                   }}
+                  onBlur={() =>
+                    setVoltageErrors((prev) => ({
+                      ...prev,
+                      ng_br: !isValidVoltage(voltageNG_BR),
+                    }))
+                  }
                 />
+                {voltageErrors.ng_br && (
+                  <p className="text-red-600 text-xs mt-1">Required: 1-3 digits</p>
+                )}
               </div>
             </div>
           </div>

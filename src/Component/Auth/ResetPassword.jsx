@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { ArrowLeft } from "lucide-react";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -108,37 +109,25 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-4 shadow-lg">
-        <div className="flex items-center text-white">
+      <div className="fixed  left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+        <div className="flex items-center p-4 py-4 text-white">
           <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
             onClick={() => navigate("/login")}
-            className="mr-3 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all duration-200 transform hover:scale-110 active:scale-95"
             disabled={isLoading}
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <h2 className="text-lg font-bold">Reset Password</h2>
+          <div>
+            <h1 className="text-xl font-bold text-white">Reset Password</h1>
+          </div>
         </div>
       </div>
-
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 pt-0  flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
           {/* Logo Section */}
-          <div className="px-6 py-5 text-center border-b border-gray-100">
+          <div className="px-6 pt-6 text-center   border-gray-100">
             <div className="flex flex-col items-center">
               <div className="bg-blue-50 rounded-full p-3 mb-3 shadow-sm">
                 <img
@@ -147,31 +136,15 @@ const ResetPassword = () => {
                   className="w-10 h-10 object-contain"
                 />
               </div>
-              <h2 className="text-sm font-bold text-gray-600 tracking-wide">
-                SKANRAY SERVICE PORTAL
-              </h2>
+             
             </div>
           </div>
 
           {/* Form Section */}
-          <div className="px-6 py-6">
+          <div className="px-6 py-2">
             {/* Title and Description */}
             <div className="text-center mb-6">
-              <div className="bg-green-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-              </div>
+               
               <h3 className="text-xl font-bold text-gray-800 mb-2">
                 Reset Your Password
               </h3>
@@ -362,7 +335,7 @@ const ResetPassword = () => {
             </form>
 
             {/* Back to Login */}
-            <div className="mt-6 text-center">
+            <div className="my-6 text-center">
               <button
                 onClick={() => navigate("/login")}
                 className="text-gray-600 hover:text-blue-600 text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1 mx-auto"

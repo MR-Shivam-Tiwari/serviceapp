@@ -526,7 +526,7 @@ const CreateOnCallEstimationPage = () => {
   }
   return (
     <div className="">
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -541,7 +541,7 @@ const CreateOnCallEstimationPage = () => {
           </div>
         </div>
       </div>
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 py-20">
         {/* Complaint Details Card */}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-3 text-gray-800">
@@ -560,15 +560,21 @@ const CreateOnCallEstimationPage = () => {
             </div>
             <div>
               <span className="text-gray-600">Serial Number:</span>
-              <span className="ml-2 font-medium">{complaint?.serialnumber}</span>
+              <span className="ml-2 font-medium">
+                {complaint?.serialnumber}
+              </span>
             </div>
             <div>
               <span className="text-gray-600">Part Number:</span>
-              <span className="ml-2 font-medium">{complaint?.materialcode}</span>
+              <span className="ml-2 font-medium">
+                {complaint?.materialcode}
+              </span>
             </div>
             <div>
               <span className="text-gray-600">Customer Code:</span>
-              <span className="ml-2 font-medium">{complaint?.customercode}</span>
+              <span className="ml-2 font-medium">
+                {complaint?.customercode}
+              </span>
             </div>
             <div>
               <span className="text-gray-600">Customer Email:</span>

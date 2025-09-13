@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { Capacitor } from "@capacitor/core";
+import { Toast } from "@capacitor/toast";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import axios from "axios";
@@ -9,6 +11,7 @@ const OnCallQuoteDownload = () => {
   const { proposalId } = useParams();
   const [quoteData, setQuoteData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchQuoteData = async () => {
@@ -28,6 +31,8 @@ const OnCallQuoteDownload = () => {
   }, [proposalId]);
   const handleDownloadPDF = async () => {
     try {
+      setDownloading(true);
+
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = 210;
       const pageHeight = 297;
@@ -66,25 +71,54 @@ const OnCallQuoteDownload = () => {
         );
       }
 
-      // ✅ Convert PDF to base64
-      const base64Pdf = pdf.output("datauristring").split(",")[1]; // Remove data:application/pdf;base64,
-
       const fileName = `${quoteData?.onCallNumber || "OnCall"}-Rev${
         quoteData?.currentRevision || 0
       }.pdf`;
 
-      // ✅ Save using Capacitor Filesystem
-      await Filesystem.writeFile({
-        path: fileName,
-        data: base64Pdf,
-        directory: Directory.Documents, // or Directory.Data / Directory.Cache
-        encoding: Encoding.Base64,
-      });
+      if (Capacitor.isNativePlatform()) {
+        // Mobile app - use Capacitor Filesystem
+        const base64Pdf = pdf.output("datauristring").split(",")[1];
 
-      alert("PDF saved successfully in Documents folder!");
+        await Filesystem.writeFile({
+          path: fileName,
+          data: base64Pdf,
+          directory: Directory.Documents,
+          encoding: Encoding.Base64,
+        });
+
+        // Show native toast notification
+        await Toast.show({
+          text: `PDF saved successfully! Check your Documents folder for ${fileName}`,
+          duration: "long",
+          position: "bottom",
+        });
+      } else {
+        // Web browser - trigger download
+        const pdfBlob = pdf.output("blob");
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      setDownloading(false);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("Failed to save PDF.");
+      setDownloading(false);
+
+      if (Capacitor.isNativePlatform()) {
+        await Toast.show({
+          text: "Failed to save PDF. Please try again.",
+          duration: "long",
+          position: "bottom",
+        });
+      } else {
+        alert("Failed to save PDF. Please try again.");
+      }
     }
   };
 
@@ -192,10 +226,36 @@ const OnCallQuoteDownload = () => {
         <div className="  w-full fixed top-10  px-4">
           <button
             onClick={handleDownloadPDF}
-            className="w-full bg-black text-white font-bold py-3 px-6 rounded shadow-lg hover:bg-gray-800 transition duration-200"
-            disabled={loading}
+            className="w-full bg-black text-white font-bold py-3 px-6 rounded shadow-lg hover:bg-gray-800 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            disabled={downloading}
           >
-            {loading ? "Generating PDF..." : "Download PDF"}
+            {downloading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Generating PDF...
+              </>
+            ) : (
+              "Download PDF"
+            )}
           </button>
         </div>
         <style>

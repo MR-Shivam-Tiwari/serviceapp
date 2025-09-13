@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Building2, Search } from "lucide-react";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 function CitiesPage() {
   const navigate = useNavigate();
@@ -11,7 +12,10 @@ function CitiesPage() {
   const decodedRegion = decodeURIComponent(region);
   const [allPms, setAllPms] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   useEffect(() => {
     const storedPms = localStorage.getItem("allPmsData");
     if (storedPms) {
@@ -46,7 +50,7 @@ function CitiesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-xl">
+      <div className="fixed  left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-xl">
         <div className="flex items-center justify-between p-4 py-5 text-white">
           <div className="flex items-center  ">
             <button
@@ -59,7 +63,8 @@ function CitiesPage() {
             <div className="flex items-center  ">
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-wide">
-                  Cities in {decodedRegion}
+                  Cities in
+                   <span className="text-md">  {decodedRegion}</span>
                 </h1>
               </div>
             </div>
@@ -80,7 +85,7 @@ function CitiesPage() {
                 placeholder="Search cities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="block w-full pl-12 pr-4 py-4 border border-slate-200/60 rounded-lg leading-5 bg-white/90 backdrop-blur-sm placeholder-slate-400 focus:outline-none focus:placeholder-slate-300 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 transition-all duration-300 shadow-lg hover:shadow-xl text-slate-700 font-medium"
+                className="block w-full pl-12 pr-4 py-4 border border-slate-200/60 rounded-lg leading-5 bg-white/90 backdrop-blur-sm placeholder-slate-400 focus:outline-none focus:placeholder-slate-300 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 transition-all duration-300 shadow-lg hover:shadow-xl text-slate-700 font-medium"
               />
             </div>
           </div>
@@ -167,6 +172,7 @@ function CitiesPage() {
           </div>
         </div>
       </div>
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
     </div>
   );
 }

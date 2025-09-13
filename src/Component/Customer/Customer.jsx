@@ -2,15 +2,20 @@
 
 import { ArrowLeft, Search, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ShortcutFooter from "../Home/ShortcutFooter";
+import { useState } from "react";
 
 export default function Customer() {
   const navigate = useNavigate();
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="relative">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
           <div className="flex items-center p-4 py-4 text-white">
             <button
               className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -25,7 +30,7 @@ export default function Customer() {
         </div>
 
         {/* Main Content */}
-        <div className="px-4 py-6">
+        <div className="px-4 py-20">
           <div className="max-w-md mx-auto space-y-6">
             {/* Search Customer Card */}
             <div className="group">
@@ -78,7 +83,7 @@ export default function Customer() {
             </div>
           </div>
         </div>
-
+        <ShortcutFooter safeAreaInsets={safeAreaInsets} />
         {/* Decorative Elements */}
         <div className="absolute top-20 right-4 w-20 h-20 bg-blue-200/30 rounded-full blur-xl"></div>
         <div className="absolute bottom-20 left-4 w-16 h-16 bg-emerald-200/30 rounded-full blur-xl"></div>

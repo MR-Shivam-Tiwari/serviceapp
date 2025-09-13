@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -36,7 +37,7 @@ export default function ProposalDetails() {
 
         // Fetch prices
         const pricesResponse = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/admin/cmcncmcprice`
+          `${process.env.REACT_APP_BASE_URL}/admin/cmcncmcprice/all`
         );
         const pricesData = await pricesResponse.json();
         const pricesMap = {};
@@ -81,7 +82,9 @@ export default function ProposalDetails() {
   }, [items]);
 
   if (items.length === 0) {
-    return <div className="p-4">No proposals selected.</div>;
+    return (
+      <div className="p-3 text-center text-sm">No proposals selected.</div>
+    );
   }
 
   const customer = items[0].customer;
@@ -169,13 +172,10 @@ export default function ProposalDetails() {
     }
 
     const calculation = calculateTotalAmount();
-
-    // Generate a serialNumber to send (example: current timestamp in ms)
-    const serialNumber = Date.now();
+    // const serialNumber = Date.now();
 
     const proposalData = {
-      serialNumber,
-
+      // serialNumber,
       customer: {
         customercodeid: customer?.customercodeid,
         customername: customer?.customername,
@@ -186,7 +186,6 @@ export default function ProposalDetails() {
         telephone: customer?.telephone,
         email: customer?.email,
       },
-
       items: items.map(({ equipment }) => {
         const sel = selections[equipment._id];
         const materialCode = equipment.materialcode;
@@ -204,6 +203,7 @@ export default function ProposalDetails() {
             materialcode: equipment.materialcode,
             materialdescription: equipment.materialdescription,
             dealer: equipment.dealer,
+            serialnumber: equipment.serialnumber,
           },
           warrantyType: sel.cmc ? "CMC" : sel.ncmc ? "NCMC" : "None",
           years: sel.years,
@@ -211,7 +211,6 @@ export default function ProposalDetails() {
           subtotal: basePrice * sel.years,
         };
       }),
-
       tdsPercentage,
       discountPercentage,
       gstPercentage,
@@ -264,297 +263,441 @@ export default function ProposalDetails() {
   const calculation = calculateTotalAmount();
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <div className="flex items-center bg-primary p-3 py-5 text-white mb-6 rounded-md shadow-md">
-        <button
-          className="mr-2 text-white hover:opacity-80 transition"
-          onClick={() => navigate("/create-proposal")}
-          aria-label="Back"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="36"
-            height="36"
-            fill="currentColor"
-            className="bi bi-arrow-left-short"
-            viewBox="0 0 16 16"
+    <div className=" bg-gray-50">
+      {/* Header - Unchanged */}
+      <div className="fixed  left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+        <div className="flex items-center p-4 py-4 text-white">
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            onClick={() => navigate("/create-proposal")}
           >
-            <path
-              fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-            />
-          </svg>
-        </button>
-        <h2 className="text-2xl font-bold">Proposal Details</h2>
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <h1 className="text-2xl font-bold text-white">Proposal Details</h1>
+        </div>
       </div>
 
+      {/* Loading Spinner */}
       {loading && (
-        <div className="flex justify-center mb-4">
-          <svg
-            className="animate-spin h-8 w-8 text-primary"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            ></path>
-          </svg>
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-40">
+          <div className="bg-white p-4 rounded-lg shadow-lg">
+            <svg
+              className="animate-spin h-6 w-6 text-blue-600 mx-auto"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              ></path>
+            </svg>
+            <p className="text-sm text-gray-600 mt-2">Loading...</p>
+          </div>
         </div>
       )}
 
-      <main className="space-y-8">
-        {/* Customer Section */}
-        <section className="bg-white p-6 rounded-lg shadow-lg">
-          <h3 className="font-semibold text-xl mb-4 border-b pb-2">Customer Info</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-8 text-gray-700">
-            <p><strong>Code:</strong> {customer?.customercodeid || "-"}</p>
-            <p><strong>Name:</strong> {customer?.customername || "-"}</p>
-            <p><strong>City:</strong> {customer?.city || "-"}</p>
-            <p><strong>Pincode:</strong> {customer?.postalcode || "-"}</p>
-            <p><strong>Pan Number:</strong> {customer?.taxnumber1 || "-"}</p>
-            <p><strong>GST Number:</strong> {customer?.taxnumber2 || "-"}</p>
-            <p><strong>Phone Number:</strong> {customer?.telephone || "-"}</p>
-            <p><strong>Email :</strong> {customer?.email || "-"}</p>
-            <p><strong>Dealer :</strong> {equipmentdealer?.dealer || "-"}</p>
+      <main className="pt-20 pb-6 px-2 space-y-3">
+        {/* Customer Section - Enhanced */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-800 flex items-center">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+              Customer Information
+            </h3>
           </div>
-        </section>
+          <div className="p-2 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 rounded-lg p-2">
+                <p className="text-xs text-gray-500 mb-1">Customer Code</p>
+                <p className="font-medium text-sm">
+                  {customer?.customercodeid || "N/A"}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-2">
+                <p className="text-xs text-gray-500 mb-1">Name</p>
+                <p className="font-medium text-sm truncate">
+                  {customer?.customername || "N/A"}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 rounded-lg p-2">
+                <p className="text-xs text-gray-500 mb-1">City</p>
+                <p className="font-medium text-sm">{customer?.city || "N/A"}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-2">
+                <p className="text-xs text-gray-500 mb-1">Pincode</p>
+                <p className="font-medium text-sm">
+                  {customer?.postalcode || "N/A"}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 rounded-lg p-2">
+                <p className="text-xs text-gray-500 mb-1">Pan Number</p>
+                <p className="font-medium text-sm">
+                  {customer?.taxnumber1 || "N/A"}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-2">
+                <p className="text-xs text-gray-500 mb-1">GST Number</p>
+                <p className="font-medium text-sm">
+                  {customer?.taxnumber2 || "N/A"}
+                </p>
+              </div>
+            </div>
 
-        {/* Equipment Items */}
-        <section className="space-y-6">
-          {items.map(({ equipment }) => {
+            <div className="bg-gray-50 rounded-lg p-2">
+              <p className="text-xs text-gray-500 mb-1">Contact</p>
+              <p className="font-medium text-sm">
+                {customer?.telephone || "N/A"}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                {customer?.email || "N/A"}
+              </p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-2">
+              <p className="text-xs text-blue-600 mb-1">Dealer</p>
+              <p className="font-medium text-sm text-blue-800">
+                {equipmentdealer?.dealer || "N/A"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Equipment Items - Enhanced */}
+        <div className="space-y-3">
+          {items.map(({ equipment }, index) => {
             const sel = selections[equipment._id];
             const itemCalc = calculation.itemCalculations.find(
               (item) => item.equipmentId === equipment._id
             );
 
             return (
-              <div key={equipment._id} className="bg-white p-5 rounded-lg shadow-lg" aria-label={`Equipment ${equipment.name}`}>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-lg">{equipment.name}</h4>
-                    <p className="text-gray-600 text-sm mb-1">{equipment.materialdescription}</p>
-                    <p className="text-gray-500 text-xs">Code: {equipment.materialcode}</p>
+              <div
+                key={equipment._id}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-gray-50 to-slate-50 px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-gray-800 text-sm flex items-center">
+                      <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center mr-2">
+                        {index + 1}
+                      </span>
+                      {equipment.name}
+                    </h4>
+                    <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                      {equipment.materialcode}
+                    </span>
                   </div>
-
-                  <div className="flex items-center space-x-6">
-                    <label className="flex items-center cursor-pointer space-x-2">
-                      <input
-                        type="radio"
-                        name={`warranty-${equipment._id}`}
-                        checked={sel.cmc}
-                        onChange={() => handleToggle(equipment._id, "cmc")}
-                        className="form-radio h-5 w-5 text-primary"
-                      />
-                      <span>CMC</span>
-                    </label>
-                    <label className="flex items-center cursor-pointer space-x-2">
-                      <input
-                        type="radio"
-                        name={`warranty-${equipment._id}`}
-                        checked={sel.ncmc}
-                        onChange={() => handleToggle(equipment._id, "ncmc")}
-                        className="form-radio h-5 w-5 text-primary"
-                      />
-                      <span>NCMC</span>
-                    </label>
-
-                    <div className="flex items-center space-x-2">
-                      <label htmlFor={`years-${equipment._id}`} className="mr-2">Years:</label>
-                      <select
-                        id={`years-${equipment._id}`}
-                        value={sel.years}
-                        onChange={(e) => handleYearsChange(equipment._id, e.target.value)}
-                        className="border rounded p-1 w-20 focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        {[1, 2, 3, 4, 5].map((y) => (
-                          <option key={y} value={y}>{y}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-600 text-xs mt-1 leading-relaxed">
+                      {equipment.materialdescription}
+                    </p>
+                    <p className="text-gray-600 bg-green-200 px-1 rounded-full text-xs mt-1 leading-relaxed">
+                      Sno: {equipment.serialnumber}
+                    </p>
                   </div>
                 </div>
 
-                {(sel.cmc || sel.ncmc) && (
-                  <div className="mt-5 border-t pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-500">Warranty Type</p>
-                        <p className="font-medium">{itemCalc?.warrantyType}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Price/Year</p>
-                        <p className="font-medium">₹{itemCalc?.pricePerYear?.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Years</p>
-                        <p className="font-medium">{itemCalc?.years}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Subtotal</p>
-                        <p className="font-medium">₹{itemCalc?.subtotal?.toFixed(2)}</p>
-                      </div>
+                <div className="p-4">
+                  {/* Warranty Selection */}
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-gray-700 mb-2">
+                      Select Warranty Type:
+                    </p>
+                    <div className="flex gap-3">
+                      <label className="flex-1">
+                        <input
+                          type="radio"
+                          name={`warranty-${equipment._id}`}
+                          checked={sel.cmc}
+                          onChange={() => handleToggle(equipment._id, "cmc")}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`p-3 rounded-lg border-2 transition-all cursor-pointer text-center ${
+                            sel.cmc
+                              ? "border-green-400 bg-green-50 text-green-700"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <span className="font-medium text-sm">CMC</span>
+                        </div>
+                      </label>
+                      <label className="flex-1">
+                        <input
+                          type="radio"
+                          name={`warranty-${equipment._id}`}
+                          checked={sel.ncmc}
+                          onChange={() => handleToggle(equipment._id, "ncmc")}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`p-3 rounded-lg border-2 transition-all cursor-pointer text-center ${
+                            sel.ncmc
+                              ? "border-blue-400 bg-blue-50 text-blue-700"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <span className="font-medium text-sm">NCMC</span>
+                        </div>
+                      </label>
                     </div>
                   </div>
-                )}
+
+                  {/* Years Selection */}
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-gray-700 mb-2">
+                      Duration (Years):
+                    </p>
+                    <select
+                      value={sel.years}
+                      onChange={(e) =>
+                        handleYearsChange(equipment._id, e.target.value)
+                      }
+                      className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {[1, 2, 3, 4, 5].map((y) => (
+                        <option key={y} value={y}>
+                          {y} Year{y > 1 ? "s" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Calculation Display */}
+                  {(sel.cmc || sel.ncmc) && (
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-center">
+                          <p className="text-xs text-gray-600">
+                            Price per Year
+                          </p>
+                          <p className="font-bold text-lg text-green-600">
+                            ₹
+                            {itemCalc?.pricePerYear?.toLocaleString("en-IN") ||
+                              "0"}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-600">Total Amount</p>
+                          <p className="font-bold text-lg text-green-600">
+                            ₹
+                            {itemCalc?.subtotal?.toLocaleString("en-IN") || "0"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
-        </section>
+        </div>
 
-        {/* Grand Total Calculation */}
+        {/* Calculation Section - Enhanced */}
         {hasSelectedWarranty && (
           <>
-            <section className="bg-white p-6 rounded-lg shadow-lg space-y-6">
-              <h3 className="font-semibold text-xl border-b pb-2">Grand Total Calculation</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
+                <h3 className="font-semibold text-gray-800 flex items-center">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  Tax Configuration
+                </h3>
+              </div>
+              <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">TDS (%)</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                    TDS Percentage
+                  </label>
                   <select
                     value={tdsPercentage}
-                    onChange={(e) => setTdsPercentage(parseFloat(e.target.value) || 0)}
-                    className="block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={(e) =>
+                      setTdsPercentage(parseFloat(e.target.value) || 0)
+                    }
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
-                    <option value="0">Select TDS</option>
+                    <option value="0">Select TDS Rate</option>
                     {tdsOptions.map((option) => (
-                      <option key={option._id} value={option.tds}>{option.tds}%</option>
+                      <option key={option._id} value={option.tds}>
+                        {option.tds}%
+                      </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Discount (commented out as per original) */}
-                {/* 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
-                  <select
-                    value={discountPercentage}
-                    onChange={(e) => setDiscountPercentage(parseFloat(e.target.value) || 0)}
-                    className="block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="0">Select Discount</option>
-                    {discountOptions.map((option) => (
-                      <option key={option._id} value={extractPercentageValue(option.discount)}>{option.discount}</option>
-                    ))}
-                  </select>
-                </div>
-                */}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">GST (%)</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                    GST Percentage
+                  </label>
                   <select
                     value={gstPercentage}
-                    onChange={(e) => setGstPercentage(parseFloat(e.target.value) || 0)}
-                    className="block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={(e) =>
+                      setGstPercentage(parseFloat(e.target.value) || 0)
+                    }
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
-                    <option value="0">Select GST</option>
+                    <option value="0">Select GST Rate</option>
                     {gstOptions.map((option) => (
-                      <option key={option._id} value={extractPercentageValue(option.gst)}>{option.gst}</option>
+                      <option
+                        key={option._id}
+                        value={extractPercentageValue(option.gst)}
+                      >
+                        {option.gst}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
+            </div>
 
-              <div className="bg-gray-100 p-4 rounded-md">
-                <h4 className="font-semibold mb-2">Grand Total Summary</h4>
-                <div className="space-y-1 text-gray-800">
-                  <div className="flex justify-between">
-                    <span>Total Subtotal ({calculation.itemCalculations.filter(item => item.warrantyType !== "None").length} items):</span>
-                    <span>₹{calculation.grandSubTotal.toFixed(2)}</span>
+            {/* Grand Total Summary - Enhanced */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg text-white overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/20">
+                <h3 className="font-bold text-white flex items-center">
+                  <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
+                  Payment Summary
+                </h3>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-blue-100">Subtotal</span>
+                  <span className="font-semibold">
+                    ₹{calculation.grandSubTotal.toLocaleString("en-IN")}
+                  </span>
+                </div>
+
+                {discountPercentage > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-blue-100">
+                      Discount ({discountPercentage}%)
+                    </span>
+                    <span className="font-semibold text-red-300">
+                      -₹{calculation.discountAmount.toLocaleString("en-IN")}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Discount ({discountPercentage}%):</span>
-                    <span>-₹{calculation.discountAmount.toFixed(2)}</span>
+                )}
+
+                {tdsPercentage > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-blue-100">
+                      TDS ({tdsPercentage}%)
+                    </span>
+                    <span className="font-semibold text-red-300">
+                      -₹{calculation.tdsAmount.toLocaleString("en-IN")}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>After Discount:</span>
-                    <span>₹{calculation.afterDiscount.toFixed(2)}</span>
+                )}
+
+                {gstPercentage > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-blue-100">
+                      GST ({gstPercentage}%)
+                    </span>
+                    <span className="font-semibold text-green-300">
+                      +₹{calculation.gstAmount.toLocaleString("en-IN")}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>TDS ({tdsPercentage}%):</span>
-                    <span>-₹{calculation.tdsAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>After TDS:</span>
-                    <span>₹{calculation.afterTds.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>GST ({gstPercentage}%):</span>
-                    <span>+₹{calculation.gstAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between font-bold border-t pt-2 mt-2">
-                    <span>Final Amount:</span>
-                    <span>₹{calculation.finalAmount.toFixed(2)}</span>
+                )}
+
+                <div className="border-t border-white/20 pt-3 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold">Final Amount</span>
+                    <span className="text-2xl font-bold text-yellow-300">
+                      ₹{calculation.finalAmount.toLocaleString("en-IN")}
+                    </span>
                   </div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* Remark */}
-            <section className="bg-white p-6 rounded-lg shadow-lg">
-              <h3 className="font-semibold mb-2 text-lg">Remark</h3>
-              <textarea
-                maxLength={400}
-                className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
-                rows={4}
-                value={remark}
-                onChange={(e) => setRemark(e.target.value)}
-              />
-              <p
-                className={`text-xs font-medium text-right mt-1 ${
-                  remark.length > 380
-                    ? "text-red-600"
-                    : remark.length > 350
-                    ? "text-orange-500"
-                    : "text-gray-500"
-                }`}
-              >
-                {remark.length}/400 characters used
-              </p>
-            </section>
+            {/* Remark Section - Enhanced */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 px-4 py-3 border-b border-gray-100">
+                <h3 className="font-semibold text-gray-800 flex items-center">
+                  <div className="w-2 h-2 bg-gray-500 rounded-full mr-2"></div>
+                  Additional Remarks
+                </h3>
+              </div>
+              <div className="p-4">
+                <textarea
+                  maxLength={400}
+                  className="w-full px-3 py-3 bg-white border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all duration-200 resize-none text-sm"
+                  rows={3}
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  placeholder="Enter any additional remarks or notes..."
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <div></div>
+                  <p
+                    className={`text-xs font-medium ${
+                      remark.length > 380
+                        ? "text-red-600"
+                        : remark.length > 350
+                        ? "text-orange-500"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {remark.length}/400
+                  </p>
+                </div>
+              </div>
+            </div>
           </>
         )}
 
-        {/* Submit Error & Validation */}
+        {/* Error Messages */}
         {submitError && (
-          <div className="text-red-500 text-center mb-4">
-            Error: {submitError.message || "Failed to save proposal"}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-red-600 text-sm text-center font-medium">
+              Error: {submitError.message || "Failed to save proposal"}
+            </p>
           </div>
         )}
+
         {(isNaN(calculation.finalAmount) || calculation.finalAmount <= 0) && (
-          <div className="text-red-600 text-sm text-center mb-4 font-medium">
-            Final amount must be greater than zero to submit the proposal.
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-amber-700 text-sm text-center font-medium">
+              Final amount must be greater than zero to submit the proposal.
+            </p>
           </div>
         )}
-        <div className="flex justify-center mb-8">
+
+        {/* Submit Button - Enhanced */}
+        <div className="sticky bottom-0 pb-14 bg-gray-50 p-3 -mx-3">
           <button
             onClick={handleSubmit}
             disabled={
-              loading || !hasSelectedWarranty || isNaN(calculation.finalAmount) || calculation.finalAmount <= 0
-            }
-            className={`bg-primary text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ${
               loading ||
               !hasSelectedWarranty ||
               isNaN(calculation.finalAmount) ||
               calculation.finalAmount <= 0
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-primary-dark"
+            }
+            className={`w-full py-4 px-6 rounded-xl font-bold text-sm shadow-lg transition-all duration-300 transform ${
+              loading ||
+              !hasSelectedWarranty ||
+              isNaN(calculation.finalAmount) ||
+              calculation.finalAmount <= 0
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 active:scale-95 shadow-green-200"
             }`}
           >
             {loading ? (
-              <span className="flex items-center justify-center space-x-2">
+              <div className="flex items-center justify-center space-x-2">
                 <svg
-                  className="animate-spin h-5 w-5 text-white"
+                  className="animate-spin h-5 w-5"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -573,10 +716,25 @@ export default function ProposalDetails() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                   ></path>
                 </svg>
-                <span>Saving...</span>
-              </span>
+                <span>Processing...</span>
+              </div>
             ) : (
-              "Submit to Customer"
+              <div className="flex items-center justify-center space-x-2">
+                <span>Submit Proposal</span>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
+                </svg>
+              </div>
             )}
           </button>
         </div>

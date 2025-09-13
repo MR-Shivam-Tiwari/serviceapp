@@ -4,13 +4,17 @@ import { useState, useEffect } from "react";
 
 import { ArrowLeft, MapPin, Search, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 function RegionsPage() {
   const navigate = useNavigate();
   const [allPms, setAllPms] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   useEffect(() => {
     const storedPms = localStorage.getItem("allPmsData");
     if (storedPms) {
@@ -36,7 +40,7 @@ function RegionsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col">
       {/* Fixed Header - यह हमेशा top पर रहेगा */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg fixed top-0 left-0 right-0 z-50">
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg fixed  left-0 right-0 z-50">
         <div className="relative overflow-hidden">
           {/* Animated background pattern */}
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-transparent to-indigo-600/10"></div>
@@ -81,7 +85,7 @@ function RegionsPage() {
       </div>
 
       {/* Scrollable Content Area - Header के नीचे padding दिया गया है */}
-      <div className="flex-1 pt-[160px] pb-8 overflow-y-auto">
+      <div className="flex-1 pt-[160px] pb-8 mb-20 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4">
           {/* Regions Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -171,6 +175,7 @@ function RegionsPage() {
           </div>
         </div>
       </div>
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
     </div>
   );
 }

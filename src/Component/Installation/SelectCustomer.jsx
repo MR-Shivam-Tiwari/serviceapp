@@ -62,11 +62,11 @@ function SelectCustomer() {
       if (query && query.trim() !== "") {
         url = `${
           process.env.REACT_APP_BASE_URL
-        }/collections/searchcustomer?page=${page}&limit=${PAGE_SIZE}&q=${encodeURIComponent(
+        }/collections/searchcustomerphone?page=${page}&limit=${PAGE_SIZE}&q=${encodeURIComponent(
           query.trim()
         )}`;
       } else {
-        url = `${process.env.REACT_APP_BASE_URL}/collections/customer?page=${page}&limit=${PAGE_SIZE}`;
+        url = `${process.env.REACT_APP_BASE_URL}/collections/customerphone?page=${page}&limit=${PAGE_SIZE}`;
       }
 
       const response = await fetch(url, {
@@ -147,7 +147,7 @@ function SelectCustomer() {
     }
 
     return (
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-3 py-3 shadow-lg">
+      <div className="sticky bottom-0 pb-12 bg-white border-t border-gray-200 px-3 py-3 shadow-lg">
         <div className="flex justify-between items-center">
           <button
             className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -195,7 +195,7 @@ function SelectCustomer() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Fixed Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -208,7 +208,7 @@ function SelectCustomer() {
       </div>
 
       {/* Main Content with top margin for fixed header */}
-      <main className="flex-1  ">
+      <main className="flex-1 py-16 ">
         {/* Search Section */}
         <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-3 py-3 shadow-sm">
           <div className="relative">

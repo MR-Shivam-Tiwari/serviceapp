@@ -24,6 +24,7 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  RefreshCw,
 } from "lucide-react";
 
 function InstallationSummary() {
@@ -46,9 +47,14 @@ function InstallationSummary() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [showProgressModal, setShowProgressModal] = useState(false);
-
+  const [otpTimer, setOtpTimer] = useState(300); // 5 minutes = 300 seconds
+  const [isResendDisabled, setIsResendDisabled] = useState(true);
   // For global checklist remark
   const [globalChecklistRemark, setGlobalChecklistRemark] = useState("");
+  const [showFailurePopup, setShowFailurePopup] = useState(false);
+  const [failedItems, setFailedItems] = useState([]);
+  const [editingFailedItem, setEditingFailedItem] = useState(null);
+  const [tempVoltageInput, setTempVoltageInput] = useState("");
 
   // Checklist states
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
@@ -251,7 +257,6 @@ function InstallationSummary() {
     }
   }, [installItems]);
 
-  // Build data to send in one request
   const buildEquipmentPayloadsAndPdfData = () => {
     const equipmentPayloads = [];
     const equipmentListForPdf = [];
@@ -260,7 +265,7 @@ function InstallationSummary() {
       const {
         serialNumber,
         pendingInstallationData,
-        palNumber, // This now contains the procurement number if it's an AERB item
+        palNumber,
         checklistResults = [],
       } = item;
 
@@ -269,7 +274,7 @@ function InstallationSummary() {
       let calibrationDate = "";
       if (checklistResults.length > 0) {
         equipmentUsed = checklistResults[0].equipmentUsedSerial || "";
-        calibrationDate = checklistResults.calibrationDueDate || "";
+        calibrationDate = checklistResults[0].calibrationDueDate || "";
       }
 
       const warrantyStartDate = new Date();
@@ -296,8 +301,7 @@ function InstallationSummary() {
         custWarrantyenddate: warrantyEndDate
           ? warrantyEndDate.toISOString()
           : "",
-        // Updated: Use palNumber which now contains procurement number for AERB items
-        palnumber: palNumber || "", // This will be the procurement number if user entered it
+        palnumber: palNumber || "",
         equipmentUsedSerial: equipmentUsed,
         calibrationDueDate: calibrationDate,
       };
@@ -305,10 +309,7 @@ function InstallationSummary() {
       console.log("pendingInstallationData", pendingInstallationData?.key);
       equipmentPayloads.push(equipPayload);
 
-      // Get document info for this material
-      const materialCode = pendingInstallationData?.material;
-      const docInfo = documentInfo[materialCode];
-
+      // Add to equipmentListForPdf
       equipmentListForPdf.push({
         materialdescription: pendingInstallationData?.description || "",
         serialnumber: serialNumber,
@@ -320,6 +321,7 @@ function InstallationSummary() {
       });
     });
 
+    // Move pdfData OUTSIDE the loop
     const pdfData = {
       userInfo,
       dateOfInstallation: new Date().toLocaleDateString("en-GB"),
@@ -384,6 +386,41 @@ function InstallationSummary() {
 
   // Confirm => send OTP with installation details
   const handleConfirmAndCompleteInstallation = async () => {
+    const incompleteMachines = installItems.filter((item, index) => {
+      const hasChecklist =
+        item.checklistResults && item.checklistResults.length > 0;
+      return !hasChecklist;
+    });
+
+    if (incompleteMachines.length > 0) {
+      toast.error(
+        `Please complete checklists for all machines. ${incompleteMachines.length} machine(s) pending.`
+      );
+      return;
+    }
+
+    // Additional validation: Check if any checklist has empty results
+    const machinesWithIncompleteChecklists = installItems.filter(
+      (item, index) => {
+        if (!item.checklistResults || item.checklistResults.length === 0)
+          return true;
+
+        // Check if all checklist items have results
+        const hasEmptyResults = item.checklistResults.some(
+          (result) => !result.result || result.result.trim() === ""
+        );
+
+        return hasEmptyResults;
+      }
+    );
+
+    if (machinesWithIncompleteChecklists.length > 0) {
+      toast.error(
+        `Please complete all checklist items for all machines. ${machinesWithIncompleteChecklists.length} machine(s) have incomplete checklists.`
+      );
+      return;
+    }
+
     setLoadingMessage("Sending OTP...");
     setIsLoading(true);
 
@@ -408,7 +445,7 @@ function InstallationSummary() {
           serialNumber: serialNumber,
           material: pendingInstallationData?.material || "N/A",
           description: pendingInstallationData?.description || "N/A",
-          warrantyStartDate: warrantyStartDate.toLocaleDateString("en-GB"), // DD/MM/YYYY format
+          warrantyStartDate: warrantyStartDate.toLocaleDateString("en-GB"),
           warrantyEndDate: warrantyEndDate
             ? warrantyEndDate.toLocaleDateString("en-GB")
             : "N/A",
@@ -471,16 +508,18 @@ function InstallationSummary() {
   const verifyOtpAndSubmit = async () => {
     setIsVerifyingOtp(true);
     setIsLoading(true);
+    setLoadingMessage("Verifying OTP...");
 
     try {
       // Verify OTP
-      await axios.post(
+      const response = await axios.post(
         `${process.env.REACT_APP_BASE_URL}/collections/verify-otp`,
         {
           email: customer?.email,
           otp,
         }
       );
+
       toast.success("OTP verified successfully.");
 
       // Close OTP modal and show progress modal
@@ -512,7 +551,6 @@ function InstallationSummary() {
           prodGroup = item.checklistResults[0].prodGroup;
         }
 
-        // Get document info for this material
         const materialCode = item.pendingInstallationData?.material;
         const docInfo = documentInfo[materialCode];
 
@@ -521,13 +559,12 @@ function InstallationSummary() {
           checklistResults: item.checklistResults || [],
           globalRemark: globalChecklistRemark,
           prodGroup,
-          // Add document information to checklist data
           documentInfo: docInfo || null,
         };
       });
 
       // Create streaming request
-      const response = await fetch(
+      const streamResponse = await fetch(
         `${process.env.REACT_APP_BASE_URL}/collections/equipment/bulk`,
         {
           method: "POST",
@@ -544,11 +581,11 @@ function InstallationSummary() {
         }
       );
 
-      if (!response.ok) {
+      if (!streamResponse.ok) {
         throw new Error("Network response was not ok");
       }
 
-      const reader = response.body.getReader();
+      const reader = streamResponse.body.getReader();
       const decoder = new TextDecoder();
 
       while (true) {
@@ -579,14 +616,48 @@ function InstallationSummary() {
 
       toast.success("All installations completed successfully!");
     } catch (error) {
-      console.error("Error in installation process:", error);
-      toast.error("Failed to complete installation process.");
-      setShowProgressModal(false);
-      setShowOtpModal(true);
-    } finally {
+      console.error("Error in verification/installation process:", error);
+
+      // **KEY CHANGES: Handle OTP failure properly**
+
+      // Close loading modal immediately
+      setIsLoading(false);
+      setLoadingMessage("");
       setIsVerifyingOtp(false);
+
+      // Check if error is related to OTP verification
+      const errorMessage =
+        error.response?.data?.message || error.message || "Unknown error";
+
+      if (
+        error.response?.status === 400 ||
+        errorMessage.toLowerCase().includes("otp")
+      ) {
+        // OTP verification failed
+        toast.error("Invalid OTP. Please try again.");
+
+        // Clear the entered OTP
+        setOtp("");
+
+        // Keep OTP modal open (don't close it)
+        // The modal is already open, so we don't need to setShowOtpModal(true)
+
+        // Focus back to OTP input after a short delay
+        setTimeout(() => {
+          const otpInput = document.querySelector('input[placeholder*="OTP"]');
+          if (otpInput) {
+            otpInput.focus();
+          }
+        }, 100);
+      } else {
+        // Other errors - close OTP modal and show error
+        toast.error("Installation process failed. Please try again.");
+        setShowOtpModal(false);
+        setShowProgressModal(false);
+      }
     }
   };
+
   const parseAndFormatDate = (dateStr) => {
     if (!dateStr || dateStr === "N/A") return "N/A";
 
@@ -660,6 +731,116 @@ function InstallationSummary() {
     }
     setIsChecklistModalOpen(true);
   };
+  useEffect(() => {
+    let interval = null;
+    if (showOtpModal && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prevTimer) => {
+          if (prevTimer <= 1) {
+            setIsResendDisabled(false);
+            return 0;
+          }
+          return prevTimer - 1;
+        });
+      }, 1000);
+    } else if (!showOtpModal) {
+      // Reset timer when modal closes
+      setOtpTimer(300);
+      setIsResendDisabled(true);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [showOtpModal, otpTimer]);
+
+  // Format timer display - ADD THIS HELPER FUNCTION
+  const formatTimer = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+  const handleResendOtp = async () => {
+    setIsLoading(true);
+    setLoadingMessage("Resending OTP...");
+
+    try {
+      // Prepare same data as in handleConfirmAndCompleteInstallation
+      const products = installItems.map((item) => {
+        const { serialNumber, pendingInstallationData } = item;
+        const warrantyStartDate = new Date();
+        let warrantyEndDate = null;
+
+        if (pendingInstallationData?.warrantyMonths) {
+          warrantyEndDate = new Date(
+            new Date().setMonth(
+              new Date().getMonth() + pendingInstallationData.warrantyMonths
+            )
+          );
+        }
+
+        return {
+          serialNumber: serialNumber,
+          material: pendingInstallationData?.material || "N/A",
+          description: pendingInstallationData?.description || "N/A",
+          warrantyStartDate: warrantyStartDate.toLocaleDateString("en-GB"),
+          warrantyEndDate: warrantyEndDate
+            ? warrantyEndDate.toLocaleDateString("en-GB")
+            : "N/A",
+          warrantyPeriod: pendingInstallationData?.mtl_grp4 || "N/A",
+        };
+      });
+
+      const installationLocation = {
+        customerName: customer?.customername || "N/A",
+        hospitalName: customer?.hospitalname || "",
+        street: customer?.street || "",
+        city: customer?.city || "",
+        region: customer?.region || "",
+        postalCode: customer?.postalcode || "",
+        formattedAddress: `${
+          customer?.hospitalname || customer?.customername || "N/A"
+        }${customer?.street ? `,\n${customer.street}` : ""}${
+          customer?.city ? `,\n${customer.city}` : ""
+        }${customer?.region ? `\n${customer.region}` : ""}`,
+      };
+
+      // Send OTP again
+      await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/collections/send-otp`,
+        {
+          email: customer?.email,
+          products: products,
+          installationLocation: installationLocation,
+          customerDetails: {
+            customerCode: customer?.customercodeid || "N/A",
+            customerName: customer?.customername || "N/A",
+            phone: customer?.telephone || "N/A",
+            email: customer?.email || "N/A",
+          },
+          serviceEngineer: {
+            name: `${userInfo.firstName || ""} ${
+              userInfo.lastName || ""
+            }`.trim(),
+            employeeId: userInfo.employeeId || "",
+            email: userInfo.email || "",
+          },
+        }
+      );
+
+      // Reset timer and states
+      setOtpTimer(300); // Reset to 5 minutes
+      setIsResendDisabled(true);
+      setOtp(""); // Clear existing OTP
+      toast.success("OTP resent successfully!");
+    } catch (error) {
+      console.error("Error resending OTP:", error);
+      toast.error("Failed to resend OTP.");
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage("");
+    }
+  };
 
   const handleFinishChecklist = (results, globalRemark) => {
     if (activeMachineIndex !== null) {
@@ -674,7 +855,7 @@ function InstallationSummary() {
   return (
     <div className="w-full mb-4">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -688,7 +869,7 @@ function InstallationSummary() {
         </div>
       </div>
 
-      <div className="px-3 space-y-3 mt-2">
+      <div className="px-3 space-y-3 py-20">
         {/* Machines List */}
         <div className="bg-white rounded-lg shadow-md border overflow-hidden">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3">
@@ -939,7 +1120,7 @@ function InstallationSummary() {
                                   </div>
                                 </div>
                                 {res.remark && (
-                                  <div className="mt-1 p-1 bg-white rounded border border-gray-200">
+                                  <div className="mt-1 p-1 hidden bg-white rounded border border-gray-200">
                                     <span className="text-[10px] font-medium text-gray-600">
                                       Remark:{" "}
                                     </span>
@@ -1181,24 +1362,88 @@ function InstallationSummary() {
                 </p>
               </div>
               <div className="p-6 space-y-4">
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter 4-digit OTP"
-                  className="w-full p-3 border border-gray-300 rounded-lg text-center text-lg tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  maxLength={4}
-                />
+                {/* Timer Display */}
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Clock className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm text-gray-600">
+                      OTP expires in:
+                    </span>
+                  </div>
+                  <div
+                    className={`text-2xl font-bold ${
+                      otpTimer <= 60
+                        ? "text-red-600"
+                        : otpTimer <= 120
+                        ? "text-orange-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {formatTimer(otpTimer)}
+                  </div>
+                  {otpTimer === 0 && (
+                    <p className="text-red-600 text-sm mt-1">
+                      OTP has expired. Please request a new one.
+                    </p>
+                  )}
+                </div>
+
+                {/* OTP Input */}
+                <div>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Enter 4-digit OTP"
+                    className={`w-full p-3 border rounded-lg text-center text-lg tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                      otpTimer === 0
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-300"
+                    }`}
+                    maxLength={4}
+                    disabled={otpTimer === 0}
+                  />
+                </div>
+
+                {/* Resend OTP Section */}
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Didn't receive the OTP?
+                  </p>
+                  <button
+                    onClick={handleResendOtp}
+                    disabled={isResendDisabled || isLoading}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      isResendDisabled || isLoading
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                    }`}
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                    />
+                    {isLoading ? "Resending..." : "Resend OTP"}
+                  </button>
+                </div>
+
+                {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowOtpModal(false)}
+                    onClick={() => {
+                      setShowOtpModal(false);
+                      setOtp("");
+                      setOtpTimer(300);
+                      setIsResendDisabled(true);
+                    }}
                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={verifyOtpAndSubmit}
-                    disabled={isVerifyingOtp || otp.length !== 4}
+                    disabled={
+                      isVerifyingOtp || otp.length !== 4 || otpTimer === 0
+                    }
                     className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isVerifyingOtp ? (

@@ -62,7 +62,7 @@ const CustomerDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -75,7 +75,7 @@ const CustomerDetails = () => {
       </div>
 
       {/* Customer Information */}
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto p-4 py-20">
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="space-y-4">
             <div className="flex items-center pb-2 border-b border-gray-200">

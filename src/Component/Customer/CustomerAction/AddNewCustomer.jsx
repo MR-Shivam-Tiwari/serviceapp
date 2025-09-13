@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
@@ -37,6 +37,48 @@ function AddNewCustomer() {
   const [isLoading, setIsLoading] = useState(false);
   // State to hold inline error messages for each field
   const [errors, setErrors] = useState({});
+  // State to hold user information
+  const [userInfo, setUserInfo] = useState({});
+
+  useEffect(() => {
+    const userDataString = localStorage.getItem("user");
+
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        setUserInfo({
+          id: userData.id || "",
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          mobilenumber: userData.mobilenumber || "",
+          status: userData.status || "",
+          branch: userData.branch || "",
+          loginexpirydate: userData.loginexpirydate || "",
+          employeeid: userData.employeeid || "",
+          country: userData.country || "",
+          state: userData.state || "",
+          city: userData.city || "",
+          department: userData.department || "",
+          profileimage: userData.profileimage || "",
+          deviceid: userData.deviceid || "",
+          deviceregistereddate: userData.deviceregistereddate || "",
+          usertype: userData.usertype || "",
+          manageremail: userData.manageremail || "",
+          roleName: userData.role?.roleName || "",
+          roleId: userData.role?.roleId || "",
+          dealerName: userData.dealerInfo?.dealerName || "",
+          dealerId: userData.dealerInfo?.dealerId || "",
+          dealerCode: userData.dealerInfo?.dealerCode || "",
+          dealerEmail: userData.dealerInfo?.dealerEmail || "",
+          location: userData.location || [],
+          skills: userData.skills || "",
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   // Helper function to validate email format
   const isValidEmail = (email) => {
@@ -104,6 +146,39 @@ function AddNewCustomer() {
 
     setIsLoading(true);
     try {
+      // Create payload with customer data and service engineer information
+      const payload = {
+        ...formData,
+        serviceEngineer: {
+          id: userInfo.id || "",
+          firstname: userInfo.firstname || "",
+          lastname: userInfo.lastname || "",
+          email: userInfo.email || "",
+          mobilenumber: userInfo.mobilenumber || "",
+          status: userInfo.status || "",
+          branch: userInfo.branch || "",
+          loginexpirydate: userInfo.loginexpirydate || "",
+          employeeid: userInfo.employeeid || "",
+          country: userInfo.country || "",
+          state: userInfo.state || "",
+          city: userInfo.city || "",
+          department: userInfo.department || "",
+          profileimage: userInfo.profileimage || "",
+          deviceid: userInfo.deviceid || "",
+          deviceregistereddate: userInfo.deviceregistereddate || "",
+          usertype: userInfo.usertype || "",
+          manageremail: userInfo.manageremail || "",
+          roleName: userInfo.roleName || "",
+          roleId: userInfo.roleId || "",
+          dealerName: userInfo.dealerName || "",
+          dealerId: userInfo.dealerId || "",
+          dealerCode: userInfo.dealerCode || "",
+          dealerEmail: userInfo.dealerEmail || "",
+          location: userInfo.location || [],
+          skills: userInfo.skills || "",
+        },
+      };
+
       const response = await fetch(
         `${process.env.REACT_APP_BASE_URL}/collections/customer/send-email`,
         {
@@ -111,7 +186,7 @@ function AddNewCustomer() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -150,7 +225,7 @@ function AddNewCustomer() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Enhanced Header */}
-      <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg shadow-lg sticky top-0 z-40">
+      <header className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -165,7 +240,7 @@ function AddNewCustomer() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto p-3 pb-32">
+      <div className="max-w-4xl mx-auto p-3 pb-32 pt-20">
         <form id="customerForm" onSubmit={handleSubmit} className="space-y-8">
           {/* Customer Type Section */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
@@ -473,7 +548,7 @@ function AddNewCustomer() {
       </div>
 
       {/* Enhanced Fixed Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg z-30">
+      <footer className="fixed bottom-0 pb-12 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg z-30">
         <div className="max-w-4xl mx-auto p-3">
           <button
             type="submit"

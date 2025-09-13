@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 const OwnStocks = () => {
   const navigate = useNavigate();
@@ -11,73 +12,67 @@ const OwnStocks = () => {
     lastName: "",
     employeeId: "",
     userid: "",
+    dealerCode: "",
   });
 
-  // State for the DealerStock data we get back
+  // DealerStock data
   const [stockData, setStockData] = useState([]);
-  // Loader state
   const [loading, setLoading] = useState(true);
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   // 1) Load user info from localStorage on mount
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    console.log("Stored User Data:", storedUser);
-    if (storedUser) {
-      setUserInfo({
-        firstName: storedUser.firstname,
-        lastName: storedUser.lastname,
-        employeeId: storedUser.employeeid, // We'll use this as 'dealercodeid'
-        userid: storedUser.id,
-      });
+    try {
+      const raw = localStorage.getItem("user");
+      const storedUser = raw ? JSON.parse(raw) : null;
+      console.log("Stored User Data:", storedUser);
+      if (storedUser) {
+        setUserInfo({
+          firstName: storedUser.firstname || "",
+          lastName: storedUser.lastname || "",
+          employeeId: storedUser.employeeid || "",
+          userid: storedUser.id || "",
+          // prefer top-level dealerCode if present, else nested dealerInfo.dealerCode
+          dealerCode:
+            storedUser.dealerCode || storedUser?.dealerInfo?.dealerCode || "",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to parse user from localStorage", e);
+      setUserInfo((prev) => ({ ...prev, dealerCode: "" }));
     }
-  }, []);
+  }, []); // mount only [9]
 
-  // 2) Fetch DealerStock data using employeeId as dealercodeid
+  // 2) Fetch DealerStock data using dealerCode
   useEffect(() => {
     const fetchStockData = async () => {
-      // If we have no employeeId, skip
-      if (!userInfo.employeeId) {
+      if (!userInfo?.dealerCode) {
         setLoading(false);
         return;
       }
-
       setLoading(true);
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/collections/dealerstocks/materials/${userInfo.employeeId}`
+          `${process.env.REACT_APP_BASE_URL}/collections/dealerstocks/materials/${userInfo.dealerCode}`
         );
         const data = await response.json();
-        // data should be an array of objects like:
-        // [ { materialcode, materialdescription, unrestrictedquantity }, ... ]
-        setStockData(data || []);
+        setStockData(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error fetching stock data:", error);
+        setStockData([]);
       } finally {
         setLoading(false);
       }
     };
-
     fetchStockData();
-  }, [userInfo.employeeId]);
-
-  // (Optional) Function to determine any status text color if needed
-  // const getStatusClass = (status) => {
-  //   switch (status) {
-  //     case "Active":
-  //       return "text-green-600";
-  //     case "Inactive":
-  //       return "text-red-600";
-  //     case "Pending":
-  //       return "text-yellow-600";
-  //     default:
-  //       return "text-gray-600";
-  //   }
-  // };
+  }, [userInfo?.dealerCode]); // depend exactly on dealerCode [21][22]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg sticky top-0 z-50">
+      {/* HEADER: UNCHANGED */}
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -91,30 +86,30 @@ const OwnStocks = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-3">
+      <div className="max-w-6xl mx-auto p-3 py-20">
         {loading ? (
-          /* Enhanced Loading State */
-          <div className="flex flex-col items-center justify-center py-20">
+          // Compact Loader
+          <div className="flex flex-col items-center justify-center py-14">
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-600 rounded-full animate-spin animation-delay-150"></div>
+              <div className="w-10 h-10 border-[3px] border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 w-10 h-10 border-[3px] border-transparent border-t-purple-500 rounded-full animate-spin [animation-direction:reverse]"></div>
             </div>
-            <p className="mt-6 text-gray-600 font-medium">
+            <p className="mt-4 text-gray-600 text-sm font-medium">
               Loading your stock inventory...
             </p>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-1 text-xs text-gray-500">
               Please wait while we fetch the latest data
             </p>
           </div>
         ) : (
           <>
             {/* Stock Inventory Card */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden animate-fade-in-up animation-delay-200">
-              <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+            <div className="bg-white rounded-xl mb-20 shadow-md border border-gray-100 overflow-hidden animate-fade-in-up animation-delay-200">
+              <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <svg
-                      className="w-6 h-6 text-white mr-3"
+                      className="w-5 h-5 text-white mr-2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -126,12 +121,12 @@ const OwnStocks = () => {
                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                       />
                     </svg>
-                    <h3 className="text-xl font-semibold text-white">
+                    <h3 className="text-base md:text-lg font-semibold text-white">
                       Stock Inventory
                     </h3>
                   </div>
-                  <div className="bg-white/20 px-3 py-1 rounded-full">
-                    <span className="text-white text-sm font-medium">
+                  <div className="bg-white/20 px-2.5 py-0.5 rounded-full">
+                    <span className="text-white text-xs md:text-sm font-medium">
                       {stockData.length} Items
                     </span>
                   </div>
@@ -140,13 +135,13 @@ const OwnStocks = () => {
 
               {stockData.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full table-auto">
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-3 md:px-4 py-2 text-left text-[11px] md:text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">
                           <div className="flex items-center">
                             <svg
-                              className="w-4 h-4 mr-2 text-gray-500"
+                              className="w-4 h-4 mr-1.5 text-gray-500"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -158,13 +153,13 @@ const OwnStocks = () => {
                                 d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
                               />
                             </svg>
-                            Material Code
+                            Code
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-3 md:px-4 py-2 text-left text-[11px] md:text-xs font-semibold text-gray-600 uppercase tracking-wide hidden sm:table-cell">
                           <div className="flex items-center">
                             <svg
-                              className="w-4 h-4 mr-2 text-gray-500"
+                              className="w-4 h-4 mr-1.5 text-gray-500"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -179,10 +174,10 @@ const OwnStocks = () => {
                             Description
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-3 md:px-4 py-2 text-left text-[11px] md:text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">
                           <div className="flex items-center">
                             <svg
-                              className="w-4 h-4 mr-2 text-gray-500"
+                              className="w-4 h-4 mr-1.5 text-gray-500"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -194,45 +189,43 @@ const OwnStocks = () => {
                                 d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
                               />
                             </svg>
-                            Quantity
+                            Qty
                           </div>
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white">
                       {stockData.map((item, index) => (
                         <tr
                           key={index}
-                          className="hover:bg-gray-50 transition-colors duration-200"
-                          style={{ animationDelay: `${index * 100}ms` }}
+                          className="hover:bg-gray-50 transition-colors duration-150"
+                          style={{ animationDelay: `${index * 80}ms` }}
                         >
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 md:px-4 py-2 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="text-sm font-semibold text-gray-900">
+                              <div className="w-2.5 h-2.5 bg-blue-500 rounded-full mr-2"></div>
+                              <span className="text-[13px] font-semibold text-gray-900">
                                 {item.materialcode}
                               </span>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 font-medium">
+                          <td className="px-3 md:px-4 py-2 hidden sm:table-cell">
+                            <div className="text-[13px] text-gray-900 font-medium">
                               {item.materialdescription}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <span
-                                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                  item.unrestrictedquantity > 50
-                                    ? "bg-green-100 text-green-800"
-                                    : item.unrestrictedquantity > 20
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {item.unrestrictedquantity}
-                              </span>
-                            </div>
+                          <td className="px-3 md:px-4 py-2 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                item.unrestrictedquantity > 50
+                                  ? "bg-green-100 text-green-800"
+                                  : item.unrestrictedquantity > 20
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {item.unrestrictedquantity}
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -240,11 +233,11 @@ const OwnStocks = () => {
                   </table>
                 </div>
               ) : (
-                /* No Data State */
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                // No Data State (compact)
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <svg
-                      className="w-8 h-8 text-gray-400"
+                      className="w-7 h-7 text-gray-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -257,59 +250,53 @@ const OwnStocks = () => {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  <h3 className="text-base font-semibold text-gray-700 mb-1">
                     No Stock Found
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-sm text-gray-500">
                     No stock details are available at the moment.
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Action Button */}
-            <div className="mt-8 w-full flex justify-center animate-fade-in-up animation-delay-400">
-              <button
-                onClick={() => navigate("/")}
-                className="px-8 w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <span>Continue</span>
-                </div>
-              </button>
-            </div>
+            {/* Action Button compact */}
+            {/* <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-30">
+              <div className="max-w-6xl mx-auto">
+                <button
+                  onClick={() => navigate("/")}
+                  className="px-8 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <span>Continue</span>
+                  </div>
+                </button>
+              </div>
+            </div> */}
+            <ShortcutFooter safeAreaInsets={safeAreaInsets} />
           </>
         )}
       </div>
 
       <style jsx>{`
-        .animation-delay-150 {
-          animation-delay: 150ms;
-        }
         .animation-delay-200 {
           animation-delay: 200ms;
         }
-        .animation-delay-400 {
-          animation-delay: 400ms;
-        }
-
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(26px);
           }
           to {
             opacity: 1;
             transform: translateY(0);
           }
         }
-
         .animate-fade-in-up {
-          animation: fadeInUp 0.6s ease-out forwards;
+          animation: fadeInUp 0.5s ease-out forwards;
         }
-
         tbody tr {
-          animation: fadeInUp 0.4s ease-out forwards;
+          animation: fadeInUp 0.35s ease-out forwards;
         }
       `}</style>
     </div>

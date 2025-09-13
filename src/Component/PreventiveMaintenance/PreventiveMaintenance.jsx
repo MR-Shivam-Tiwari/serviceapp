@@ -1,12 +1,16 @@
-// PreventiveMaintenance.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import ShortcutFooter from "../Home/ShortcutFooter";
 
 function PreventiveMaintenance() {
   const navigate = useNavigate();
   const [allPms, setAllPms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   const [userInfo, setUserInfo] = useState({
     firstName: "",
     lastName: "",
@@ -17,7 +21,6 @@ function PreventiveMaintenance() {
     manageremail: [],
   });
 
-  // Load user info on mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
@@ -37,32 +40,33 @@ function PreventiveMaintenance() {
     }
   }, []);
 
-  // Fetch all PMs once and store in localStorage
   useEffect(() => {
     if (!userInfo.employeeId) return;
-    
+
     const fetchAllPms = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/upload/allpms/${userInfo.employeeId}`
-        );
+        // Call without pagination parameters to get ALL data (original behavior)
+        const url = `${process.env.REACT_APP_BASE_URL}/upload/allpms/${userInfo.employeeId}`;
+        const res = await fetch(url);
         const data = await res.json();
-        const pmsData = data.pms || [];
+        const pmsData = Array.isArray(data.pms) ? data.pms : [];
+
+        console.log(`Loaded ${pmsData.length} PM records`);
         setAllPms(pmsData);
-        // Store in localStorage for other components
         localStorage.setItem("allPmsData", JSON.stringify(pmsData));
         localStorage.setItem("userInfo", JSON.stringify(userInfo));
       } catch (e) {
-        console.error("Error fetching all PM data", e);
+        console.error("Error fetching PM data", e);
+        setAllPms([]);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
-    
+
     fetchAllPms();
   }, [userInfo.employeeId]);
 
-  // Navigate to regions page once data is loaded
   useEffect(() => {
     if (allPms.length > 0) {
       navigate("/pm-regions");
@@ -80,8 +84,7 @@ function PreventiveMaintenance() {
         </div>
       )}
 
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div className="fixed  left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -100,9 +103,12 @@ function PreventiveMaintenance() {
 
       <div className="pt-20 pb-24">
         <div className="p-4 text-center">
-          <p className="text-gray-600">Loading preventive maintenance data...</p>
+          <p className="text-gray-600">
+            Loading preventive maintenance data...
+          </p>
         </div>
       </div>
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
     </div>
   );
 }

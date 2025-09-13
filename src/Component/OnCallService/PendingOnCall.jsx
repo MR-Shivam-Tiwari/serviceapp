@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -68,26 +69,18 @@ function PendingOnCall() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
-        <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-          <button
-            className="mr-2 text-white"
-            onClick={() => navigate("/contract-proposal")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="currentColor"
-              className="bi bi-arrow-left-short"
-              viewBox="0 0 16 16"
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-4 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              onClick={() => navigate("/oncall-service")}
             >
-              <path
-                fillRule="evenodd"
-                d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-              />
-            </svg>
-          </button>
-          <h2 className="text-xl font-bold">Pending OnCall Proposals</h2>
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <h1 className="text-xl font-bold text-white">
+              Pending OnCall Proposals
+            </h1>
+          </div>
         </div>
         <div className="mt-20 flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -99,26 +92,18 @@ function PendingOnCall() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
-        <div className="flex items-center bg-primary p-3 py-5 text-white fixed top-0 left-0 right-0 z-10">
-          <button
-            className="mr-2 text-white"
-            onClick={() => navigate("/contract-proposal")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="36"
-              height="36"
-              fill="currentColor"
-              className="bi bi-arrow-left-short"
-              viewBox="0 0 16 16"
+        <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+          <div className="flex items-center p-4 py-4 text-white">
+            <button
+              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+              onClick={() => navigate("/oncall-service")}
             >
-              <path
-                fillRule="evenodd"
-                d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-              />
-            </svg>
-          </button>
-          <h2 className="text-xl font-bold">Pending OnCall Proposals</h2>
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <h1 className="text-xl font-bold text-white">
+              Pending OnCall Proposals
+            </h1>
+          </div>
         </div>
         <div className="mt-20 p-4 text-red-500 text-center">
           <p>Error: {error}</p>
@@ -135,26 +120,18 @@ function PendingOnCall() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex items-center bg-primary p-3 py-5 text-white sticky top-0 z-10">
-        <button
-          className="mr-2 text-white"
-          onClick={() => navigate("/oncall-service")}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="36"
-            height="36"
-            fill="currentColor"
-            className="bi bi-arrow-left-short"
-            viewBox="0 0 16 16"
+      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+        <div className="flex items-center p-4 py-4 text-white">
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            onClick={() => navigate("/oncall-service")}
           >
-            <path
-              fillRule="evenodd"
-              d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"
-            />
-          </svg>
-        </button>
-        <h2 className="text-xl font-bold flex-1">Pending OnCall Proposals</h2>
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <h1 className="text-xl font-bold text-white">
+            Pending OnCall Proposals
+          </h1>
+        </div>
       </div>
 
       <div className="p-4">
@@ -333,7 +310,7 @@ function PendingOnCall() {
         {/* Proposal Details Modal */}
         {selectedProposal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-20">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[75vh] overflow-y-auto">
               <div className="p-4">
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                   <h3 className="text-lg font-bold text-gray-800">

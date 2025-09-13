@@ -1,15 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
+import { isSessionExpired, logoutUser } from './utils/auth';
 
 const PrivateRoute = ({ element: Component, ...rest }) => {
   const token = localStorage.getItem("token");
 
-  // If there is no token, navigate to the login page
-  if (!token) {
+  // Check if session is expired
+  if (!token || isSessionExpired()) {
+    // Clear expired session data
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("sessionExpiry");
+    
     return <Navigate to="/login" />;
   }
 
-  // If token exists, render the component
   return <Component {...rest} />;
 };
 

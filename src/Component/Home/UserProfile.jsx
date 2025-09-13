@@ -16,6 +16,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ShortcutFooter from "./ShortcutFooter";
 
 export default function UserProfile() {
   //   const router = useRouter()
@@ -29,7 +30,10 @@ export default function UserProfile() {
     skills: false,
   });
   const [expandedSkillGroups, setExpandedSkillGroups] = useState({});
-
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 44,
+    bottom: 28,
+  });
   useEffect(() => {
     // Get data from localStorage
     const fetchUserData = () => {
@@ -137,9 +141,10 @@ export default function UserProfile() {
           </div>
 
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">
-              {userData.firstname} {userData.lastname}
+            <h1 className="text-xl font-bold">
+              {`${userData.firstname} ${userData.lastname}`.slice(0, 15)}
             </h1>
+
             <p className="text-blue-100 text-sm">{userData.role?.roleName}</p>
           </div>
           <div className="flex flex-col items-end space-y-1">
@@ -160,7 +165,7 @@ export default function UserProfile() {
       </div>
 
       {/* Scrollable Content Container */}
-      <div className="px-4 mt-6 space-y-4 pb-6 max-h-[calc(100vh-220px)] overflow-y-auto">
+      <div className="px-4 mt-6 space-y-4 pb-20 max-h-[calc(100vh-220px)] overflow-y-auto">
         {/* Personal Information */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <button
@@ -265,7 +270,7 @@ export default function UserProfile() {
                   : "max-h-0 opacity-0"
               } overflow-hidden`}
             >
-              <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4 h-[250px] overflow-y-auto">
                 <div className="grid grid-cols-1 gap-4">
                   <div className="p-3 bg-blue-50 rounded-xl">
                     <p className="text-xs text-blue-600 uppercase tracking-wide font-medium">
@@ -293,7 +298,7 @@ export default function UserProfile() {
                       </p>
                     </div>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-xl">
+                  <div className="p-3 bg-blue-50 rounded-xl ">
                     <p className="text-xs text-blue-600 uppercase tracking-wide font-medium mb-2">
                       Branches
                     </p>
@@ -372,7 +377,7 @@ export default function UserProfile() {
         </div>
 
         {/* Demographics */}
-        {userData.demographics && userData.demographics.length > 0 && (
+        {/* {userData.demographics && userData.demographics.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <button
               onClick={() => toggleSection("demographics")}
@@ -421,7 +426,7 @@ export default function UserProfile() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Product Skills */}
         {userData.skills && userData.skills.length > 0 && (
@@ -517,6 +522,7 @@ export default function UserProfile() {
           </div>
         )}
       </div>
+      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
     </div>
   );
 }

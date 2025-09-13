@@ -5,10 +5,11 @@ const config: CapacitorConfig = {
   appName: 'service_app',
   webDir: 'build',
   bundledWebRuntime: false,
-  // @ts-ignore: custom field not in CapacitorConfig
+  // ⚡ Custom Android options (not officially in CapacitorConfig)
+  // @ts-ignore
   android: {
     allowMixedContent: true,
-    // @ts-ignore: hideLogs is not part of the CapacitorConfig type
+    // @ts-ignore
     hideLogs: false,
     webContentsDebuggingEnabled: true,
     navigationStyle: 'custom'
@@ -34,7 +35,13 @@ const config: CapacitorConfig = {
       style: 'dark',
       resizeOnFullScreen: true
     }
-  }
+  },
+
+  // 👇 Add this block for Live Reload
+  // server: {
+  //   url: "http://192.168.100.71:3000", // replace with your PC’s local IP
+  //   cleartext: true // allow HTTP (needed for dev)
+  // }
 };
 
 export default config;
