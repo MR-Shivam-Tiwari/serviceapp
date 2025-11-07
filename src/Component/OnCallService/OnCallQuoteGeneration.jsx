@@ -10,6 +10,47 @@ function OnCallQuoteGeneration() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState({}); // Added userInfo state
+
+  // Added useEffect to get user data from localStorage
+  useEffect(() => {
+    const userDataString = localStorage.getItem("user");
+
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        setUserInfo({
+          id: userData.id || "",
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          mobilenumber: userData.mobilenumber || "",
+          status: userData.status || "",
+          branch: userData.branch || "",
+          loginexpirydate: userData.loginexpirydate || "",
+          employeeid: userData.employeeid || "",
+          country: userData.country || "",
+          state: userData.state || "",
+          city: userData.city || "",
+          department: userData.department || "",
+          profileimage: userData.profileimage || "",
+          deviceid: userData.deviceid || "",
+          deviceregistereddate: userData.deviceregistereddate || "",
+          usertype: userData.usertype || "",
+          manageremail: userData.manageremail || "",
+          roleName: userData.role?.roleName || "",
+          roleId: userData.role?.roleId || "",
+          dealerName: userData.dealerInfo?.dealerName || "",
+          dealerId: userData.dealerInfo?.dealerId || "",
+          dealerEmail: userData.dealerInfo?.dealerEmail || "",
+          location: userData.location || [],
+          skills: userData.skills || "",
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchOnCalls = async () => {
@@ -37,14 +78,19 @@ function OnCallQuoteGeneration() {
     fetchOnCalls();
   }, []);
 
-  // Search functionality
+  // Updated search functionality with createdBy filter
   useEffect(() => {
+    // First filter by createdBy (current user's employeeid)
+    const userOnCalls = onCalls.filter(
+      (onCall) => onCall?.createdBy === userInfo?.employeeid
+    );
+
     if (!searchTerm.trim()) {
-      setFilteredOnCalls(onCalls);
+      setFilteredOnCalls(userOnCalls);
       return;
     }
 
-    const filtered = onCalls.filter((onCall) => {
+    const filtered = userOnCalls.filter((onCall) => {
       const searchLower = searchTerm.toLowerCase();
       return (
         onCall?.customer?.customercodeid?.toLowerCase().includes(searchLower) ||
@@ -61,7 +107,7 @@ function OnCallQuoteGeneration() {
     });
 
     setFilteredOnCalls(filtered);
-  }, [searchTerm, onCalls]);
+  }, [searchTerm, onCalls, userInfo.employeeid]); // Added userInfo.employeeid to dependencies
 
   const handleSearchClear = () => {
     setSearchTerm("");
@@ -272,7 +318,9 @@ function OnCallQuoteGeneration() {
       </div>
 
       {/* Main Content */}
-      <main className={`p-3 mb-20 space-y-3 ${isSearchOpen ? "pt-32" : "pt-20"}`}>
+      <main
+        className={`p-3 mb-20 space-y-3 ${isSearchOpen ? "pt-32" : "pt-20"}`}
+      >
         {/* Search Results Info */}
         {searchTerm && (
           <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2">

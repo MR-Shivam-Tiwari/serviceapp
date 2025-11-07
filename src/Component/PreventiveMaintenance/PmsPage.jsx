@@ -233,7 +233,7 @@ function PmsPage() {
           />
         </div>
       </div>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      {/* <ShortcutFooter safeAreaInsets={safeAreaInsets} /> */}
     </div>
   );
 }

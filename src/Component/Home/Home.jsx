@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { LogOut, User, Calendar, Building2 } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
 import { componentConfig } from "./componentConfig";
-import ShortcutFooter from "./ShortcutFooter";
 
 function Homes() {
   const [showModal, setShowModal] = useState(false);
@@ -12,45 +10,9 @@ function Homes() {
   const [userData, setUserData] = useState(null);
   const [roleData, setRoleData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false); // Added to prevent multiple clicks
-  const [safeAreaInsets, setSafeAreaInsets] = useState({
-    top: 44,
-    bottom: 28,
-  });
-  const [headerHeight, setHeaderHeight] = useState(85);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
-    // Safe area detect करें
-    const detectSafeArea = () => {
-      if (Capacitor.isNativePlatform()) {
-        const topInset =
-          parseInt(
-            getComputedStyle(document.documentElement)
-              .getPropertyValue("--safe-area-inset-top")
-              .replace("px", "")
-          ) || 0;
-        const bottomInset =
-          parseInt(
-            getComputedStyle(document.documentElement)
-              .getPropertyValue("--safe-area-inset-bottom")
-              .replace("px", "")
-          ) || 0;
-
-        setSafeAreaInsets({
-          top: Math.max(topInset, 30),
-          bottom: Math.max(bottomInset, 30),
-        });
-
-        // Header height with safe area (reduced)
-        setHeaderHeight(70 + Math.max(topInset, 10));
-      } else {
-        setSafeAreaInsets({ top: 20, bottom: 10 });
-        setHeaderHeight(65);
-      }
-    };
-
-    detectSafeArea();
-
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
       setUserData(storedUser);
@@ -121,14 +83,7 @@ function Homes() {
 
   if (!userData || !roleData || isLoading) {
     return (
-      <div
-        className="min-h-screen bg-white/80 flex items-center justify-center"
-        style={{
-          paddingTop: `${safeAreaInsets.top}px`,
-          paddingBottom: `${safeAreaInsets.bottom}px`,
-          minHeight: "100vh",
-        }}
-      >
+      <div className="min-h-screen bg-white/80 flex items-center justify-center safe-area-container">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-4">
             <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-200 rounded-full animate-pulse"></div>
@@ -148,12 +103,7 @@ function Homes() {
   return (
     <div className="min-h-screen bg-white/80 relative">
       {/* Header - Fixed */}
-      <div
-        className="fixed top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-sm"
-        style={{
-          paddingTop: `${safeAreaInsets.top}px`,
-        }}
-      >
+      <div className="fixed top-0 left-0 right-0 z-10 backdrop-blur-sm safe-area-header">
         {/* Enhanced Header Section */}
         <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
           <div className="flex items-center justify-between px-6 py-4 text-white">
@@ -168,7 +118,7 @@ function Homes() {
                 <p className="text-blue-100 text-sm">
                   Professional Service Management
                 </p>
-              </div>
+              </div>  
             </div>
             <button
               onClick={() => setShowModal(true)}
@@ -182,17 +132,11 @@ function Homes() {
       </div>
 
       {/* Scrollable content starts here */}
-      <div
-        className="flex flex-col min-h-screen"
-        style={{
-          paddingTop: `${headerHeight}px`,
-          paddingBottom: `${safeAreaInsets.bottom + 90}px`,
-        }}
-      >
+      <div className="flex flex-col min-h-screen main-content-container">
         <div className="flex-1 overflow-y-auto pb-3">
           {/* User info and quick actions header */}
           <div className="p-3 bg-white/80">
-            {/* User Profile Card - FIXED */}
+            {/* User Profile Card */}
             <div
               className="bg-gradient-to-r from-white to-blue-50 rounded-xl shadow-md border border-blue-100 p-2 cursor-pointer transition-all duration-300 mb-4 active:bg-blue-100"
               onClick={handleProfileClick}
@@ -269,7 +213,7 @@ function Homes() {
             </h4>
           </div>
 
-          {/* Quick Actions Grid - FIXED */}
+          {/* Quick Actions Grid */}
           <div className="px-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {roleData.mobileComponents.map((component) => {
@@ -316,9 +260,6 @@ function Homes() {
           </div>
         </div>
       </div>
-
-      {/* Reusable Shortcut Footer */}
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
 
       {/* Logout Modal */}
       {showModal && (

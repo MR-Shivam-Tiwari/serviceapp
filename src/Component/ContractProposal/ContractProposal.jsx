@@ -140,8 +140,7 @@ function ContractProposal() {
             </div>
           </div>
         </div>
-      </div>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      </div> 
     </div>
   );
 }

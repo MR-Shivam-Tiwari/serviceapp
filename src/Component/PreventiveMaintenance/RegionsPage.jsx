@@ -63,7 +63,7 @@ function RegionsPage() {
           </div>
         </div>
 
-        {/* Search Input - Header के अंदर ही */}
+        
         <div className="px-4 pb-4">
           <div className="relative group max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-lg blur-xl group-focus-within:blur-2xl transition-all duration-300"></div>
@@ -84,7 +84,7 @@ function RegionsPage() {
         </div>
       </div>
 
-      {/* Scrollable Content Area - Header के नीचे padding दिया गया है */}
+      
       <div className="flex-1 pt-[160px] pb-8 mb-20 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4">
           {/* Regions Grid */}
@@ -175,7 +175,7 @@ function RegionsPage() {
           </div>
         </div>
       </div>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      {/* <ShortcutFooter safeAreaInsets={safeAreaInsets} /> */}
     </div>
   );
 }

@@ -9,6 +9,47 @@ function PendingOnCall() {
   const [error, setError] = useState(null);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [userInfo, setUserInfo] = useState({});
+  // Removed redundant filteredProposals state
+
+  useEffect(() => {
+    const userDataString = localStorage.getItem("user");
+
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        setUserInfo({
+          id: userData.id || "",
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          mobilenumber: userData.mobilenumber || "",
+          status: userData.status || "",
+          branch: userData.branch || "",
+          loginexpirydate: userData.loginexpirydate || "",
+          employeeid: userData.employeeid || "",
+          country: userData.country || "",
+          state: userData.state || "",
+          city: userData.city || "",
+          department: userData.department || "",
+          profileimage: userData.profileimage || "",
+          deviceid: userData.deviceid || "",
+          deviceregistereddate: userData.deviceregistereddate || "",
+          usertype: userData.usertype || "",
+          manageremail: userData.manageremail || "",
+          roleName: userData.role?.roleName || "",
+          roleId: userData.role?.roleId || "",
+          dealerName: userData.dealerInfo?.dealerName || "",
+          dealerId: userData.dealerInfo?.dealerId || "",
+          dealerEmail: userData.dealerInfo?.dealerEmail || "",
+          location: userData.location || [],
+          skills: userData.skills || "",
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -20,7 +61,7 @@ function PendingOnCall() {
           throw new Error("Failed to fetch proposals");
         }
         const data = await response.json();
-        setProposals(data.data || []); // Access the data array from response
+        setProposals(data.data || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -30,6 +71,8 @@ function PendingOnCall() {
 
     fetchProposals();
   }, []);
+
+  // Removed redundant useEffect for filtering
 
   const handleViewDetails = (proposal) => {
     setSelectedProposal(proposal);
@@ -44,7 +87,6 @@ function PendingOnCall() {
   };
 
   const shouldShowRevisionButton = (proposal) => {
-    // Only disable if cnoteNumber has a value, otherwise always enable
     return !proposal?.cnoteNumber;
   };
 
@@ -57,7 +99,19 @@ function PendingOnCall() {
     return new Date(dateString).toLocaleDateString("en-IN", options);
   };
 
+  // Single, optimized filtering function
   const filteredProposals = proposals.filter((proposal) => {
+    // Must be created by current user
+    if (proposal?.createdBy !== userInfo?.employeeid) {
+      return false;
+    }
+
+    // If no search term, show all user's proposals
+    if (!searchTerm.trim()) {
+      return true;
+    }
+
+    // Apply search filter
     const searchLower = searchTerm.toLowerCase();
     return (
       proposal?.onCallNumber?.toLowerCase().includes(searchLower) ||

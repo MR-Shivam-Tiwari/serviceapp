@@ -400,23 +400,27 @@ function InstallationSummary() {
     }
 
     // Additional validation: Check if any checklist has empty results
-    const machinesWithIncompleteChecklists = installItems.filter(
-      (item, index) => {
-        if (!item.checklistResults || item.checklistResults.length === 0)
-          return true;
+    const machinesWithIncompleteInfo = installItems.filter((item, index) => {
+      if (!item.checklistResults || item.checklistResults.length === 0)
+        return true;
 
-        // Check if all checklist items have results
-        const hasEmptyResults = item.checklistResults.some(
-          (result) => !result.result || result.result.trim() === ""
-        );
+      // Check if all checklist items have results
+      const hasEquipmentInfo = item.checklistResults.some(
+        (result) =>
+          result.resulttype === "Equipment Info" && result.equipmentUsedSerial
+      );
+      if (hasEquipmentInfo) return false; // This is complete
 
-        return hasEmptyResults;
-      }
-    );
+      // For regular checklists, check if all items have results
+      const hasEmptyResults = item.checklistResults.some(
+        (result) => !result.result || result.result.trim() === ""
+      );
+      return hasEmptyResults;
+    });
 
-    if (machinesWithIncompleteChecklists.length > 0) {
+    if (machinesWithIncompleteInfo.length > 0) {
       toast.error(
-        `Please complete all checklist items for all machines. ${machinesWithIncompleteChecklists.length} machine(s) have incomplete checklists.`
+        `Please complete all checklist items for all machines. ${machinesWithIncompleteInfo.length} machine(s) have incomplete information.`
       );
       return;
     }
@@ -1035,7 +1039,9 @@ function InstallationSummary() {
                       <div className="p-2 flex items-center justify-between">
                         <h4 className="font-medium text-gray-900 flex items-center gap-1 text-xs">
                           <CheckCircle className="h-3 w-3 text-green-500" />
-                          Checklist Completed ({checklistResults.length} items)
+                          {checklistResults[0]?.resulttype === "Equipment Info"
+                            ? "Equipment Information Recorded"
+                            : `Checklist Completed (${checklistResults.length} items)`}
                         </h4>
                         <button
                           onClick={() => toggleChecklistAccordion(idx)}
@@ -1053,91 +1059,95 @@ function InstallationSummary() {
                         </button>
                       </div>
 
-                      {/* Expandable Checklist Details */}
+                      {/* Expandable Details */}
                       {expandedChecklists[idx] && (
                         <div className="px-2 pb-2 space-y-2 border-t border-gray-200 bg-white">
-                          {/* Equipment Information */}
-                          {(checklistResults[0]?.equipmentUsedSerial ||
-                            checklistResults?.calibrationDueDate) && (
-                            <div className="bg-blue-50 p-2 rounded border border-blue-100">
-                              <h5 className="text-xs font-semibold text-blue-900 mb-1">
-                                Equipment Information
-                              </h5>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-xs">
-                                <div>
-                                  <span className="text-blue-700 font-medium">
-                                    Equipment Serial:
-                                  </span>
-                                  <div className="text-blue-800">
-                                    {checklistResults[0]?.equipmentUsedSerial ||
-                                      "N/A"}
-                                  </div>
+                          {/* Equipment Information - Always show */}
+                          <div className="bg-blue-50 p-2 rounded border border-blue-100">
+                            <h5 className="text-xs font-semibold text-blue-900 mb-1">
+                              Equipment Information
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-xs">
+                              <div>
+                                <span className="text-blue-700 font-medium">
+                                  Equipment Serial:
+                                </span>
+                                <div className="text-blue-800">
+                                  {checklistResults[0]?.equipmentUsedSerial ||
+                                    "N/A"}
                                 </div>
-                                <div>
-                                  <span className="text-blue-700 font-medium">
-                                    Calibration Due:
-                                  </span>
-                                  <div className="text-blue-800">
-                                    {parseAndFormatDate(
-                                      checklistResults[0]?.calibrationDueDate
-                                    )}
-                                  </div>
+                              </div>
+                              <div>
+                                <span className="text-blue-700 font-medium">
+                                  Calibration Due:
+                                </span>
+                                <div className="text-blue-800">
+                                  {parseAndFormatDate(
+                                    checklistResults[0]?.calibrationDueDate
+                                  )}
                                 </div>
                               </div>
                             </div>
-                          )}
-
-                          {/* Individual Checklist Items */}
-                          <div className="space-y-1">
-                            <h5 className="text-xs font-semibold text-gray-700">
-                              Checklist Items:
-                            </h5>
-                            {checklistResults.map((res, resIdx) => (
-                              <div
-                                key={resIdx}
-                                className="bg-gray-50 p-2 rounded border border-gray-100"
-                              >
-                                <div className="flex items-start justify-between mb-1">
-                                  <span className="text-xs text-gray-700 font-medium flex-1 pr-2">
-                                    {res.checkpoint}
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                        res.result === "Yes" ||
-                                        res.result === "OK" ||
-                                        res.result === "Pass"
-                                          ? "bg-green-100 text-green-800"
-                                          : res.result === "No" ||
-                                            res.result === "NOT OK" ||
-                                            res.result === "Failed"
-                                          ? "bg-red-100 text-red-800"
-                                          : "bg-yellow-100 text-yellow-800"
-                                      }`}
-                                    >
-                                      {res.result || "N/A"}
-                                    </span>
-                                  </div>
-                                </div>
-                                {res.remark && (
-                                  <div className="mt-1 p-1 hidden bg-white rounded border border-gray-200">
-                                    <span className="text-[10px] font-medium text-gray-600">
-                                      Remark:{" "}
-                                    </span>
-                                    <span className="text-[10px] text-gray-800">
-                                      {res.remark}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
                           </div>
 
-                          {/* Global Remark if exists */}
+                          {/* Show checklist items only if not equipment-info-only */}
+                          {checklistResults[0]?.resulttype !==
+                            "Equipment Info" && (
+                            <div className="space-y-1">
+                              <h5 className="text-xs font-semibold text-gray-700">
+                                Checklist Items:
+                              </h5>
+                              {checklistResults.map((res, resIdx) => (
+                                <div
+                                  key={resIdx}
+                                  className="bg-gray-50 p-2 rounded border border-gray-100"
+                                >
+                                  <div className="flex items-start justify-between mb-1">
+                                    <span className="text-xs text-gray-700 font-medium flex-1 pr-2">
+                                      {res.checkpoint}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                          res.result === "Yes" ||
+                                          res.result === "OK" ||
+                                          res.result === "Pass"
+                                            ? "bg-green-100 text-green-800"
+                                            : res.result === "No" ||
+                                              res.result === "NOT OK" ||
+                                              res.result === "Failed"
+                                            ? "bg-red-100 text-red-800"
+                                            : res.result === "Completed"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {res.result || "N/A"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Equipment-info-only message */}
+                          {checklistResults[0]?.resulttype ===
+                            "Equipment Info" && (
+                            <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+                              <p className="text-xs text-yellow-800">
+                                <strong>Note:</strong> Equipment information
+                                recorded. No specific checklist questions were
+                                available for this equipment.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Global Remark */}
                           {globalChecklistRemark && (
                             <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
                               <h5 className="text-xs font-semibold text-yellow-900 mb-1">
-                                Global Remark:
+                                Installation Remark:
                               </h5>
                               <p className="text-xs text-yellow-800">
                                 {globalChecklistRemark}

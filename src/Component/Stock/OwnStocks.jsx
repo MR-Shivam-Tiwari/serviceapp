@@ -1,302 +1,246 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Package, Search, TrendingUp, Minus, TrendingDown } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ShortcutFooter from "../Home/ShortcutFooter";
 
 const OwnStocks = () => {
   const navigate = useNavigate();
-
-  // Store user info from localStorage
+  const [searchQuery, setSearchQuery] = useState("");
+  
   const [userInfo, setUserInfo] = useState({
     firstName: "",
     lastName: "",
-    employeeId: "",
+    employeeid: "",
     userid: "",
     dealerCode: "",
+    usertype: "",
   });
 
-  // DealerStock data
   const [stockData, setStockData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [safeAreaInsets, setSafeAreaInsets] = useState({
-    top: 44,
-    bottom: 28,
-  });
-  // 1) Load user info from localStorage on mount
+
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("user");
-      const storedUser = raw ? JSON.parse(raw) : null;
-      console.log("Stored User Data:", storedUser);
-      if (storedUser) {
-        setUserInfo({
+    const fetchData = async () => {
+      try {
+        const raw = localStorage.getItem("user");
+        const storedUser = raw ? JSON.parse(raw) : null;
+
+        if (!storedUser) {
+          setLoading(false);
+          return;
+        }
+
+        const extractedUserInfo = {
           firstName: storedUser.firstname || "",
           lastName: storedUser.lastname || "",
-          employeeId: storedUser.employeeid || "",
+          employeeid: storedUser.employeeid || "",
           userid: storedUser.id || "",
-          // prefer top-level dealerCode if present, else nested dealerInfo.dealerCode
-          dealerCode:
-            storedUser.dealerCode || storedUser?.dealerInfo?.dealerCode || "",
-        });
-      }
-    } catch (e) {
-      console.error("Failed to parse user from localStorage", e);
-      setUserInfo((prev) => ({ ...prev, dealerCode: "" }));
-    }
-  }, []); // mount only [9]
+          dealerCode: storedUser.dealerCode || storedUser?.dealerInfo?.dealerCode || "",
+          usertype: storedUser.usertype || "",
+        };
 
-  // 2) Fetch DealerStock data using dealerCode
-  useEffect(() => {
-    const fetchStockData = async () => {
-      if (!userInfo?.dealerCode) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
+        setUserInfo(extractedUserInfo);
+
+        let identifier;
+        if (extractedUserInfo.usertype === "skanray") {
+          identifier = extractedUserInfo.employeeid;
+        } else {
+          identifier = extractedUserInfo.dealerCode;
+        }
+
+        if (!identifier) {
+          setLoading(false);
+          return;
+        }
+
+        setLoading(true);
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/collections/dealerstocks/materials/${userInfo.dealerCode}`
+          `${process.env.REACT_APP_BASE_URL}/collections/dealerstocks/materials/${identifier}`
         );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
         setStockData(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Error fetching stock data:", error);
+        console.error("Error fetching data:", error);
         setStockData([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchStockData();
-  }, [userInfo?.dealerCode]); // depend exactly on dealerCode [21][22]
+
+    fetchData();
+  }, []);
+
+  const filteredStock = stockData.filter(item => 
+    item.materialcode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.materialdescription.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalItems = stockData.length;
+  const totalQuantity = stockData.reduce((sum, item) => sum + item.unrestrictedquantity, 0);
+
+  const getStockStatus = (qty) => {
+    if (qty > 50) return { label: 'High', color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-50', textColor: 'text-green-700', icon: TrendingUp };
+    if (qty > 20) return { label: 'Medium', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-50', textColor: 'text-blue-700', icon: Minus };
+    return { label: 'Low', color: 'from-orange-500 to-amber-500', bgColor: 'bg-orange-50', textColor: 'text-orange-700', icon: TrendingDown };
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* HEADER: UNCHANGED */}
-      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-        <div className="flex items-center p-4 py-4 text-white">
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg backdrop-blur-sm">
+        <div className="max-w-md mx-auto flex items-center px-4 py-3">
           <button
-            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
+            className="p-2.5 rounded-xl bg-white/20 backdrop-blur-md hover:bg-white/30 active:scale-95 transition-all mr-3"
             onClick={() => navigate("/")}
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">Own Stock</h1>
+            <h1 className="text-lg font-black text-white">Stock Inventory</h1>
+            <p className="text-xs text-blue-100 font-medium">Real-time tracking</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-3 py-20">
+      <div className="max-w-md mx-auto px-4 pt-20 pb-6">
         {loading ? (
-          // Compact Loader
-          <div className="flex flex-col items-center justify-center py-14">
-            <div className="relative">
-              <div className="w-10 h-10 border-[3px] border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 w-10 h-10 border-[3px] border-transparent border-t-purple-500 rounded-full animate-spin [animation-direction:reverse]"></div>
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="relative w-16 h-16 mb-4">
+              <div className="absolute inset-0 border-4 border-blue-100 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-2 border-4 border-transparent border-r-indigo-500 rounded-full animate-spin [animation-direction:reverse]"></div>
             </div>
-            <p className="mt-4 text-gray-600 text-sm font-medium">
-              Loading your stock inventory...
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Please wait while we fetch the latest data
-            </p>
+            <p className="mt-4 text-gray-600 text-sm font-semibold">Loading inventory...</p>
+            <p className="mt-1 text-xs text-gray-500">Fetching your stock data</p>
           </div>
         ) : (
           <>
-            {/* Stock Inventory Card */}
-            <div className="bg-white rounded-xl mb-20 shadow-md border border-gray-100 overflow-hidden animate-fade-in-up animation-delay-200">
-              <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <svg
-                      className="w-5 h-5 text-white mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                      />
-                    </svg>
-                    <h3 className="text-base md:text-lg font-semibold text-white">
-                      Stock Inventory
-                    </h3>
-                  </div>
-                  <div className="bg-white/20 px-2.5 py-0.5 rounded-full">
-                    <span className="text-white text-xs md:text-sm font-medium">
-                      {stockData.length} Items
-                    </span>
-                  </div>
-                </div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 gap-3 mb-5 animate-fade-in">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-200 transition-all hover:scale-105 hover:shadow-lg hover:shadow-blue-200/50">
+                <div className="text-3xl font-black text-blue-600 mb-1">{totalItems}</div>
+                <div className="text-sm font-semibold text-blue-600">Total Items</div>
+                <div className="text-xs text-blue-500 mt-2 font-medium">In inventory</div>
               </div>
-
-              {stockData.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full table-auto">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                      <tr>
-                        <th className="px-3 md:px-4 py-2 text-left text-[11px] md:text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">
-                          <div className="flex items-center">
-                            <svg
-                              className="w-4 h-4 mr-1.5 text-gray-500"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-                              />
-                            </svg>
-                            Code
-                          </div>
-                        </th>
-                        <th className="px-3 md:px-4 py-2 text-left text-[11px] md:text-xs font-semibold text-gray-600 uppercase tracking-wide hidden sm:table-cell">
-                          <div className="flex items-center">
-                            <svg
-                              className="w-4 h-4 mr-1.5 text-gray-500"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                            Description
-                          </div>
-                        </th>
-                        <th className="px-3 md:px-4 py-2 text-left text-[11px] md:text-xs font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap">
-                          <div className="flex items-center">
-                            <svg
-                              className="w-4 h-4 mr-1.5 text-gray-500"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-                              />
-                            </svg>
-                            Qty
-                          </div>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white">
-                      {stockData.map((item, index) => (
-                        <tr
-                          key={index}
-                          className="hover:bg-gray-50 transition-colors duration-150"
-                          style={{ animationDelay: `${index * 80}ms` }}
-                        >
-                          <td className="px-3 md:px-4 py-2 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-2.5 h-2.5 bg-blue-500 rounded-full mr-2"></div>
-                              <span className="text-[13px] font-semibold text-gray-900">
-                                {item.materialcode}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-3 md:px-4 py-2 hidden sm:table-cell">
-                            <div className="text-[13px] text-gray-900 font-medium">
-                              {item.materialdescription}
-                            </div>
-                          </td>
-                          <td className="px-3 md:px-4 py-2 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                item.unrestrictedquantity > 50
-                                  ? "bg-green-100 text-green-800"
-                                  : item.unrestrictedquantity > 20
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {item.unrestrictedquantity}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                // No Data State (compact)
-                <div className="text-center py-10">
-                  <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg
-                      className="w-7 h-7 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-base font-semibold text-gray-700 mb-1">
-                    No Stock Found
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    No stock details are available at the moment.
-                  </p>
-                </div>
-              )}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-200 transition-all hover:scale-105 hover:shadow-lg hover:shadow-green-200/50">
+                <div className="text-3xl font-black text-green-600 mb-1">{totalQuantity}</div>
+                <div className="text-sm font-semibold text-green-600">Total Qty</div>
+                <div className="text-xs text-green-500 mt-2 font-medium">Units available</div>
+              </div>
             </div>
 
-            {/* Action Button compact */}
-            {/* <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-30">
-              <div className="max-w-6xl mx-auto">
-                <button
-                  onClick={() => navigate("/")}
-                  className="px-8 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <span>Continue</span>
-                  </div>
-                </button>
+            {/* Search */}
+            <div className="relative mb-5 animate-fade-in" style={{animationDelay: '100ms'}}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search code or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 border-2 border-gray-200 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              />
+            </div>
+
+            {/* Stock Items */}
+            {filteredStock.length > 0 ? (
+              <div className="space-y-3">
+                {filteredStock.map((item, index) => {
+                  const status = getStockStatus(item.unrestrictedquantity);
+                  const StatusIcon = status.icon;
+                  
+                  return (
+                    <div
+                      key={index}
+                      className="bg-white rounded-2xl p-4 border-2 border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all active:scale-[0.98] animate-slide-up"
+                      style={{animationDelay: `${index * 50}ms`}}
+                    >
+                      {/* Header with Code and Quantity */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0 animate-pulse"></div>
+                            <span className="text-sm font-black text-gray-900 truncate">
+                              {item.materialcode}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Quantity Badge with Animation */}
+                        <div className={`flex-shrink-0 px-3 py-1.5 rounded-xl bg-gradient-to-r ${status.color} shadow-lg shadow-current/30 transform transition-all hover:scale-110`}>
+                          <div className="flex items-center gap-1">
+                            <StatusIcon className="w-3.5 h-3.5 text-white animate-bounce" style={{animationDuration: '2s'}} />
+                            <span className="text-sm font-black text-white">
+                              QTY {item.unrestrictedquantity}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Description Box */}
+                      <div className={`${status.bgColor} rounded-xl p-3 border border-current border-opacity-20`}>
+                        <div className="flex items-start gap-2">
+                          <Package className={`w-4 h-4 ${status.textColor} flex-shrink-0 mt-0.5`} />
+                          <p className={`text-xs leading-relaxed font-medium ${status.textColor}`}>
+                            {item.materialdescription}
+                          </p>
+                        </div>
+                      </div>
+
+                      
+                       
+                    </div>
+                  );
+                })}
               </div>
-            </div> */}
-            <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+            ) : (
+              <div className="text-center py-20 animate-fade-in">
+                <div className="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mx-auto mb-4 animate-bounce" style={{animationDuration: '3s'}}>
+                  <Package className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-black text-gray-900 mb-2">
+                  {searchQuery ? 'No Results' : 'No Stock'}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {searchQuery ? 'Try different keywords' : 'Stock inventory is empty'}
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>
 
       <style jsx>{`
-        .animation-delay-200 {
-          animation-delay: 200ms;
-        }
-        @keyframes fadeInUp {
+        @keyframes fadeIn {
           from {
             opacity: 0;
-            transform: translateY(26px);
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
           }
           to {
             opacity: 1;
             transform: translateY(0);
           }
         }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.5s ease-out forwards;
+
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
         }
-        tbody tr {
-          animation: fadeInUp 0.35s ease-out forwards;
+
+        .animate-slide-up {
+          animation: slideUp 0.4s ease-out forwards;
+          opacity: 0;
         }
       `}</style>
     </div>

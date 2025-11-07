@@ -113,7 +113,7 @@ const Complaints = () => {
           </div>
         </div>
       </div>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      {/* <ShortcutFooter safeAreaInsets={safeAreaInsets} /> */}
     </div>
   );
 };

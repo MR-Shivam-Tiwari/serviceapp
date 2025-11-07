@@ -13,7 +13,7 @@ const EquipmentDetail = () => {
   const [selectedSerial, setSelectedSerial] = useState(null);
   const [equipmentDetails, setEquipmentDetails] = useState(null);
   const [sparesData, setSparesData] = useState([]);
-  const [activeTab, setActiveTab] = useState(null);
+  const [activeTab, setActiveTab] = useState("installation");
   const [loading, setLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -320,17 +320,6 @@ const EquipmentDetail = () => {
                         <p className="font-semibold text-gray-800">
                           {equipmentDetails.equipment?.materialdescription ||
                             "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center p-3 bg-gray-50 rounded-xl">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">
-                          Equipment Name
-                        </p>
-                        <p className="font-semibold text-gray-800">
-                          {equipmentDetails.equipment?.name || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -715,15 +704,14 @@ const EquipmentDetail = () => {
                 </div>
               </div>
 
-              {/* Tab Navigation */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-fade-in-up animation-delay-600">
-                <div className="flex border-b border-gray-200">
+                <div className="flex gap-2 p-4 bg-gray-50">
                   <button
                     onClick={() => setActiveTab("installation")}
-                    className={`flex-1 px-6 py-4 text-sm font-semibold transition-all duration-200 ${
+                    className={`flex-1 px-6 py-3 text-sm font-semibold rounded-lg border-2 transition-all duration-200 cursor-pointer ${
                       activeTab === "installation"
-                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                        : "bg-gray-200 border border-1 border-gray-300 text-gray-600 hover:bg-gray-100"
+                        ? "bg-blue-600 text-white border-blue-600 shadow-lg transform scale-[0.98]"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 shadow-sm"
                     }`}
                   >
                     <div className="flex items-center justify-center space-x-2">
@@ -741,14 +729,18 @@ const EquipmentDetail = () => {
                         />
                       </svg>
                       <span>Installation Base</span>
+                      {activeTab === "installation" && (
+                        <div className="w-2 h-2 bg-white rounded-full ml-1"></div>
+                      )}
                     </div>
                   </button>
+
                   <button
                     onClick={() => setActiveTab("spares")}
-                    className={`flex-1 px-6 py-4 text-sm font-semibold transition-all duration-200 ${
+                    className={`flex-1 px-6 py-3 text-sm font-semibold rounded-lg border-2 transition-all duration-200 cursor-pointer ${
                       activeTab === "spares"
-                        ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white"
-                        : "bg-gray-100 border border-1 border-gray-300 text-gray-600 hover:bg-gray-100"
+                        ? "bg-purple-600 text-white border-purple-600 shadow-lg transform scale-[0.98]"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50 hover:text-purple-700 shadow-sm"
                     }`}
                   >
                     <div className="flex items-center justify-center space-x-2">
@@ -772,12 +764,15 @@ const EquipmentDetail = () => {
                         />
                       </svg>
                       <span>Spare Parts</span>
+                      {activeTab === "spares" && (
+                        <div className="w-2 h-2 bg-white rounded-full ml-1"></div>
+                      )}
                     </div>
                   </button>
                 </div>
 
                 {/* Tab Content */}
-                <div className="p-3">
+                <div className="py-6 px-2">
                   {activeTab === "installation" && (
                     <>
                       {equipmentDetails.customerEquipments &&
@@ -877,9 +872,9 @@ const EquipmentDetail = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                  {/* <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     Serial No
-                                  </th>
+                                  </th> */}
                                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                     Part Number
                                   </th>
@@ -897,15 +892,22 @@ const EquipmentDetail = () => {
                                     key={index}
                                     className="hover:bg-gray-50 transition-colors duration-200"
                                   >
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    {/* <td
+                                      className="px-6 py-4 whitespace-nowrap underline"
+                                      onClick={() => {
+                                        setModalImage(spare.Image);
+                                        setIsImageLoading(true);
+                                        setShowModal(true);
+                                      }}
+                                    >
                                       <span className="text-blue-600 font-semibold">
                                         {selectedSerial}
                                       </span>
-                                    </td>
+                                    </td> */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono">
                                       {spare.PartNumber || "N/A"}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-700">
+                                    <td className="px-6 py-4 text-sm text-nowrap text-gray-700">
                                       {spare.Description || "N/A"}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1001,21 +1003,6 @@ const EquipmentDetail = () => {
         </div>
       </div>
 
-      {/* Fixed Bottom Button */}
-      {/* <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-30">
-        <div className="max-w-6xl mx-auto">
-          <button
-            onClick={() => navigate("/")}
-            className="px-8 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
-          >
-            <div className="flex items-center justify-center space-x-2">
-              <span>Continue</span>
-            </div>
-          </button>
-        </div>
-      </div> */}
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
-      {/* Enhanced Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden relative">
@@ -1041,7 +1028,7 @@ const EquipmentDetail = () => {
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 w-full">
               {isImageLoading && (
                 <div className="flex justify-center items-center h-96">
                   <div className="relative">

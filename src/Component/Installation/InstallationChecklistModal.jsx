@@ -18,7 +18,7 @@ const ChecklistModal = ({
   checklistItems,
   onFinish,
   initialGlobalRemark = "",
-  voltageData, // Ab ye use nahi hoga numeric entry ke liye
+  voltageData,
   initialEquipmentUsed = "",
   initialCalibrationDate = "",
 }) => {
@@ -33,8 +33,7 @@ const ChecklistModal = ({
     initialCalibrationDate
   );
   const [showEquipmentForm, setShowEquipmentForm] = useState(true);
-
-  // New state for manual voltage input
+  const [hasNoChecklistItems, setHasNoChecklistItems] = useState(false);
   const [manualVoltageInput, setManualVoltageInput] = useState("");
   const [showFailurePopup, setShowFailurePopup] = useState(false);
   const [failedItems, setFailedItems] = useState([]);
@@ -44,14 +43,39 @@ const ChecklistModal = ({
   // Initialize values when checklist items change
   useEffect(() => {
     if (checklistItems.length > 0 && checklistItems[0].equipmentUsedSerial) {
-      setEquipmentUsedSerial(checklistItems.equipmentUsedSerial); // Fixed
+      setEquipmentUsedSerial(checklistItems.equipmentUsedSerial);
     }
     if (checklistItems.length > 0 && checklistItems.calibrationDueDate) {
-      setCalibrationDueDate(checklistItems.calibrationDueDate); // Fixed
+      setCalibrationDueDate(checklistItems.calibrationDueDate);
     }
   }, [checklistItems]);
 
-  // Reset manual voltage input when question changes
+  useEffect(() => {
+    setTempChecklistResults(checklistItems);
+    if (!checklistItems || checklistItems.length === 0) {
+      setHasNoChecklistItems(true);
+      setShowEquipmentForm(true);
+    }
+  }, [checklistItems]);
+
+  // Real-time update of failed items whenever tempChecklistResults changes
+  useEffect(() => {
+    if (showFailurePopup) {
+      const failures = tempChecklistResults.filter((item) => {
+        if (!item.result) return false;
+        const failKeywords = ["No", "NOT OK", "Failed"];
+        return failKeywords.includes(item.result);
+      });
+      setFailedItems(failures);
+      
+      // If no failures remain, close the popup automatically
+      if (failures.length === 0) {
+        setShowFailurePopup(false);
+        toast.success("All items have been corrected!");
+      }
+    }
+  }, [tempChecklistResults, showFailurePopup]);
+
   useEffect(() => {
     setManualVoltageInput("");
   }, [currentQuestionIndex]);
@@ -73,8 +97,14 @@ const ChecklistModal = ({
       toast.error("Please fill in all required equipment information.");
       return;
     }
-    setShowEquipmentForm(false);
-    setCurrentQuestionIndex(0);
+
+    if (hasNoChecklistItems || tempChecklistResults.length === 0) {
+      setShowEquipmentForm(false);
+      setCurrentQuestionIndex(tempChecklistResults.length);
+    } else {
+      setShowEquipmentForm(false);
+      setCurrentQuestionIndex(0);
+    }
   };
 
   const handleNextQuestion = () => {
@@ -85,7 +115,6 @@ const ChecklistModal = ({
 
     const currentItem = tempChecklistResults[currentQuestionIndex];
 
-    // Validation for different result types
     if (currentItem.resulttype === "Yes / No" && currentItem.result === "No") {
       if (!currentItem.remark?.trim()) {
         toast.error("Please enter a remark for 'No' before proceeding.");
@@ -104,7 +133,6 @@ const ChecklistModal = ({
     }
 
     if (currentItem.resulttype === "Numeric Entry") {
-      // Validate manual voltage input
       if (!manualVoltageInput.trim()) {
         toast.error("Please enter the voltage reading before proceeding.");
         return;
@@ -122,7 +150,6 @@ const ChecklistModal = ({
     if (currentQuestionIndex < tempChecklistResults.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
-      // Move to final review
       setCurrentQuestionIndex(tempChecklistResults.length);
     }
   };
@@ -150,7 +177,6 @@ const ChecklistModal = ({
       return;
     }
 
-    // Update the current item with manual voltage reading
     const updatedResults = [...tempChecklistResults];
     const itemIndex = updatedResults.findIndex(
       (item) => item._id === currentItem._id
@@ -168,31 +194,50 @@ const ChecklistModal = ({
   };
 
   const handleFinish = () => {
-    const updatedResults = [...tempChecklistResults];
-    if (updatedResults.length > 0) {
-      updatedResults[0] = {
-        ...updatedResults[0],
-        equipmentUsedSerial,
-        calibrationDueDate,
-      };
-    }
+    let updatedResults = [...tempChecklistResults];
 
-    // Find failed checklist items
-    const failures = updatedResults.filter((item) => {
-      if (!item.result) return false;
-      const failKeywords = ["No", "NOT OK", "Failed"];
-      return failKeywords.includes(item.result);
-    });
-
-    if (failures.length > 0) {
-      // Show failure popup
-      setFailedItems(failures);
-      setShowFailurePopup(true);
+    if (hasNoChecklistItems || tempChecklistResults.length === 0) {
+      updatedResults = [
+        {
+          _id: `equipment_info_${Date.now()}`,
+          checkpoint: "Equipment Information Recorded",
+          result: "Completed",
+          remark:
+            globalChecklistRemark ||
+            "Equipment information recorded without specific checklist items",
+          resulttype: "Equipment Info",
+          equipmentUsedSerial,
+          calibrationDueDate,
+        },
+      ];
     } else {
-      onFinish(updatedResults, globalChecklistRemark);
-      onClose();
+      if (updatedResults.length > 0) {
+        updatedResults[0] = {
+          ...updatedResults[0],
+          equipmentUsedSerial,
+          calibrationDueDate,
+        };
+      }
     }
+
+    if (!hasNoChecklistItems && tempChecklistResults.length > 0) {
+      const failures = updatedResults.filter((item) => {
+        if (!item.result) return false;
+        const failKeywords = ["No", "NOT OK", "Failed"];
+        return failKeywords.includes(item.result);
+      });
+
+      if (failures.length > 0) {
+        setFailedItems(failures);
+        setShowFailurePopup(true);
+        return;
+      }
+    }
+
+    onFinish(updatedResults, globalChecklistRemark);
+    onClose();
   };
+
   const handleFailurePopupClose = () => {
     setShowFailurePopup(false);
     setEditingFailedItem(null);
@@ -206,6 +251,8 @@ const ChecklistModal = ({
     }
   };
 
+
+   
   const handleUpdateFailedVoltage = () => {
     if (!editingFailedItem || !tempVoltageInput.trim()) return;
 
@@ -219,38 +266,32 @@ const ChecklistModal = ({
     const start = parseFloat(startVoltage);
     const end = parseFloat(endVoltage);
 
-    // Update the item in tempChecklistResults
+    const newResult =
+      voltageValue >= start && voltageValue <= end ? "Pass" : "Failed";
+    const newRemark = `Measured: ${voltageValue}V (Range: ${start}V - ${end}V)`;
+
+    // Update the main checklist results
     const updatedResults = tempChecklistResults.map((item) => {
       if (item._id === editingFailedItem._id) {
         return {
           ...item,
-          result:
-            voltageValue >= start && voltageValue <= end ? "Pass" : "Failed",
-          remark: `Measured: ${voltageValue}V (Range: ${start}V - ${end}V)`,
+          result: newResult,
+          remark: newRemark,
         };
       }
       return item;
     });
 
     setTempChecklistResults(updatedResults);
-
-    // Update failed items list
-    const updatedFailures = failedItems.map((item) => {
-      if (item._id === editingFailedItem._id) {
-        return {
-          ...item,
-          result:
-            voltageValue >= start && voltageValue <= end ? "Pass" : "Failed",
-          remark: `Measured: ${voltageValue}V (Range: ${start}V - ${end}V)`,
-        };
-      }
-      return item;
-    });
-
-    setFailedItems(updatedFailures);
     setEditingFailedItem(null);
     setTempVoltageInput("");
-    toast.success("Voltage reading updated successfully!");
+
+    // Show success message based on result
+    if (newResult === "Pass") {
+      toast.success("Voltage reading updated successfully! Item now passes.");
+    } else {
+      toast.error("Item still fails. Please check the voltage range.");
+    }
   };
 
   const proceedWithFailures = () => {
@@ -273,21 +314,18 @@ const ChecklistModal = ({
     return ((currentQuestionIndex + 1) / tempChecklistResults.length) * 100;
   };
 
-  // Determine whether the "Next" button is enabled based on question type and answer
   const isNextDisabled = () => {
     if (showEquipmentForm) {
       return !equipmentUsedSerial?.trim() || !calibrationDueDate?.trim();
     }
     if (!tempChecklistResults[currentQuestionIndex]) return true;
     const currentItem = tempChecklistResults[currentQuestionIndex];
-    // Yes/No selection
+
     if (
       currentItem.resulttype === "Yes / No" ||
       currentItem.resulttype === "OK/NOT OK"
     ) {
-      // Not selected
       if (!currentItem.result) return true;
-      // If "No" or "NOT OK", require a remark
       if (
         (currentItem.resulttype === "Yes / No" &&
           currentItem.result === "No" &&
@@ -299,7 +337,7 @@ const ChecklistModal = ({
         return true;
       }
     }
-    // Numeric: must enter a value
+
     if (currentItem.resulttype === "Numeric Entry") {
       if (
         !manualVoltageInput?.trim() ||
@@ -466,7 +504,6 @@ const ChecklistModal = ({
             </p>
           </div>
 
-          {/* Manual Voltage Input */}
           <div className="flex justify-center">
             <div className="w-full max-w-sm">
               <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
@@ -487,7 +524,6 @@ const ChecklistModal = ({
             </div>
           </div>
 
-          {/* Show result preview if voltage is entered */}
           {manualVoltageInput &&
             !isNaN(Number.parseFloat(manualVoltageInput)) && (
               <div className="p-3 bg-gray-50 hidden border border-gray-200 rounded-lg">
@@ -621,7 +657,6 @@ const ChecklistModal = ({
               </div>
             )}
 
-          {/* Final Review Screen */}
           {!showEquipmentForm &&
             currentQuestionIndex >= tempChecklistResults.length && (
               <div className="space-y-6">
@@ -630,19 +665,29 @@ const ChecklistModal = ({
                     <CheckCircle className="w-8 h-8 text-green-600" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Checklist Complete
+                    {hasNoChecklistItems
+                      ? "Equipment Information Complete"
+                      : "Checklist Complete"}
                   </h3>
                   <p className="text-gray-600 text-sm">
-                    Add any final remarks and complete the checklist
+                    {hasNoChecklistItems
+                      ? "No specific checklist found for this equipment. Add any remarks and complete."
+                      : "Add any final remarks and complete the checklist"}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Global Checklist Remark
+                    {hasNoChecklistItems
+                      ? "Installation Remarks"
+                      : "Global Checklist Remark"}
                   </label>
                   <textarea
-                    placeholder="Enter any overall remarks for this installation..."
+                    placeholder={
+                      hasNoChecklistItems
+                        ? "Enter any remarks about this equipment installation..."
+                        : "Enter any overall remarks for this installation..."
+                    }
                     value={globalChecklistRemark}
                     onChange={(e) => setGlobalChecklistRemark(e.target.value)}
                     maxLength={400}
@@ -684,14 +729,25 @@ const ChecklistModal = ({
                       </p>
                     </div>
                   </div>
+
+                  {hasNoChecklistItems && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                      <p className="text-xs text-yellow-800">
+                        <strong>Note:</strong> No specific checklist questions
+                        were found for this equipment. Equipment information has
+                        been recorded for installation completion.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
         </div>
+
         {/* Failure Popup Modal */}
         {showFailurePopup && (
-          <div className="fixed inset-0   flex justify-center items-center z-[60] backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col ">
+          <div className="fixed inset-0 flex justify-center items-center z-[60] backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
               {/* Header */}
               <div className="bg-gradient-to-r from-red-600 to-red-700 p-4">
                 <div className="flex items-center justify-between">
@@ -716,90 +772,96 @@ const ChecklistModal = ({
 
               {/* Content */}
               <div className="flex-1 overflow-auto p-4">
-                <div className="space-y-4">
-                  {failedItems.map((item, index) => (
-                    <div
-                      key={item._id}
-                      className="border border-red-200 rounded-lg p-4 bg-red-50"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-red-900 mb-1">
-                            {item.checkpoint}
-                          </h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
-                              Result: {item.result}
-                            </span>
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                              {item.resulttype}
-                            </span>
-                          </div>
-                          {/* {item.remark && (
-                            <p className="text-sm text-red-700 bg-red-100 p-2 rounded border">
-                              <span className="font-medium">Remark:</span>{" "}
-                              {item.remark}
-                            </p>
-                          )} */}
-                        </div>
-
-                        {/* Edit button only for voltage failures */}
-                        {item.resulttype === "Numeric Entry" && (
-                          <button
-                            onClick={() => handleEditFailedItem(item)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
-                          >
-                            <Settings className="w-3 h-3" />
-                            Re-test
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Voltage editing form */}
-                      {editingFailedItem &&
-                        editingFailedItem._id === item._id && (
-                          <div className="mt-3 p-3 bg-white border border-blue-200 rounded">
-                            <h4 className="font-medium text-blue-900 mb-2">
-                              Re-enter Voltage Reading
-                            </h4>
-                            <div className="flex items-center gap-3">
-                              <div className="flex-1">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="Enter new voltage value"
-                                  value={tempVoltageInput}
-                                  onChange={(e) =>
-                                    setTempVoltageInput(e.target.value)
-                                  }
-                                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                <p className="text-xs hidden text-gray-500 mt-1">
-                                  Expected Range: {item.startVoltage}V -{" "}
-                                  {item.endVoltage}V
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={handleUpdateFailedVoltage}
-                                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
-                                  disabled={!tempVoltageInput.trim()}
-                                >
-                                  Update
-                                </button>
-                                <button
-                                  onClick={() => setEditingFailedItem(null)}
-                                  className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
+                {failedItems.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      All Items Corrected!
+                    </h3>
+                    <p className="text-gray-600">
+                      All previously failed items have been successfully updated.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {failedItems.map((item, index) => (
+                      <div
+                        key={item._id}
+                        className="border border-red-200 rounded-lg p-4 bg-red-50"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-red-900 mb-1">
+                              {item.checkpoint}
+                            </h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                                Result: {item.result}
+                              </span>
+                              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                                {item.resulttype}
+                              </span>
                             </div>
                           </div>
-                        )}
-                    </div>
-                  ))}
-                </div>
+
+                          {/* Edit button only for voltage failures */}
+                          {item.resulttype === "Numeric Entry" && (
+                            <button
+                              onClick={() => handleEditFailedItem(item)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
+                            >
+                              <Settings className="w-3 h-3" />
+                              Re-test
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Voltage editing form */}
+                        {editingFailedItem &&
+                          editingFailedItem._id === item._id && (
+                            <div className="mt-3 p-3 bg-white border border-blue-200 rounded">
+                              <h4 className="font-medium text-blue-900 mb-2">
+                                Re-enter Voltage Reading
+                              </h4>
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Enter new voltage value"
+                                    value={tempVoltageInput}
+                                    onChange={(e) =>
+                                      setTempVoltageInput(e.target.value)
+                                    }
+                                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  />
+                                  <p className="text-xs hidden text-gray-500 mt-1">
+                                    Expected Range: {item.startVoltage}V -{" "}
+                                    {item.endVoltage}V
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={handleUpdateFailedVoltage}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                                    disabled={!tempVoltageInput.trim()}
+                                  >
+                                    Update
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingFailedItem(null)}
+                                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-start gap-2">
@@ -824,14 +886,15 @@ const ChecklistModal = ({
                 <div className="flex flex-col gap-2 justify-between items-center">
                   <button
                     onClick={handleFailurePopupClose}
-                    className=" py-2 w-full text-gray-600 bg-gray-300 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                    className="py-2 w-full text-gray-600 bg-gray-300 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors font-medium"
                   >
                     Go Back to Review
                   </button>
                   <div className="flex w-full gap-3">
                     <button
                       onClick={proceedWithFailures}
-                      className="bg-orange-600 w-full hover:bg-orange-700 text-white  py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="bg-orange-600 w-full hover:bg-orange-700 text-white py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      disabled={failedItems.length === 0}
                     >
                       <AlertTriangle className="w-4 h-4" />
                       Proceed with Failures

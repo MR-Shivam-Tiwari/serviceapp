@@ -16,8 +16,49 @@ import {
 function CompletedOrder() {
   const navigate = useNavigate();
   const [proposals, setProposals] = useState([]);
+  const [filteredProposals, setFilteredProposals] = useState([]);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState({});
+
+  // Get user data from localStorage
+  useEffect(() => {
+    const userDataString = localStorage.getItem("user");
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        setUserInfo({
+          id: userData.id || "",
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          mobilenumber: userData.mobilenumber || "",
+          status: userData.status || "",
+          branch: userData.branch || "",
+          loginexpirydate: userData.loginexpirydate || "",
+          employeeid: userData.employeeid || "",
+          country: userData.country || "",
+          state: userData.state || "",
+          city: userData.city || "",
+          department: userData.department || "",
+          profileimage: userData.profileimage || "",
+          deviceid: userData.deviceid || "",
+          deviceregistereddate: userData.deviceregistereddate || "",
+          usertype: userData.usertype || "",
+          manageremail: userData.manageremail || "",
+          roleName: userData.role?.roleName || "",
+          roleId: userData.role?.roleId || "",
+          dealerName: userData.dealerInfo?.dealerName || "",
+          dealerId: userData.dealerInfo?.dealerId || "",
+          dealerEmail: userData.dealerInfo?.dealerEmail || "",
+          location: userData.location || [],
+          skills: userData.skills || "",
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -36,6 +77,18 @@ function CompletedOrder() {
 
     fetchProposals();
   }, []);
+
+  // Filter proposals based on createdBy matching employeeid
+  useEffect(() => {
+    if (proposals.length > 0 && userInfo.employeeid) {
+      const filtered = proposals.filter(
+        (proposal) => proposal?.createdBy === userInfo?.employeeid
+      );
+      setFilteredProposals(filtered);
+    } else {
+      setFilteredProposals([]);
+    }
+  }, [proposals, userInfo.employeeid]);
 
   const formatDate = (dateString) => {
     const options = { year: "numeric", month: "short", day: "numeric" };
@@ -651,7 +704,7 @@ function CompletedOrder() {
           </div>
         ) : (
           <div className="space-y-3">
-            {proposals.map((proposal, index) => (
+            {filteredProposals.map((proposal, index) => (
               <div
                 key={proposal._id}
                 className="bg-white rounded-md shadow-sm border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow"

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { SafeArea } from "capacitor-plugin-safe-area";
 
 import ForgotPassword from './Component/Auth/ForgotPassword';
 import Login from './Component/Auth/Login';
@@ -131,6 +132,76 @@ const SessionTimer = () => {
   return null;
 };
 
+// Safe Area Setup Component
+const SafeAreaSetup = () => {
+  useEffect(() => {
+    const setupSafeArea = async () => {
+      try {
+        if (Capacitor.isNativePlatform()) {
+          const data = await SafeArea.getSafeAreaInsets();
+          const { insets } = data;
+          
+          // Set CSS custom properties for safe area insets
+          const root = document.documentElement;
+          root.style.setProperty("--ion-safe-area-top", `${insets.top}px`);
+          root.style.setProperty("--ion-safe-area-right", `${insets.right}px`);
+          root.style.setProperty("--ion-safe-area-bottom", `${insets.bottom}px`);
+          root.style.setProperty("--ion-safe-area-left", `${insets.left}px`);
+          
+          // Also set generic safe area variables for easier use
+          root.style.setProperty("--safe-area-top", `${insets.top}px`);
+          root.style.setProperty("--safe-area-right", `${insets.right}px`);
+          root.style.setProperty("--safe-area-bottom", `${insets.bottom}px`);
+          root.style.setProperty("--safe-area-left", `${insets.left}px`);
+          
+          // Set total safe area height for convenience
+          root.style.setProperty("--safe-area-inset-top", `${insets.top}px`);
+          root.style.setProperty("--safe-area-inset-bottom", `${insets.bottom}px`);
+          
+          // Apply safe area to body
+          document.body.style.paddingTop = `${insets.top}px`;
+          document.body.style.paddingBottom = `${insets.bottom}px`;
+          document.body.style.paddingLeft = `${insets.left}px`;
+          document.body.style.paddingRight = `${insets.right}px`;
+          
+          console.log('Safe area insets applied:', insets);
+        } else {
+          // Fallback values for web
+          const root = document.documentElement;
+          root.style.setProperty("--ion-safe-area-top", "0px");
+          root.style.setProperty("--ion-safe-area-right", "0px");
+          root.style.setProperty("--ion-safe-area-bottom", "0px");
+          root.style.setProperty("--ion-safe-area-left", "0px");
+          root.style.setProperty("--safe-area-top", "0px");
+          root.style.setProperty("--safe-area-right", "0px");
+          root.style.setProperty("--safe-area-bottom", "0px");
+          root.style.setProperty("--safe-area-left", "0px");
+          root.style.setProperty("--safe-area-inset-top", "0px");
+          root.style.setProperty("--safe-area-inset-bottom", "0px");
+        }
+      } catch (error) {
+        console.warn('SafeArea plugin error:', error);
+        // Fallback values if plugin fails
+        const root = document.documentElement;
+        root.style.setProperty("--ion-safe-area-top", "0px");
+        root.style.setProperty("--ion-safe-area-right", "0px");
+        root.style.setProperty("--ion-safe-area-bottom", "0px");
+        root.style.setProperty("--ion-safe-area-left", "0px");
+        root.style.setProperty("--safe-area-top", "0px");
+        root.style.setProperty("--safe-area-right", "0px");
+        root.style.setProperty("--safe-area-bottom", "0px");
+        root.style.setProperty("--safe-area-left", "0px");
+        root.style.setProperty("--safe-area-inset-top", "0px");
+        root.style.setProperty("--safe-area-inset-bottom", "0px");
+      }
+    };
+
+    setupSafeArea();
+  }, []);
+
+  return null;
+};
+
 // Main App Content Component (this runs inside Router context)
 const AppContent = () => {
   const navigate = useNavigate();
@@ -138,13 +209,15 @@ const AppContent = () => {
   useEffect(() => {
     const setupNativeUI = async () => {
       if (Capacitor.isNativePlatform()) {
-        const { StatusBar, Style } = await import('@capacitor/status-bar');
-        const { SplashScreen } = await import('@capacitor/splash-screen');
-
         try {
+          const { StatusBar, Style } = await import('@capacitor/status-bar');
+          const { SplashScreen } = await import('@capacitor/splash-screen');
+
+          // Set up status bar
           await StatusBar.setStyle({ style: Style.Dark });
           await StatusBar.setBackgroundColor({ color: '#ffffff' });
-          await StatusBar.setOverlaysWebView({ overlay: false }); // Add यह line
+          await StatusBar.setOverlaysWebView({ overlay: false });
+          
           await SplashScreen.hide();
         } catch (error) {
           console.warn('Native UI plugin error:', error);
@@ -157,7 +230,8 @@ const AppContent = () => {
   }, [navigate]);
 
   return (
-    <div className="safe-area-container varela-round">
+    <div className="varela-round">
+      <SafeAreaSetup />
       <BackButtonHandler />
       <SessionTimer />
 
@@ -227,7 +301,7 @@ function App() {
         reverseOrder={false}
         gutter={8}
         containerStyle={{
-          top: 60, // Safe area + header के लिए top margin
+          top: 'var(--safe-area-top, 60px)', // Use safe area variable with fallback
           right: 16,
         }}
         toastOptions={{
@@ -279,7 +353,6 @@ function App() {
           },
         }}
       />
-
 
       {/* AppContent now runs inside Router context */}
       <AppContent />

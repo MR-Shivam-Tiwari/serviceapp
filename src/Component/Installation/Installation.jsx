@@ -26,11 +26,25 @@ function Installation() {
     dealerEmail: "",
     manageremail: [],
   });
-  // const [safeAreaInsets] = useState({ bottom: 20 });
+
+  // Keyboard and viewport handling
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  
+  // Handle Enter key in voltage inputs
+  const handleVoltageKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleInstall();
+    }
+  };
+  
+  // Safe area insets for mobile devices
   const [safeAreaInsets, setSafeAreaInsets] = useState({
-    top: 44,
-    bottom: 28,
+    top: 0,
+    bottom: 20, // Default bottom padding for navigation
   });
+
   // Load user info on mount
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -49,6 +63,67 @@ function Installation() {
           : [],
       });
     }
+  }, []);
+
+  // Handle keyboard visibility and viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const originalHeight = window.screen.height;
+
+      // If height reduced significantly, keyboard is likely open
+      if (currentHeight < originalHeight * 0.75) {
+        setKeyboardVisible(true);
+      } else {
+        setKeyboardVisible(false);
+      }
+      setViewportHeight(currentHeight);
+    };
+
+    // Detect safe area insets for mobile
+    const detectSafeArea = () => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        // iOS safe area
+        setSafeAreaInsets({
+          top: 44, // Status bar
+          bottom: 34, // Home indicator
+        });
+      } else if (isAndroid) {
+        // Android navigation bar
+        setSafeAreaInsets({
+          top: 24, // Status bar
+          bottom: 48, // Navigation bar
+        });
+      } else {
+        // Desktop/Web
+        setSafeAreaInsets({
+          top: 0,
+          bottom: 20,
+        });
+      }
+    };
+
+    detectSafeArea();
+
+    // Listen for viewport changes
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    // For mobile browsers, also listen to visual viewport API if available
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
+    };
   }, []);
 
   // ----------- Enhanced Search Functionality -----------
@@ -335,7 +410,7 @@ function Installation() {
       setVoltageError("");
     }
 
-    // Validate PAL Number - required when material exists in AERB and no existing PAL number
+    // Validate PAL Number for current selection
     if (shouldShowProcurementInput() && !palNumber.trim()) {
       setPalNumberError("Please enter the Procurement Number (PAL Number)");
       isValid = false;
@@ -343,8 +418,33 @@ function Installation() {
       setPalNumberError("");
     }
 
+    // Validate PAL Numbers for all install items that need them
+    const updatedItems = installItems.map((item) => {
+      const needsProcurement =
+        item.materialCodeExists &&
+        (!item.pendingInstallationData?.palnumber ||
+          item.pendingInstallationData.palnumber === "");
+
+      if (
+        needsProcurement &&
+        (!item.palNumber || item.palNumber.trim() === "")
+      ) {
+        isValid = false;
+        return {
+          ...item,
+          palNumberError: "Procurement number is required for AERB equipment",
+        };
+      } else {
+        return { ...item, palNumberError: "" };
+      }
+    });
+
+    setInstallItems(updatedItems);
+
     if (!isValid) {
-      toast.error("Please fill all required fields");
+      toast.error(
+        "Please fill all required fields including procurement numbers for AERB equipment"
+      );
     }
 
     return isValid;
@@ -355,20 +455,35 @@ function Installation() {
     setPalNumber(val);
   };
 
+  // Handle PAL number change for install items
+  const handleInstallItemPalNumberChange = (index, value) => {
+    setInstallItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              palNumber: value,
+              palNumberError: value.trim() ? "" : item.palNumberError,
+            }
+          : item
+      )
+    );
+  };
+
   // ----------- Add More => Move currentSerialData into final array -----------
   const handleAddMore = () => {
     // limit to 5
     if (installItems.length >= 5) {
-      alert("You can only add up to 5 machines.");
+      toast.error("You can only add up to 5 machines.");
       return;
     }
     if (!selectedSerial || !currentSerialData) {
-      alert("No valid serial data to add!");
+      toast.error("No valid serial data to add!");
       return;
     }
     // Check if already in the list
     if (installItems.some((it) => it.serialNumber === selectedSerial)) {
-      alert("This serial is already in the list!");
+      toast.error("This serial is already in the list!");
       return;
     }
 
@@ -392,6 +507,7 @@ function Installation() {
         return "";
       })(),
       materialCodeExists: materialCodeExists, // Store AERB check result
+      palNumberError: "", // Initialize error state
     };
 
     setInstallItems((prev) => [...prev, newItem]);
@@ -449,6 +565,15 @@ function Installation() {
     return false;
   };
 
+  // Function to check if install item needs procurement input
+  const itemNeedsProcurementInput = (item) => {
+    return (
+      item.materialCodeExists &&
+      (!item.pendingInstallationData?.palnumber ||
+        item.pendingInstallationData.palnumber === "")
+    );
+  };
+
   // ------------- On "Install" => user might not have clicked "Add More" -----------
   // We also want to include the currentSerialData if the user hasn't added it yet
   const handleInstall = () => {
@@ -486,11 +611,29 @@ function Installation() {
         };
         // If finalItems is already at 5, we do a quick check
         if (finalItems.length >= 5) {
-          alert("You can only install up to 5 machines.");
+          toast.error("You can only install up to 5 machines.");
           return;
         }
         finalItems.push(newItem);
       }
+    }
+
+    // Final validation for all items
+    let allValid = true;
+    finalItems.forEach((item) => {
+      if (
+        item.materialCodeExists &&
+        (!item.pendingInstallationData?.palnumber ||
+          item.pendingInstallationData.palnumber === "") &&
+        (!item.palNumber || item.palNumber.trim() === "")
+      ) {
+        allValid = false;
+      }
+    });
+
+    if (!allValid) {
+      toast.error("Please enter procurement numbers for all AERB equipment");
+      return;
     }
 
     // Now navigate
@@ -504,9 +647,18 @@ function Installation() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className="flex flex-col bg-gray-50"
+      style={{
+        height: keyboardVisible ? `${viewportHeight}px` : "100vh",
+        maxHeight: keyboardVisible ? `${viewportHeight}px` : "100vh",
+      }}
+    >
       {/* HEADER */}
-      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div 
+        className="flex-shrink-0 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg"
+        // style={{ paddingTop: `${safeAreaInsets.top}px` }}
+      >
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -521,305 +673,96 @@ function Installation() {
       </div>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 px-1  pt-16 pb-64 overflow-y-auto">
-        {/* Enhanced Search Section with Custom Autocomplete */}
-        <div className="bg-white rounded-md shadow-sm p-4 mb-4">
-          <div className="mb-3 relative">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search & Select Serial Number
-            </label>
+      <main
+        className="flex-1 overflow-y-auto px-1"
+        style={{
+          paddingBottom: keyboardVisible 
+            ? "10px" 
+            : `${140 + safeAreaInsets.bottom}px`,
+        }}
+      >
+        <div className="py-4">
+          {/* Enhanced Search Section with Custom Autocomplete */}
+          <div className="bg-white rounded-md shadow-sm p-4 mb-4">
+            <div className="mb-3 relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search & Select Serial Number
+              </label>
 
-            {/* Custom Autocomplete Input */}
-            <div className="relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchTerm}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onFocus={() => setShowDropdown(true)}
-                placeholder="Search by Serial Number..."
-                className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-
-              {/* Loading indicator */}
-              {loadingSerialNumbers && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                </div>
-              )}
-
-              {/* Dropdown */}
-              {showDropdown && (
-                <div
-                  ref={dropdownRef}
-                  className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
-                >
-                  {loadingSerialNumbers ? (
-                    <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                      <span className="ml-2 text-gray-600">Searching...</span>
-                    </div>
-                  ) : serialNumbers.length === 0 ? (
-                    <div className="p-3 text-gray-500 text-center">
-                      {searchTerm.length < 5 && searchTerm.length > 0
-                        ? `Type ${
-                            5 - searchTerm.length
-                          } more character(s) to search`
-                        : error || "No serial numbers found"}
-                    </div>
-                  ) : (
-                    serialNumbers.map((serial, index) => (
-                      <div
-                        key={serial}
-                        className={`px-3 py-2 cursor-pointer transition-colors ${
-                          index === selectedIndex
-                            ? "bg-blue-100 text-blue-900"
-                            : "hover:bg-gray-100"
-                        }`}
-                        onClick={() => handleSerialSelect(serial)}
-                        onMouseEnter={() => setSelectedIndex(index)}
-                      >
-                        {serial}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Helper text */}
-            <p className="mt-1 text-xs text-gray-500">
-              {searchTerm.length < 5 && searchTerm.length > 0
-                ? `Type ${5 - searchTerm.length} more character(s) to search`
-                : serialNumbers.length === 100
-                ? "Showing first 100 results. Type to search for specific serial numbers."
-                : `Found ${serialNumbers.length} equipment(s)`}
-            </p>
-
-            {/* Error display */}
-            {error && (
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-600 text-sm font-medium flex items-center">
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  {error}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <button
-            className="w-full flex items-center justify-center px-4 py-3 bg-primary text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-            onClick={() => alert("Scan barcode not implemented!")}
-          >
-            Scan Barcode
-          </button>
-        </div>
-
-        {/* Current Serial Data Display */}
-        {currentSerialData && (
-          <div className="bg-white rounded-md shadow-sm border border-blue-200 p-4 mb-4">
-            <div className="flex items-center mb-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-              <h3 className="font-medium text-gray-900">
-                Selected Equipment Details
-              </h3>
-              {/* Show AERB check status */}
-              {checkingMaterialCode && (
-                <div className="ml-auto flex items-center text-sm text-blue-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-1"></div>
-                  Checking AERB...
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Serial Number:</span>
-                <span className="font-medium text-gray-900">
-                  {currentSerialData.serialnumber || selectedSerial}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Part No:</span>
-                <span className="font-medium text-gray-900 flex items-center">
-                  {currentSerialData.material || "N/A"}
-                  {/* Show AERB status indicator */}
-                  {currentSerialData.material && !checkingMaterialCode && (
-                    <span
-                      className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                        materialCodeExists
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {materialCodeExists ? "AERB" : "Non-AERB"}
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Description:</span>
-                <span className="font-medium text-gray-900 text-right">
-                  {currentSerialData.description || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Customer Code ID:</span>
-                <span className="font-medium text-gray-900 text-right">
-                  {currentSerialData.currentcustomerid || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Customer:</span>
-                <span className="font-medium text-gray-900 text-right">
-                  {currentSerialData.Customer || "N/A"}{" "}
-                  {currentSerialData.currentcustomername2 || ""}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">City:</span>
-                <span className="font-medium text-gray-900">
-                  {currentSerialData.City || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Pin Code:</span>
-                <span className="font-medium text-gray-900">
-                  {currentSerialData.PinCode || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Warranty:</span>
-                <span className="font-medium text-gray-900 text-right">
-                  {currentSerialData.mtl_grp4 || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Warranty Start:</span>
-                <span className="font-medium text-gray-900">
-                  {new Date().toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Warranty End:</span>
-                <span className="font-medium text-gray-900">
-                  {currentSerialData?.warrantyMonths
-                    ? new Date(
-                        new Date().setMonth(
-                          new Date().getMonth() +
-                            currentSerialData.warrantyMonths
-                        )
-                      ).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "N/A"}
-                </span>
-              </div>
-            </div>
-
-            {/* Updated Procurement Number Section */}
-            {currentSerialData.palnumber &&
-            currentSerialData.palnumber !== "" ? (
-              // Show existing pal number if it exists and is not empty
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Pal Number:</span>
-                  <span className="font-medium text-gray-900">
-                    {currentSerialData.palnumber}
-                  </span>
-                </div>
-              </div>
-            ) : shouldShowProcurementInput() ? (
-              // Show input field when conditions are met
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-                <div className="flex items-center mb-2">
-                  <svg
-                    className="w-4 h-4 text-green-600 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <label className="block text-sm font-medium text-green-800">
-                    Procurement Number Required
-                  </label>
-                </div>
-                <p className="text-xs text-green-700 mb-3">
-                  This is an AERB equipment. Please enter the Procurement
-                  Number.
-                </p>
+              {/* Custom Autocomplete Input */}
+              <div className="relative">
                 <input
+                  ref={inputRef}
                   type="text"
-                  placeholder="Enter Procurement No (PAL Number)"
-                  className={`w-full px-3 py-3 border ${
-                    palNumberError
-                      ? "border-red-500 bg-red-50"
-                      : "border-green-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white`}
-                  value={palNumber}
-                  onChange={(e) => {
-                    handlePalNumberChange(e.target.value);
-                    if (e.target.value.trim()) {
-                      setPalNumberError("");
-                    }
-                  }}
+                  value={searchTerm}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setShowDropdown(true)}
+                  placeholder="Search by Serial Number..."
+                  className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                {palNumberError && (
-                  <p className="mt-1 text-red-500 text-sm">{palNumberError}</p>
+
+                {/* Loading indicator */}
+                {loadingSerialNumbers && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+
+                {/* Dropdown */}
+                {showDropdown && (
+                  <div
+                    ref={dropdownRef}
+                    className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                  >
+                    {loadingSerialNumbers ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                        <span className="ml-2 text-gray-600">Searching...</span>
+                      </div>
+                    ) : serialNumbers.length === 0 ? (
+                      <div className="p-3 text-gray-500 text-center">
+                        {searchTerm.length < 5 && searchTerm.length > 0
+                          ? `Type ${
+                              5 - searchTerm.length
+                            } more character(s) to search`
+                          : error || "No serial numbers found"}
+                      </div>
+                    ) : (
+                      serialNumbers.map((serial, index) => (
+                        <div
+                          key={serial}
+                          className={`px-3 py-2 cursor-pointer transition-colors ${
+                            index === selectedIndex
+                              ? "bg-blue-100 text-blue-900"
+                              : "hover:bg-gray-100"
+                          }`}
+                          onClick={() => handleSerialSelect(serial)}
+                          onMouseEnter={() => setSelectedIndex(index)}
+                        >
+                          {serial}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
-            ) : null}
-          </div>
-        )}
 
-        {/* Install Items Cards */}
-        {installItems.length > 0 && (
-          <div className="space-y-3 mb-4">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
-                {installItems.length}
-              </span>
-              Added Equipment
-            </h3>
+              {/* Helper text */}
+              <p className="mt-1 text-xs text-gray-500">
+                {searchTerm.length < 5 && searchTerm.length > 0
+                  ? `Type ${5 - searchTerm.length} more character(s) to search`
+                  : serialNumbers.length === 100
+                  ? "Showing first 100 results. Type to search for specific serial numbers."
+                  : `Found ${serialNumbers.length} equipment(s)`}
+              </p>
 
-            {installItems.map((item, idx) => {
-              const data = item.pendingInstallationData;
-              return (
-                <div
-                  key={idx}
-                  className="bg-white rounded-md shadow-sm border border-gray-200 p-4 relative"
-                >
-                  <button
-                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md transition-colors"
-                    onClick={() => handleRemoveCard(idx)}
-                  >
+              {/* Error display */}
+              {error && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-600 text-sm font-medium flex items-center">
                     <svg
-                      className="w-4 h-4"
+                      className="w-4 h-4 mr-2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -828,193 +771,484 @@ function Installation() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                  </button>
+                    {error}
+                  </p>
+                </div>
+              )}
+            </div>
 
-                  <div className="grid grid-cols-1 gap-2 text-sm pr-8">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Serial No:</span>
-                      <span className="font-medium text-gray-900">
-                        {data?.serialnumber || item.serialNumber}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Part No:</span>
-                      <span className="font-medium text-gray-900 flex items-center">
-                        {data?.material || "N/A"}
-                        {/* Show AERB status in cards too */}
-                        {data?.material && (
-                          <span
-                            className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                              item.materialCodeExists
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {item.materialCodeExists ? "AERB" : "Non-AERB"}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Description:</span>
-                      <span className="font-medium text-gray-900 text-right">
-                        {data?.description || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Customer:</span>
-                      <span className="font-medium text-gray-900 text-right">
-                        {data?.currentcustomername1 || "N/A"}{" "}
-                        {data?.currentcustomername2 || ""}
-                      </span>
-                    </div>
+            <button
+              className="w-full flex items-center justify-center px-4 py-3 bg-primary text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              onClick={() => alert("Scan barcode not implemented!")}
+            >
+              Scan Barcode
+            </button>
+          </div>
 
-                    {/* Show PAL Number if exists */}
-                    {item.palNumber && item.palNumber !== "" && (
-                      <div className="flex justify-between pt-2 border-t border-gray-100">
-                        <span className="text-gray-600">PAL Number:</span>
+          {/* Current Serial Data Display */}
+          {currentSerialData && (
+            <div className="bg-white rounded-md shadow-sm border border-blue-200 p-4 mb-4">
+              <div className="flex items-center mb-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                <h3 className="font-medium text-gray-900">
+                  Selected Equipment Details
+                </h3>
+                {/* Show AERB check status */}
+                {checkingMaterialCode && (
+                  <div className="ml-auto flex items-center text-sm text-blue-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-1"></div>
+                    Checking AERB...
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Serial Number:</span>
+                  <span className="font-medium text-gray-900">
+                    {currentSerialData.serialnumber || selectedSerial}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Part No:</span>
+                  <span className="font-medium text-gray-900 flex items-center">
+                    {currentSerialData.material || "N/A"}
+                    {/* Show AERB status indicator */}
+                    {currentSerialData.material && !checkingMaterialCode && (
+                      <span
+                        className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                          materialCodeExists
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {materialCodeExists ? "AERB" : "Non-AERB"}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Description:</span>
+                  <span className="font-medium text-gray-900 text-right">
+                    {currentSerialData.description || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Customer Code ID:</span>
+                  <span className="font-medium text-gray-900 text-right">
+                    {currentSerialData.currentcustomerid || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Customer:</span>
+                  <span className="font-medium text-gray-900 text-right">
+                    {currentSerialData.Customer || "N/A"}{" "}
+                    {currentSerialData.currentcustomername2 || ""}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">City:</span>
+                  <span className="font-medium text-gray-900">
+                    {currentSerialData.City || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Pin Code:</span>
+                  <span className="font-medium text-gray-900">
+                    {currentSerialData.PinCode || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Warranty:</span>
+                  <span className="font-medium text-gray-900 text-right">
+                    {currentSerialData.mtl_grp4 || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Warranty Start:</span>
+                  <span className="font-medium text-gray-900">
+                    {new Date().toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Warranty End:</span>
+                  <span className="font-medium text-gray-900">
+                    {currentSerialData?.warrantyMonths
+                      ? new Date(
+                          new Date().setMonth(
+                            new Date().getMonth() +
+                              currentSerialData.warrantyMonths
+                          )
+                        ).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Updated Procurement Number Section */}
+              {currentSerialData.palnumber &&
+              currentSerialData.palnumber !== "" ? (
+                // Show existing pal number if it exists and is not empty
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Pal Number:</span>
+                    <span className="font-medium text-gray-900">
+                      {currentSerialData.palnumber}
+                    </span>
+                  </div>
+                </div>
+              ) : shouldShowProcurementInput() ? (
+                // Show input field when conditions are met
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center mb-2">
+                    <svg
+                      className="w-4 h-4 text-green-600 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <label className="block text-sm font-medium text-green-800">
+                      Procurement Number Required
+                    </label>
+                  </div>
+                  <p className="text-xs text-green-700 mb-3">
+                    This is an AERB equipment. Please enter the Procurement
+                    Number.
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Enter Procurement No (PAL Number)"
+                    className={`w-full px-3 py-3 border ${
+                      palNumberError
+                        ? "border-red-500 bg-red-50"
+                        : "border-green-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white`}
+                    value={palNumber}
+                    onChange={(e) => {
+                      handlePalNumberChange(e.target.value);
+                      if (e.target.value.trim()) {
+                        setPalNumberError("");
+                      }
+                    }}
+                  />
+                  {palNumberError && (
+                    <p className="mt-1 text-red-500 text-sm">{palNumberError}</p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* Install Items Cards */}
+          {installItems.length > 0 && (
+            <div className="space-y-3 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <span className="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">
+                  {installItems.length}
+                </span>
+                Added Equipment
+              </h3>
+
+              {installItems.map((item, idx) => {
+                const data = item.pendingInstallationData;
+                const needsProcurement = itemNeedsProcurementInput(item);
+
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-md shadow-sm border border-gray-200 p-4 relative"
+                  >
+                    <button
+                      className="absolute top-3 right-3 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-md transition-colors"
+                      onClick={() => handleRemoveCard(idx)}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+
+                    <div className="grid grid-cols-1 gap-2 text-sm pr-8">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Serial No:</span>
                         <span className="font-medium text-gray-900">
-                          {item.palNumber}
+                          {data?.serialnumber || item.serialNumber}
                         </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Part No:</span>
+                        <span className="font-medium text-gray-900 flex items-center">
+                          {data?.material || "N/A"}
+                          {/* Show AERB status in cards too */}
+                          {data?.material && (
+                            <span
+                              className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                                item.materialCodeExists
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {item.materialCodeExists ? "AERB" : "Non-AERB"}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Description:</span>
+                        <span className="font-medium text-gray-900 text-right">
+                          {data?.description || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Customer:</span>
+                        <span className="font-medium text-gray-900 text-right">
+                          {data?.currentcustomername1 || "N/A"}{" "}
+                          {data?.currentcustomername2 || ""}
+                        </span>
+                      </div>
+
+                      {/* Show existing PAL Number if exists */}
+                      {item.palNumber &&
+                        item.palNumber !== "" &&
+                        !needsProcurement && (
+                          <div className="flex justify-between pt-2 border-t border-gray-100">
+                            <span className="text-gray-600">PAL Number:</span>
+                            <span className="font-medium text-gray-900">
+                              {item.palNumber}
+                            </span>
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Procurement Number Input for this card */}
+                    {needsProcurement && (
+                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <div className="flex items-center mb-2">
+                          <svg
+                            className="w-4 h-4 text-green-600 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <label className="block text-sm font-medium text-green-800">
+                            Procurement Number Required
+                          </label>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Enter Procurement No (PAL Number)"
+                          className={`w-full px-3 py-2 border ${
+                            item.palNumberError
+                              ? "border-red-500 bg-red-50"
+                              : "border-green-300"
+                          } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-sm`}
+                          value={item.palNumber || ""}
+                          onChange={(e) =>
+                            handleInstallItemPalNumberChange(
+                              idx,
+                              e.target.value
+                            )
+                          }
+                        />
+                        {item.palNumberError && (
+                          <p className="mt-1 text-red-500 text-xs">
+                            {item.palNumberError}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Form Fields */}
-        <div className="space-y-4">
-          {/* Abnormal Site Condition */}
-          <div className="bg-white rounded-md shadow-sm p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Abnormal Site Condition <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Enter abnormal condition..."
-              className={`w-full px-3 py-3 border ${
-                abnormalConditionError
-                  ? "border-red-500 bg-red-50"
-                  : "border-gray-300"
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-              value={abnormalCondition}
-              onChange={(e) => {
-                setAbnormalCondition(e.target.value);
-                if (e.target.value.trim()) {
-                  setAbnormalConditionError("");
-                }
-              }}
-              required
-            />
-            {abnormalConditionError && (
-              <p className="mt-1 text-red-500 text-sm">
-                {abnormalConditionError}
-              </p>
-            )}
-          </div>
-
-          {/* Voltage Section */}
-          <div className="bg-white rounded-md shadow-sm p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Voltage Readings <span className="text-red-500">*</span>
-            </label>
-            <div className="space-y-3">
-              <div>
-                <input
-                  type="text"
-                  placeholder="L-N / R-Y"
-                  value={voltageData.lnry}
-                  onChange={(e) => handleVoltageInput("lnry", e.target.value)}
-                  className={`w-full px-3 py-3 border ${
-                    voltageFieldErrors.lnry
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                  required
-                />
-                {voltageFieldErrors.lnry && (
-                  <p className="mt-1 text-red-500 text-sm">
-                    {voltageFieldErrors.lnry}
-                  </p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="text"
-                  placeholder="L-G / Y-B"
-                  value={voltageData.lgyb}
-                  onChange={(e) => handleVoltageInput("lgyb", e.target.value)}
-                  className={`w-full px-3 py-3 border ${
-                    voltageFieldErrors.lgyb
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                  required
-                />
-                {voltageFieldErrors.lgyb && (
-                  <p className="mt-1 text-red-500 text-sm">
-                    {voltageFieldErrors.lgyb}
-                  </p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="text"
-                  placeholder="N-G / B-R"
-                  value={voltageData.ngbr}
-                  onChange={(e) => handleVoltageInput("ngbr", e.target.value)}
-                  className={`w-full px-3 py-3 border ${
-                    voltageFieldErrors.ngbr
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                  required
-                />
-                {voltageFieldErrors.ngbr && (
-                  <p className="mt-1 text-red-500 text-sm">
-                    {voltageFieldErrors.ngbr}
-                  </p>
-                )}
-              </div>
+                );
+              })}
             </div>
-            {voltageError && (
-              <p className="mt-2 text-red-500 text-sm">{voltageError}</p>
-            )}
+          )}
+
+          {/* Form Fields */}
+          <div className="space-y-4">
+            {/* Abnormal Site Condition */}
+            <div className="bg-white rounded-md shadow-sm p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Abnormal Site Condition <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter abnormal condition..."
+                className={`w-full px-3 py-3 border ${
+                  abnormalConditionError
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
+                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                value={abnormalCondition}
+                onChange={(e) => {
+                  setAbnormalCondition(e.target.value);
+                  if (e.target.value.trim()) {
+                    setAbnormalConditionError("");
+                  }
+                }}
+                required
+              />
+              {abnormalConditionError && (
+                <p className="mt-1 text-red-500 text-sm">
+                  {abnormalConditionError}
+                </p>
+              )}
+            </div>
+
+            {/* Voltage Section */}
+            <div className="bg-white rounded-md shadow-sm p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Voltage Readings <span className="text-red-500">*</span>
+              </label>
+              <div className="space-y-3">
+                <div>
+                  <input
+                    type="number"
+                    placeholder="L-N / R-Y"
+                    value={voltageData.lnry}
+                    onChange={(e) => handleVoltageInput("lnry", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleInstall();
+                      }
+                    }}
+                    className={`w-full px-3 py-3 border ${
+                      voltageFieldErrors.lnry
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    required
+                  />
+                  {voltageFieldErrors.lnry && (
+                    <p className="mt-1 text-red-500 text-sm">
+                      {voltageFieldErrors.lnry}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="number"
+                    placeholder="L-G / Y-B"
+                    value={voltageData.lgyb}
+                    onChange={(e) => handleVoltageInput("lgyb", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleInstall();
+                      }
+                    }}
+                    className={`w-full px-3 py-3 border ${
+                      voltageFieldErrors.lgyb
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    required
+                  />
+                  {voltageFieldErrors.lgyb && (
+                    <p className="mt-1 text-red-500 text-sm">
+                      {voltageFieldErrors.lgyb}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="number"
+                    placeholder="N-G / B-R"
+                    value={voltageData.ngbr}
+                    onChange={(e) => handleVoltageInput("ngbr", e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleInstall();
+                      }
+                    }}
+                    className={`w-full px-3 py-3 border ${
+                      voltageFieldErrors.ngbr
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    required
+                  />
+                  {voltageFieldErrors.ngbr && (
+                    <p className="mt-1 text-red-500 text-sm">
+                      {voltageFieldErrors.ngbr}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {voltageError && (
+                <p className="mt-2 text-red-500 text-sm">{voltageError}</p>
+              )}
+            </div>
           </div>
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="fixed bottom-20 left-0 right-0 bg-white border-t shadow-lg z-10">
-        <div className="px-2 py-2 pb-7">
-          <div className="space-y-3">
-            <button
-              className={`w-full px-4 py-3 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                !currentSerialData
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gray-600 text-white hover:bg-gray-700"
-              }`}
-              onClick={handleAddMore}
-              disabled={!currentSerialData}
-            >
-              Add More Equipment
-            </button>
-            <button
-              className="w-full px-4 py-3 bg-primary text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              onClick={handleInstall}
-            >
-              Proceed to Install
-            </button>
+      {/* FOOTER - Fixed positioning that respects keyboard and navigation */}
+      {!keyboardVisible && (
+        <div 
+          className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40"
+          style={{ 
+            paddingBottom: `${safeAreaInsets.bottom + 1}px` // Add extra padding above navigation
+          }}
+        >
+          <div className="px-2 ">
+            <div className="space-y-3">
+              <button
+                className={`w-full px-4 py-3 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  !currentSerialData
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-gray-600 text-white hover:bg-gray-700"
+                }`}
+                onClick={handleAddMore}
+                disabled={!currentSerialData}
+              >
+                Add More Equipment
+              </button>
+              <button
+                className="w-full px-4 py-3 bg-primary text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                onClick={handleInstall}
+              >
+                Proceed to Install
+              </button>
+            </div>
           </div>
         </div>
-      </footer>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -18,31 +18,90 @@ function SelectCustomer() {
   // States for fetching and filtering customers
   const [customers, setCustomers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  // lastSearchQuery stores the query the user explicitly searched for (manual search)
+  const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [error, setError] = useState("");
 
+  // Keyboard and viewport handling
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+
+  // Safe area insets for mobile devices
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 0,
+    bottom: 20, // Default bottom padding for navigation
+  });
+
   // Ref to prevent unnecessary API calls
   const abortControllerRef = useRef(null);
 
-  // Debounce search query to prevent excessive API calls
+  // Handle keyboard visibility and viewport changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const originalHeight = window.screen.height;
+      
+      // If height reduced significantly, keyboard is likely open
+      if (currentHeight < originalHeight * 0.75) {
+        setKeyboardVisible(true);
+      } else {
+        setKeyboardVisible(false);
+      }
+      setViewportHeight(currentHeight);
+    };
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    // Detect safe area insets for mobile
+    const detectSafeArea = () => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        // iOS safe area
+        setSafeAreaInsets({
+          top: 44, // Status bar
+          bottom: 34, // Home indicator
+        });
+      } else if (isAndroid) {
+        // Android navigation bar
+        setSafeAreaInsets({
+          top: 24, // Status bar
+          bottom: 48, // Navigation bar
+        });
+      } else {
+        // Desktop/Web
+        setSafeAreaInsets({
+          top: 0,
+          bottom: 20,
+        });
+      }
+    };
 
-  // Reset page to 1 when search query changes
-  useEffect(() => {
-    if (debouncedSearchQuery !== searchQuery) {
-      setCurrentPage(1);
+    detectSafeArea();
+
+    // Listen for viewport changes
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    // For mobile browsers, also listen to visual viewport API if available
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
     }
-  }, [debouncedSearchQuery]);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
+
+  // NOTE: Removed auto-search on typing. User must click the Search button to
+  // set `lastSearchQuery`. We still track `searchQuery` for the input field.
 
   // Fetch data function
   const fetchData = useCallback(async (query, page) => {
@@ -95,9 +154,9 @@ function SelectCustomer() {
     }
   }, []);
 
-  // Effect to fetch data when debounced search query or current page changes
+  // Effect to fetch data when the user triggers a search (lastSearchQuery) or when page changes
   useEffect(() => {
-    fetchData(debouncedSearchQuery, currentPage);
+    fetchData(lastSearchQuery, currentPage);
 
     // Cleanup function
     return () => {
@@ -105,14 +164,30 @@ function SelectCustomer() {
         abortControllerRef.current.abort();
       }
     };
-  }, [debouncedSearchQuery, currentPage, fetchData]);
+  }, [lastSearchQuery, currentPage, fetchData]);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
+  const handleSearchClick = () => {
+    // Set the query that will actually be used to fetch results
+    setCurrentPage(1);
+    setLastSearchQuery(searchQuery);
+  };
+
+  // If user clears the input (e.g. deletes all characters), refresh to show all data
+  useEffect(() => {
+    if (searchQuery.trim() === "" && lastSearchQuery !== "") {
+      // Reset the manual search and reload first page of all customers
+      setLastSearchQuery("");
+      setCurrentPage(1);
+    }
+  }, [searchQuery, lastSearchQuery]);
+
   const handleClearSearch = () => {
     setSearchQuery("");
+    setLastSearchQuery("");
     setCurrentPage(1);
   };
 
@@ -147,21 +222,26 @@ function SelectCustomer() {
     }
 
     return (
-      <div className="sticky bottom-0 pb-12 bg-white border-t border-gray-200 px-3 py-3 shadow-lg">
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-3 py-3 shadow-lg z-40"
+        style={{ 
+          paddingBottom: `${safeAreaInsets.bottom + 1}px` // Add extra padding above navigation
+        }}
+      >
         <div className="flex justify-between items-center">
           <button
-            className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm bg-gray-300 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1 || loading}
           >
-            Previous
+            Prev
           </button>
 
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-2 px-1">
             {pageNumbers.map((page) => (
               <button
                 key={page}
-                className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                className={`px-3 py-2 text-xs rounded-md transition-colors ${
                   page === currentPage
                     ? "bg-primary text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -175,7 +255,7 @@ function SelectCustomer() {
           </div>
 
           <button
-            className="px-3 py-2 text-sm bg-primary text-white rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm bg-primary text-white rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             onClick={() =>
               setCurrentPage((prev) => Math.min(totalPages, prev + 1))
             }
@@ -193,9 +273,18 @@ function SelectCustomer() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div 
+      className="flex flex-col bg-gray-50"
+      style={{ 
+        height: keyboardVisible ? `${viewportHeight}px` : '100vh',
+        maxHeight: keyboardVisible ? `${viewportHeight}px` : '100vh'
+      }}
+    >
       {/* Fixed Header */}
-      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div 
+        className="flex-shrink-0 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg"
+        // style={{ paddingTop: `${safeAreaInsets.top}px` }}
+      >
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -207,43 +296,238 @@ function SelectCustomer() {
         </div>
       </div>
 
-      {/* Main Content with top margin for fixed header */}
-      <main className="flex-1 py-16 ">
-        {/* Search Section */}
-        <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-3 py-3 shadow-sm">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              placeholder="Search by name, phone, email, or city..."
-              disabled={loading}
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-4">
-              {searchQuery ? (
-                <button
-                  onClick={handleClearSearch}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={loading}
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              ) : (
+      {/* Search Section - Fixed below header */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-3 shadow-sm">
+        <div className="relative flex items-center space-x-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full px-4 py-3 pr-20 h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            placeholder="Search by name, phone, email, or city..."
+            disabled={loading}
+          />
+          <div className="absolute inset-y-0 right-12 flex items-center pr-2 space-x-2">
+            {/* Search button - user must click to run the search */}
+            
+
+            {/* Clear / reset button */}
+            {searchQuery ? (
+              <button
+                onClick={handleClearSearch}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-2"
+                disabled={loading}
+                aria-label="Clear search"
+              >
                 <svg
-                  className="w-5 h-5 text-gray-400"
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            ) : (
+              <svg
+                className="w-5 h-5 text-gray-400 p-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            )}
+          </div>
+          <button
+              onClick={handleSearchClick}
+              className="bg-primary px-3 py-1 h-10  rounded-md text-white text-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={loading}
+            >
+              <Search className="w-6 h-6" />
+            </button>
+        </div>
+
+        {/* Results info */}
+  {(lastSearchQuery || totalCustomers > 0) && !loading && (
+          <div className="mt-2 text-xs text-gray-600">
+            {totalCustomers} customer{totalCustomers !== 1 ? "s" : ""}{" "}
+            {lastSearchQuery ? `found for "${lastSearchQuery}"` : ""}
+          </div>
+        )}
+
+        {/* Error message */}
+        {error && (
+          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <svg
+                className="w-4 h-4 text-red-400 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="text-red-600 text-sm font-medium">{error}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content - Scrollable Customer Cards */}
+      <main 
+        className="flex-1 overflow-y-auto"
+        style={{ 
+          paddingBottom: keyboardVisible 
+            ? '10px' 
+            : (totalPages > 1 ? `${120 + safeAreaInsets.bottom}px` : `${20 + safeAreaInsets.bottom}px`)
+        }}
+      >
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-3 text-gray-600 text-sm">
+              {lastSearchQuery ? "Searching customers..." : "Loading customers..."}
+            </span>
+          </div>
+        )}
+
+        {!loading && (
+          <div className="px-3 py-2 space-y-2">
+            {customers.length > 0 ? (
+              customers.map((customer) => (
+                <div
+                  key={customer?._id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow"
+                >
+                  <div className="mb-3">
+                    <h4 className="font-medium text-gray-900 text-base mb-2">
+                      {customer?.customername || "Unknown Customer"}
+                    </h4>
+
+                    <div className="grid grid-cols-1 gap-2 text-sm">
+                      {customer?.telephone && (
+                        <div className="flex items-center">
+                          <svg
+                            className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                            />
+                          </svg>
+                          <span className="text-gray-600">
+                            {customer.telephone}
+                          </span>
+                        </div>
+                      )}
+
+                      {customer?.city && (
+                        <div className="flex items-center">
+                          <svg
+                            className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          <span className="text-gray-600">
+                            {customer.city}
+                          </span>
+                        </div>
+                      )}
+
+                      {customer?.customercodeid && (
+                        <div className="flex items-center">
+                          <svg
+                            className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                            />
+                          </svg>
+                          <span className="text-gray-600">
+                            Code: {customer.customercodeid}
+                          </span>
+                        </div>
+                      )}
+
+                      {customer?.email && (
+                        <div className="flex items-center">
+                          <svg
+                            className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span className="text-gray-600 truncate">
+                            {customer.email.length > 25
+                              ? `${customer.email.slice(0, 25)}...`
+                              : customer.email}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    className="w-full flex items-center justify-center px-4 py-3 bg-primary text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    onClick={() => handleSelectCustomer(customer)}
+                    disabled={loading}
+                  >
+                    SELECT
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <svg
+                  className="w-12 h-12 text-gray-400 mx-auto mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -255,217 +539,31 @@ function SelectCustomer() {
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
-              )}
-            </div>
-          </div>
-
-          {/* Results info */}
-          {(debouncedSearchQuery || totalCustomers > 0) && !loading && (
-            <div className="mt-2 text-xs text-gray-600">
-              {totalCustomers} customer{totalCustomers !== 1 ? "s" : ""}{" "}
-              {debouncedSearchQuery
-                ? `found for "${debouncedSearchQuery}"`
-                : ""}
-            </div>
-          )}
-
-          {/* Error message */}
-          {error && (
-            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
-              <div className="flex items-center">
-                <svg
-                  className="w-4 h-4 text-red-400 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <p className="text-red-600 text-sm font-medium">{error}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Scrollable Customer Cards */}
-        <div
-          className="overflow-y-auto"
-          style={{ height: "calc(100vh - 180px)" }}
-        >
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span className="ml-3 text-gray-600 text-sm">
-                {debouncedSearchQuery
-                  ? "Searching customers..."
-                  : "Loading customers..."}
-              </span>
-            </div>
-          )}
-
-          {!loading && (
-            <div className="px-3 py-2 space-y-2">
-              {customers.length > 0 ? (
-                customers.map((customer) => (
-                  <div
-                    key={customer?._id}
-                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow"
-                  >
-                    <div className="mb-3">
-                      <h4 className="font-medium text-gray-900 text-base mb-2">
-                        {customer?.customername || "Unknown Customer"}
-                      </h4>
-
-                      <div className="grid grid-cols-1 gap-2 text-sm">
-                        {customer?.telephone && (
-                          <div className="flex items-center">
-                            <svg
-                              className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                              />
-                            </svg>
-                            <span className="text-gray-600">
-                              {customer.telephone}
-                            </span>
-                          </div>
-                        )}
-
-                        {customer?.city && (
-                          <div className="flex items-center">
-                            <svg
-                              className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                              />
-                            </svg>
-                            <span className="text-gray-600">
-                              {customer.city}
-                            </span>
-                          </div>
-                        )}
-
-                        {customer?.customercodeid && (
-                          <div className="flex items-center">
-                            <svg
-                              className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                              />
-                            </svg>
-                            <span className="text-gray-600">
-                              Code: {customer.customercodeid}
-                            </span>
-                          </div>
-                        )}
-
-                        {customer?.email && (
-                          <div className="flex items-center">
-                            <svg
-                              className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <span className="text-gray-600 truncate">
-                              {customer.email.length > 25
-                                ? `${customer.email.slice(0, 25)}...`
-                                : customer.email}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <button
-                      className="w-full flex items-center justify-center px-4 py-3 bg-primary text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                      onClick={() => handleSelectCustomer(customer)}
-                      disabled={loading}
-                    >
-                      SELECT
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mx-auto mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">
-                    No customers found
-                  </h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">
+                  No customers found
+                </h3>
                   <p className="text-gray-600 mb-4 text-sm px-4">
-                    {debouncedSearchQuery
-                      ? `No customers match your search for "${debouncedSearchQuery}"`
-                      : "No customers available at the moment"}
-                  </p>
-                  {debouncedSearchQuery && (
-                    <button
-                      onClick={handleClearSearch}
-                      className="px-4 py-2 bg-primary text-white font-medium rounded-md hover:bg-blue-700 transition-colors text-sm"
-                      disabled={loading}
-                    >
-                      Clear Search
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                  {lastSearchQuery
+                    ? `No customers match your search for "${lastSearchQuery}"`
+                    : "No customers available at the moment"}
+                </p>
+                {lastSearchQuery && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="px-4 py-2 bg-primary text-white font-medium rounded-md hover:bg-blue-700 transition-colors text-sm"
+                    disabled={loading}
+                  >
+                    Clear Search
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
-      {/* Fixed Bottom Pagination */}
-      <Pagination />
+      {/* Fixed Bottom Pagination - Above navigation bar */}
+      {!keyboardVisible && <Pagination />}
     </div>
   );
 }

@@ -238,7 +238,7 @@ function CustomersPage() {
           </div>
         </div>
       </div>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      {/* <ShortcutFooter safeAreaInsets={safeAreaInsets} /> */}
     </div>
   );
 }

@@ -16,6 +16,47 @@ function PendingProposal() {
     top: 44,
     bottom: 28,
   });
+  const [userInfo, setUserInfo] = useState({});
+
+  // Added useEffect to get user data from localStorage
+  useEffect(() => {
+    const userDataString = localStorage.getItem("user");
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        setUserInfo({
+          id: userData.id || "",
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          mobilenumber: userData.mobilenumber || "",
+          status: userData.status || "",
+          branch: userData.branch || "",
+          loginexpirydate: userData.loginexpirydate || "",
+          employeeid: userData.employeeid || "",
+          country: userData.country || "",
+          state: userData.state || "",
+          city: userData.city || "",
+          department: userData.department || "",
+          profileimage: userData.profileimage || "",
+          deviceid: userData.deviceid || "",
+          deviceregistereddate: userData.deviceregistereddate || "",
+          usertype: userData.usertype || "",
+          manageremail: userData.manageremail || "",
+          roleName: userData.role?.roleName || "",
+          roleId: userData.role?.roleId || "",
+          dealerName: userData.dealerInfo?.dealerName || "",
+          dealerId: userData.dealerInfo?.dealerId || "",
+          dealerEmail: userData.dealerInfo?.dealerEmail || "",
+          location: userData.location || [],
+          skills: userData.skills || "",
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const fetchProposals = async () => {
       try {
@@ -35,18 +76,22 @@ function PendingProposal() {
         setLoading(false);
       }
     };
-
     fetchProposals();
   }, []);
 
-  // Search functionality
+  // Updated search functionality with createdBy filter
   useEffect(() => {
+    // First filter by createdBy (current user's employeeid)
+    const userProposals = proposals.filter(
+      (proposal) => proposal?.createdBy === userInfo?.employeeid
+    );
+
     if (!searchTerm.trim()) {
-      setFilteredProposals(proposals);
+      setFilteredProposals(userProposals);
       return;
     }
 
-    const filtered = proposals.filter((proposal) => {
+    const filtered = userProposals.filter((proposal) => {
       const searchLower = searchTerm.toLowerCase();
       return (
         proposal.customer?.customercodeid
@@ -59,7 +104,7 @@ function PendingProposal() {
     });
 
     setFilteredProposals(filtered);
-  }, [searchTerm, proposals]);
+  }, [searchTerm, proposals, userInfo.employeeid]);
 
   const handleSearchClear = () => {
     setSearchTerm("");
@@ -615,7 +660,7 @@ function PendingProposal() {
           </div>
         )}
       </main>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      {/* <ShortcutFooter safeAreaInsets={safeAreaInsets} /> */}
     </div>
   );
 }

@@ -108,7 +108,7 @@ function PreventiveMaintenance() {
           </p>
         </div>
       </div>
-      <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+      {/* <ShortcutFooter safeAreaInsets={safeAreaInsets} /> */}
     </div>
   );
 }

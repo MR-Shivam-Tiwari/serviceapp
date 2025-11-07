@@ -211,6 +211,12 @@ const ComplaintDetailsPage = () => {
   // Send the updated data via POST request (for sending email)
   const handleUpdateComplaint = () => {
     setIsLoading(true);
+    // Find selected spare object to get its Description (if available)
+    const selectedSpareObj = Array.isArray(spareOptions)
+      ? spareOptions.find((opt) => opt.PartNumber === sparesRequired)
+      : null;
+    const spareDescription = selectedSpareObj ? selectedSpareObj.Description || "" : "";
+
     fetch(
       `${process.env.REACT_APP_BASE_URL}/collections/sendUpdatedComplaintEmail`,
       {
@@ -228,6 +234,8 @@ const ComplaintDetailsPage = () => {
           city: "",
           serviceEngineer: userInfo.firstname + " " + userInfo.lastname,
           spareRequested: sparesRequired,
+          // Include spare description in payload
+          spareRequestedDescription: spareDescription,
           remarks: remarks,
           serviceEngineerMobile: userInfo.mobilenumber,
           serviceEngineerEmail: userInfo.email,

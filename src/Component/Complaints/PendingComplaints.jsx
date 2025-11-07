@@ -31,6 +31,16 @@ const PendingComplaintsPage = () => {
   const [allComplaintTypes, setAllComplaintTypes] = useState([]);
   const navigate = useNavigate();
 
+  // Keyboard and viewport handling
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+
+  // Safe area insets for mobile devices
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 0,
+    bottom: 20, // Default bottom padding for navigation
+  });
+
   const [userInfo, setUserInfo] = useState({
     firstName: "",
     lastName: "",
@@ -40,6 +50,67 @@ const PendingComplaintsPage = () => {
     dealerEmail: "",
     manageremail: [],
   });
+
+  // Handle keyboard visibility and viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const originalHeight = window.screen.height;
+
+      // If height reduced significantly, keyboard is likely open
+      if (currentHeight < originalHeight * 0.75) {
+        setKeyboardVisible(true);
+      } else {
+        setKeyboardVisible(false);
+      }
+      setViewportHeight(currentHeight);
+    };
+
+    // Detect safe area insets for mobile
+    const detectSafeArea = () => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      if (isIOS) {
+        // iOS safe area
+        setSafeAreaInsets({
+          top: 44, // Status bar
+          bottom: 34, // Home indicator
+        });
+      } else if (isAndroid) {
+        // Android navigation bar
+        setSafeAreaInsets({
+          top: 24, // Status bar
+          bottom: 48, // Navigation bar
+        });
+      } else {
+        // Desktop/Web
+        setSafeAreaInsets({
+          top: 0,
+          bottom: 20,
+        });
+      }
+    };
+
+    detectSafeArea();
+
+    // Listen for viewport changes
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    // For mobile browsers, also listen to visual viewport API if available
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
+    };
+  }, []);
 
   // Load user info on mount
   useEffect(() => {
@@ -432,9 +503,15 @@ const PendingComplaintsPage = () => {
   const hasActiveFilters = searchTerm || complaintTypeFilter;
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Fixed Header */}
-      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+    <div
+      className="flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
+      style={{
+        height: keyboardVisible ? `${viewportHeight}px` : "100vh",
+        maxHeight: keyboardVisible ? `${viewportHeight}px` : "100vh",
+      }}
+    >
+      {/* Fixed Header - Keep original styling */}
+      <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center justify-between p-4 text-white">
           <div className="flex items-center">
             <button
@@ -568,7 +645,16 @@ const PendingComplaintsPage = () => {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto pt-[240px] pb-20">
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{
+          paddingBottom: keyboardVisible
+            ? "10px"
+            : pagination.totalPages > 1
+            ? `${120 + safeAreaInsets.bottom}px`
+            : `${20 + safeAreaInsets.bottom}px`,
+        }}
+      >
         <div className="p-3 max-w-6xl mx-auto">
           {/* Complaints List */}
           <div className="space-y-4 mb-6">
@@ -709,10 +795,15 @@ const PendingComplaintsPage = () => {
         </div>
       </div>
 
-      {/* Fixed Footer with Pagination */}
-      {pagination.totalPages > 1 && !currentLoading && (
-        <div className="fixed bottom-0 pb-10   left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-t border-gray-200 shadow-lg">
-          <div className="max-w-6xl mx-auto p-2 pb-6">
+      {/* Fixed Footer with Pagination - Above navigation bar */}
+      {pagination.totalPages > 1 && !currentLoading && !keyboardVisible && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-t border-gray-200 shadow-lg"
+          style={{
+            paddingBottom: `${safeAreaInsets.bottom + 0}px`, // Add extra padding above navigation
+          }}
+        >
+          <div className="max-w-6xl mx-auto p-2">
             <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
               {/* Page Info */}
               <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-gray-600">

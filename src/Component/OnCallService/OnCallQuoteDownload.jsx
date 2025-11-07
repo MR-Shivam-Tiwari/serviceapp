@@ -12,7 +12,46 @@ const OnCallQuoteDownload = () => {
   const [quoteData, setQuoteData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [userInfo, setUserInfo] = useState({});
 
+  useEffect(() => {
+    const userDataString = localStorage.getItem("user");
+
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString);
+        setUserInfo({
+          id: userData.id || "",
+          firstname: userData.firstname || "",
+          lastname: userData.lastname || "",
+          email: userData.email || "",
+          mobilenumber: userData.mobilenumber || "",
+          status: userData.status || "",
+          branch: userData.branch || "",
+          loginexpirydate: userData.loginexpirydate || "",
+          employeeid: userData.employeeid || "",
+          country: userData.country || "",
+          state: userData.state || "",
+          city: userData.city || "",
+          department: userData.department || "",
+          profileimage: userData.profileimage || "",
+          deviceid: userData.deviceid || "",
+          deviceregistereddate: userData.deviceregistereddate || "",
+          usertype: userData.usertype || "",
+          manageremail: userData.manageremail || "",
+          roleName: userData.role?.roleName || "",
+          roleId: userData.role?.roleId || "",
+          dealerName: userData.dealerInfo?.dealerName || "",
+          dealerId: userData.dealerInfo?.dealerId || "",
+          dealerEmail: userData.dealerInfo?.dealerEmail || "",
+          location: userData.location || [],
+          skills: userData.skills || "",
+        });
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
   useEffect(() => {
     const fetchQuoteData = async () => {
       try {

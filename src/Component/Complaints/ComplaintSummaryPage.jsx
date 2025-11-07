@@ -16,63 +16,277 @@ const OtpModal = ({
   error,
 }) => {
   const [otpInput, setOtpInput] = useState("");
+  const [minutes, setMinutes] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+
+  // Timer effect
+  useEffect(() => {
+    if (!hasSentOtp) return;
+
+    const interval = setInterval(() => {
+      if (seconds > 0) {
+        setSeconds(seconds - 1);
+      } else if (seconds === 0) {
+        if (minutes === 0) {
+          clearInterval(interval);
+        } else {
+          setSeconds(59);
+          setMinutes(minutes - 1);
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [seconds, minutes, hasSentOtp]);
+
+  // Start timer when OTP is sent
+  const handleSendOtpWithTimer = () => {
+    setMinutes(5);
+    setSeconds(0);
+    setOtpInput("");
+    onSendOtp();
+  };
+
+  const handleResendOtp = () => {
+    setMinutes(5);
+    setSeconds(0);
+    setOtpInput("");
+    onSendOtp();
+  };
+
+  const isTimerActive = seconds > 0 || minutes > 0;
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-2">
-      <div className="bg-white p-4 rounded shadow-md max-w-md w-full relative">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-3">
+      <div className="bg-white p-4 rounded-xl shadow-2xl max-w-md w-full relative transform transition-all">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
         >
-          &times;
+          <X className="w-5 h-5" />
         </button>
-        <h2 className="text-lg font-bold mb-2">OTP Verification</h2>
 
-        {error && <p className="text-red-500 mb-2">{error}</p>}
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-gray-800 mb-2">
+            OTP Verification
+          </h2>
+          {error && (
+            <div className="bg-red-50 border border-red-200 p-2 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+        </div>
 
         {!hasSentOtp ? (
-          <>
-            <p className="mb-4">
-              We will send an OTP to:
-              <br />
-              <strong>Email:</strong> {customerEmail || "NA"}
-              <br />
-              <strong>Mobile:</strong> {customerMobile || "NA"}
-            </p>
+          <div>
+            <div className="mb-4 bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                We will send an OTP to:
+              </p>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-gray-600">
+                    Email:
+                  </span>
+                  <span className="text-xs text-gray-800 break-all">
+                    {customerEmail || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-gray-600">
+                    Mobile:
+                  </span>
+                  <span className="text-xs text-gray-800">
+                    {customerMobile || "N/A"}
+                  </span>
+                </div>
+              </div>
+            </div>
             <button
-              className="bg-primary w-full text-white py-2 px-4 rounded hover:bg-blue-700"
-              onClick={onSendOtp}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSendOtpWithTimer}
               disabled={loading}
             >
-              {loading ? "Sending OTP..." : "Send OTP"}
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Sending OTP...
+                </div>
+              ) : (
+                "Send OTP"
+              )}
             </button>
-          </>
+          </div>
         ) : (
-          <>
-            <p className="mb-4">
-              OTP has been sent to: <br />
-              <strong>Email:</strong> {customerEmail || "NA"} <br />
-              <strong>Mobile:</strong> {customerMobile || "NA"} <br />
-              Please enter it below to verify and send the final email.
-            </p>
+          <div>
+            <div className="mb-4 bg-green-50 p-3 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                OTP has been sent to:
+              </p>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-gray-600">
+                    Email:
+                  </span>
+                  <span className="text-xs text-gray-800 break-all">
+                    {customerEmail || "N/A"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-gray-600">
+                    Mobile:
+                  </span>
+                  <span className="text-xs text-gray-800">
+                    {customerMobile || "N/A"}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                Please enter the OTP below to verify and send the final email.
+              </p>
+            </div>
 
-            <input
-              type="text"
-              value={otpInput}
-              onChange={(e) => setOtpInput(e.target.value)}
-              placeholder="Enter OTP"
-              className="border p-2 rounded w-full mb-2"
-            />
-            <button
-              className="bg-primary text-white py-2 px-4 rounded hover:bg-blue-700 w-full"
-              onClick={() => onVerifyOtp(otpInput)}
-              disabled={loading}
-            >
-              {loading ? "Verifying..." : "Verify & Send Email"}
-            </button>
-          </>
+            {/* Timer Display */}
+            <div className="mb-4 text-center">
+              {isTimerActive ? (
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-1">Time Remaining</p>
+                  <p className="text-2xl font-bold text-blue-600 tabular-nums">
+                    {minutes < 10 ? `0${minutes}` : minutes}:
+                    {seconds < 10 ? `0${seconds}` : seconds}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                  <p className="text-sm text-amber-700 font-semibold">
+                    OTP Expired
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    Please click the resend button below
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={otpInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^\d*$/.test(value)) {
+                    setOtpInput(value);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  const allowedKeys = [
+                    "Backspace",
+                    "Delete",
+                    "ArrowLeft",
+                    "ArrowRight",
+                    "Home",
+                    "End",
+                    "Tab",
+                  ];
+                  if (allowedKeys.includes(e.key) || (e.ctrlKey || e.metaKey)) {
+                    return;
+                  }
+                  if (!/^\d$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const paste = e.clipboardData.getData("text");
+                  const digits = paste.replace(/\D/g, "");
+                  if (!digits) {
+                    e.preventDefault();
+                    return;
+                  }
+                  const target = e.target;
+                  const start = target.selectionStart || 0;
+                  const end = target.selectionEnd || 0;
+                  const newValue = (
+                    target.value.slice(0, start) +
+                    digits +
+                    target.value.slice(end)
+                  ).slice(0, 6);
+                  setOtpInput(newValue);
+                  e.preventDefault();
+                }}
+                placeholder="Enter OTP"
+                maxLength={6}
+                className="w-full px-3 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-lg text-center tracking-widest font-semibold"
+              />
+
+              <button
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 px-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-400"
+                onClick={() => onVerifyOtp(otpInput)}
+                disabled={loading || !isTimerActive}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Verifying...
+                  </div>
+                ) : (
+                  "Verify & Send Email"
+                )}
+              </button>
+
+              {/* Resend Button */}
+              <button
+                className={`w-full py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-300 ${
+                  isTimerActive
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-lg hover:shadow-xl"
+                }`}
+                onClick={handleResendOtp}
+                disabled={isTimerActive || loading}
+              >
+                {isTimerActive ? "Wait to Resend" : "Resend OTP"}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -143,7 +357,6 @@ const ComplaintSummaryPage = () => {
   const [hasSentOtp, setHasSentOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [otpError, setOtpError] = useState("");
-  // Add this with your other state declarations
   const [otpInput, setOtpInput] = useState("");
 
   console.log("customasaser", customer);
@@ -200,9 +413,11 @@ const ComplaintSummaryPage = () => {
       }
 
       setHasSentOtp(true);
+      toast.success("OTP sent successfully!");
     } catch (error) {
       console.error("Error sending OTP:", error);
       setOtpError(error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -328,6 +543,7 @@ const ComplaintSummaryPage = () => {
     } catch (error) {
       console.error("Error verifying OTP:", error);
       setOtpError(error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -337,7 +553,7 @@ const ComplaintSummaryPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
 
-      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div className="fixed left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -454,7 +670,13 @@ const ComplaintSummaryPage = () => {
             <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
               <span className="font-medium text-gray-600 text-xs">Name:</span>
               <span className="text-gray-800 text-xs text-right max-w-xs">
-                {customer?.hospitalname || "N/A"}
+                {customer?.customername || "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+              <span className="font-medium text-gray-600 text-xs">Customer Code:</span>
+              <span className="text-gray-800 text-xs text-right max-w-xs">
+                {customer?.customercodeid || "N/A"}
               </span>
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
@@ -655,159 +877,17 @@ const ComplaintSummaryPage = () => {
 
       {/* OTP Modal */}
       {showOtpModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-3">
-          <div className="bg-white p-4 rounded-xl shadow-2xl max-w-md w-full relative transform transition-all">
-            <button
-              onClick={() => setShowOtpModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-gray-800 mb-2">
-                OTP Verification
-              </h2>
-              {otpError && (
-                <div className="bg-red-50 border border-red-200 p-2 rounded-lg">
-                  <p className="text-red-600 text-sm">{otpError}</p>
-                </div>
-              )}
-            </div>
-
-            {!hasSentOtp ? (
-              <div>
-                <div className="mb-4 bg-blue-50 p-3 rounded-lg">
-                  <p className="text-sm text-gray-700 mb-2">
-                    We will send an OTP to:
-                  </p>
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-xs font-medium text-gray-600">
-                        Email:
-                      </span>
-                      <span className="text-xs text-gray-800">
-                        {customerEmail || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs font-medium text-gray-600">
-                        Mobile:
-                      </span>
-                      <span className="text-xs text-gray-800">
-                        {customerMobile || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg font-semibold text-sm disabled:opacity-50"
-                  onClick={handleSendOtp}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Sending OTP...
-                    </div>
-                  ) : (
-                    "Send OTP"
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div>
-                <div className="mb-4 bg-green-50 p-3 rounded-lg">
-                  <p className="text-sm text-gray-700 mb-2">
-                    OTP has been sent to:
-                  </p>
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-xs font-medium text-gray-600">
-                        Email:
-                      </span>
-                      <span className="text-xs text-gray-800">
-                        {customerEmail || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs font-medium text-gray-600">
-                        Mobile:
-                      </span>
-                      <span className="text-xs text-gray-800">
-                        {customerMobile || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Please enter the OTP below to verify and send the final
-                    email.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={otpInput}
-                    onChange={(e) => setOtpInput(e.target.value)}
-                    placeholder="Enter OTP"
-                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 text-sm"
-                  />
-                  <button
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 px-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg font-semibold text-sm disabled:opacity-50"
-                    onClick={() => handleVerifyOtp(otpInput)}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <div className="flex items-center justify-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Verifying...
-                      </div>
-                    ) : (
-                      "Verify & Send Email"
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <OtpModal
+          isOpen={showOtpModal}
+          onClose={() => setShowOtpModal(false)}
+          customerEmail={customerEmail}
+          customerMobile={customerMobile}
+          onSendOtp={handleSendOtp}
+          onVerifyOtp={handleVerifyOtp}
+          loading={loading}
+          hasSentOtp={hasSentOtp}
+          error={otpError}
+        />
       )}
     </div>
   );

@@ -83,7 +83,7 @@ export default function Customer() {
             </div>
           </div>
         </div>
-        <ShortcutFooter safeAreaInsets={safeAreaInsets} />
+        {/* <ShortcutFooter safeAreaInsets={safeAreaInsets} /> */}
         {/* Decorative Elements */}
         <div className="absolute top-20 right-4 w-20 h-20 bg-blue-200/30 rounded-full blur-xl"></div>
         <div className="absolute bottom-20 left-4 w-16 h-16 bg-emerald-200/30 rounded-full blur-xl"></div>

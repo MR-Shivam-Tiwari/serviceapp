@@ -647,38 +647,36 @@ function PmDetails() {
           </div>
         </div>
 
-        {/* Progress indicator */}
-        <div className="bg-slate-50 border-l-4 border-blue-500 py-2 px-5 shadow-md">
-          <div className="flex items-center justify-between text-sm font-medium text-gray-800 mb-3">
-            <div className="flex items-center space-x-2">
-              <svg
-                className="w-4 h-4 text-blue-500"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Checklist Progress</span>
-            </div>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-semibold">
-              {completedCount}/{selectedPms.length} completed
-            </span>
-          </div>
-          <div className="w-full bg-gray-300 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000 ease-in-out relative"
-              style={{
-                width: `${(completedCount / selectedPms.length) * 100}%`,
-              }}
-            >
-              <div className="absolute top-0 left-0 h-full w-full bg-white opacity-20 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-        </div>
+       <div className="bg-white   py-1.5 px-3 shadow-sm rounded">
+  <div className="flex items-center justify-between text-xs mb-1.5">
+    <div className="flex items-center gap-1.5">
+      <svg
+        className="w-3 h-3 text-blue-500"
+        fill="currentColor"
+        viewBox="0 0 20 20"
+      >
+        <path
+          fillRule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+          clipRule="evenodd"
+        />
+      </svg>
+      <span className="font-medium text-gray-700">Checklist Progress</span>
+    </div>
+    <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-xs font-semibold">
+      {completedCount}/{selectedPms.length}
+    </span>
+  </div>
+  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+    <div
+      className="bg-gradient-to-r from-blue-400 to-blue-600 h-1.5 rounded-full transition-all duration-700 ease-out"
+      style={{
+        width: `${(completedCount / selectedPms.length) * 100}%`,
+      }}
+    />
+  </div>
+</div>
+
       </div>
 
       {/* Scrollable Content */}
@@ -786,7 +784,7 @@ function PmDetails() {
       {/* Fixed Submit Section */}
       {allSameCustomer && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-          <div className="p-4 mb-10 pt-1">
+          <div className="p-4 mb-3 pt-1">
             <div className="flex items-center justify-between">
               <button
                 onClick={handleGlobalSubmit}
@@ -987,7 +985,7 @@ function PmDetails() {
 
             <div className="p-4">
               <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                <span>Progress</span>
+                <span> Progress</span>
                 <span>
                   {progressStatus.current} / {progressStatus.total} (
                   {Math.round(

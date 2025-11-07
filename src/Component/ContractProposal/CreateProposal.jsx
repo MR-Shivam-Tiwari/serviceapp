@@ -25,7 +25,78 @@ export default function CreateProposal() {
   const [totalPages, setTotalPages] = useState(1);
   const [pagination, setPagination] = useState({});
 
+  // Keyboard and viewport handling
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  
+  // Safe area insets for mobile devices
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 0,
+    bottom: 20, // Default bottom padding for navigation
+  });
+
   const itemsPerPage = 50;
+
+  // Handle keyboard visibility and viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const originalHeight = window.screen.height;
+
+      // If height reduced significantly, keyboard is likely open
+      if (currentHeight < originalHeight * 0.75) {
+        setKeyboardVisible(true);
+      } else {
+        setKeyboardVisible(false);
+      }
+      setViewportHeight(currentHeight);
+    };
+
+    // Detect safe area insets for mobile
+    const detectSafeArea = () => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        // iOS safe area
+        setSafeAreaInsets({
+          top: 44, // Status bar
+          bottom: 34, // Home indicator
+        });
+      } else if (isAndroid) {
+        // Android navigation bar
+        setSafeAreaInsets({
+          top: 24, // Status bar
+          bottom: 48, // Navigation bar
+        });
+      } else {
+        // Desktop/Web
+        setSafeAreaInsets({
+          top: 0,
+          bottom: 20,
+        });
+      }
+    };
+
+    detectSafeArea();
+
+    // Listen for viewport changes
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    // For mobile browsers, also listen to visual viewport API if available
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
+    };
+  }, []);
 
   // Debounced search
   const debounce = (func, wait) => {
@@ -231,7 +302,8 @@ export default function CreateProposal() {
     if (
       !pagination ||
       pagination.totalPages <= 1 ||
-      pagination.totalItems <= itemsPerPage
+      pagination.totalItems <= itemsPerPage ||
+      keyboardVisible
     ) {
       return null;
     }
@@ -267,10 +339,15 @@ export default function CreateProposal() {
     };
 
     return (
-      <div className="fixed bottom-0 pb-12 left-0 right-0 bg-white border-t shadow-lg z-40">
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40"
+        style={{ 
+          paddingBottom: `${safeAreaInsets.bottom + 0}px` // Add extra padding above navigation
+        }}
+      >
         <div className="max-w-md mx-auto px-3 pb-3">
           {/* Page info at top */}
-          <div className="text-center mb-2">
+          <div className="text-center mb-2 pt-2">
             <span className="text-xs text-gray-600">
               Page {currentPage} of {totalPages} • {pagination.totalItems} total
               items
@@ -324,48 +401,53 @@ export default function CreateProposal() {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-        <div className="fixed left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-          <div className="flex items-center p-4 py-4 text-white">
-            {/* Back Button */}
-            <button
-              className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
-              onClick={
-                view === "equipment"
-                  ? handleBackToCustomers
-                  : () => navigate("/contract-proposal")
-              }
-            >
-              <ArrowLeft className="w-5 h-5 text-white" />
-            </button>
+  // Check if we need bottom buttons
+  const hasBottomButtons = view === "equipment" && selectedItems.length > 0;
+  const hasPagination = pagination.totalPages > 1 && !keyboardVisible;
 
-            {/* Title + Subtext */}
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white">
-                {view === "customers" ? "Select Customer" : "Select Equipment"}
-              </h1>
-              {view === "equipment" && selectedItems.length > 0 && (
-                <p className="text-blue-200 text-xs">
-                  {selectedItems.length} selected
-                </p>
-              )}
-            </div>
+  return (
+    <div 
+      className="flex flex-col bg-gray-50"
+      style={{ 
+        height: keyboardVisible ? `${viewportHeight}px` : '100vh',
+        maxHeight: keyboardVisible ? `${viewportHeight}px` : '100vh'
+      }}
+    >
+      {/* Header */}
+      <div 
+        className="flex-shrink-0 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg"
+      >
+        <div className="flex items-center p-4 py-4 text-white">
+          {/* Back Button */}
+          <button
+            className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300"
+            onClick={
+              view === "equipment"
+                ? handleBackToCustomers
+                : () => navigate("/contract-proposal")
+            }
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+
+          {/* Title + Subtext */}
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-white">
+              {view === "customers" ? "Select Customer" : "Select Equipment"}
+            </h1>
+            {view === "equipment" && selectedItems.length > 0 && (
+              <p className="text-blue-200 text-xs">
+                {selectedItems.length} selected
+              </p>
+            )}
           </div>
         </div>
-      <div className="mb-20">
-        {/* Header */}
+      </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm m-2 mt-20">
-            {error}
-          </div>
-        )}
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow p-4  ">
-          <div className="space-y-3 mt-16">
+      {/* Search and Filters - Fixed below header */}
+      <div className="bg-white shadow-sm border-b flex-shrink-0">
+        <div className="p-4">
+          <div className="space-y-3">
             {/* Search Input */}
             <div>
               <input
@@ -382,7 +464,7 @@ export default function CreateProposal() {
             </div>
 
             {/* Filters Row */}
-            <div className="grid grid-cols-2 gap-2 ">
+            <div className="grid grid-cols-2 gap-2">
               <Autocomplete
                 placeholder="All Cities"
                 options={cities}
@@ -487,7 +569,29 @@ export default function CreateProposal() {
             </div>
           </div>
         </div>
+      </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm m-2">
+          {error}
+        </div>
+      )}
+
+      {/* Scrollable Content Area */}
+      <div 
+        className="flex-1 overflow-y-auto"
+        style={{ 
+          paddingBottom: keyboardVisible 
+            ? '10px' 
+            : `${
+                (hasBottomButtons ? 80 : 0) + 
+                (hasPagination ? 120 : 0) + 
+                safeAreaInsets.bottom + 
+                8
+              }px`
+        }}
+      >
         {/* Loading */}
         {loading && (
           <div className="flex justify-center py-8">
@@ -495,87 +599,66 @@ export default function CreateProposal() {
           </div>
         )}
 
-        {/* Content - with proper padding for fixed pagination */}
-        <div className={`${pagination.totalPages > 1 ? "pb-20" : "pb-4"}`}>
-          {!loading && (
-            <>
-              {view === "customers" ? (
-                // Customers List - ENHANCED VERSION
-                <div className="space-y-3">
-                  {Object.values(customersWithEquipment).map(
-                    ({ customer, equipment, amcContracts, equipmentItems }) => {
-                      const matchedEquipment = getMatchedEquipmentInfo(
-                        equipmentItems,
-                        searchTerm
-                      );
+        {/* Content */}
+        {!loading && (
+          <>
+            {view === "customers" ? (
+              // Customers List - ENHANCED VERSION
+              <div className="space-y-3 p-2">
+                {Object.values(customersWithEquipment).map(
+                  ({ customer, equipment, amcContracts, equipmentItems }) => {
+                    const matchedEquipment = getMatchedEquipmentInfo(
+                      equipmentItems,
+                      searchTerm
+                    );
 
-                      return (
-                        <div
-                          key={customer?.customercodeid || "unknown"}
-                          className="bg-white rounded-lg shadow p-3    border border-gray-200 m-2 cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() =>
-                            handleSelectCustomer({ customer, equipment })
-                          }
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1 pr-2">
-                              <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">
-                                {customer?.customername || "Unknown Customer"}
-                              </h3>
-                              <p className="text-xs text-blue-600 mt-1">
-                                Customer Code ID:{" "}
-                                {customer?.customercodeid || "N/A"}
-                              </p>
+                    return (
+                      <div
+                        key={customer?.customercodeid || "unknown"}
+                        className="bg-white rounded-lg shadow p-3 border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() =>
+                          handleSelectCustomer({ customer, equipment })
+                        }
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 pr-2">
+                            <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">
+                              {customer?.customername || "Unknown Customer"}
+                            </h3>
+                            <p className="text-xs text-blue-600 mt-1">
+                              Customer Code ID:{" "}
+                              {customer?.customercodeid || "N/A"}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-xs text-gray-500">
+                              Equipment
                             </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="text-xs text-gray-500">
-                                Equipment
+                            <div className="text-lg font-bold text-blue-600">
+                              {equipment.length}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Show matched equipment info when searching */}
+                        {matchedEquipment && searchTerm.trim() && (
+                          <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                            <div className="text-xs text-yellow-800 font-medium mb-1">
+                              Matched Equipment:
+                            </div>
+                            <div className="text-xs text-yellow-700">
+                              <div className="font-mono">
+                                {matchedEquipment.serialnumber}
                               </div>
-                              <div className="text-lg font-bold text-blue-600">
-                                {equipment.length}
+                              <div className="text-xs text-yellow-600 line-clamp-1">
+                                {matchedEquipment.materialdescription}
                               </div>
                             </div>
                           </div>
+                        )}
 
-                          {/* Show matched equipment info when searching */}
-                          {matchedEquipment && searchTerm.trim() && (
-                            <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                              <div className="text-xs text-yellow-800 font-medium mb-1">
-                                Matched Equipment:
-                              </div>
-                              <div className="text-xs text-yellow-700">
-                                <div className="font-mono">
-                                  {matchedEquipment.serialnumber}
-                                </div>
-                                <div className="text-xs text-yellow-600 line-clamp-1">
-                                  {matchedEquipment.materialdescription}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="space-y-1 mb-3">
-                            {customer?.hospitalname && (
-                              <div className="flex items-center text-xs text-gray-600">
-                                <svg
-                                  className="w-3 h-3 mr-1"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h3M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                                  />
-                                </svg>
-                                <span className="line-clamp-1">
-                                  {customer.hospitalname}
-                                </span>
-                              </div>
-                            )}
-
+                        <div className="space-y-1 mb-3">
+                          {customer?.hospitalname && (
                             <div className="flex items-center text-xs text-gray-600">
                               <svg
                                 className="w-3 h-3 mr-1"
@@ -587,260 +670,283 @@ export default function CreateProposal() {
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth="2"
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h3M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                                 />
+                              </svg>
+                              <span className="line-clamp-1">
+                                {customer.hospitalname}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center text-xs text-gray-600">
+                            <svg
+                              className="w-3 h-3 mr-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                            </svg>
+                            <span>{customer?.city || "N/A"}</span>
+                            {customer?.region && (
+                              <span className="ml-1 px-1 py-0.5 bg-gray-100 text-xs rounded">
+                                {customer.region}
+                              </span>
+                            )}
+                          </div>
+
+                          {customer?.telephone && (
+                            <div className="flex items-center text-xs text-gray-600">
+                              <svg
+                                className="w-3 h-3 mr-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
                                 <path
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth="2"
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                                 />
                               </svg>
-                              <span>{customer?.city || "N/A"}</span>
-                              {customer?.region && (
-                                <span className="ml-1 px-1 py-0.5 bg-gray-100 text-xs rounded">
-                                  {customer.region}
-                                </span>
-                              )}
+                              <span>{customer.telephone}</span>
                             </div>
-
-                            {customer?.telephone && (
-                              <div className="flex items-center text-xs text-gray-600">
-                                <svg
-                                  className="w-3 h-3 mr-1"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                                  />
-                                </svg>
-                                <span>{customer.telephone}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <button className="w-full py-2 bg-blue-600 text-white text-sm rounded-md font-medium hover:bg-blue-700 transition-colors">
-                            Select Customer
-                          </button>
+                          )}
                         </div>
-                      );
-                    }
-                  )}
-                </div>
-              ) : (
-                // Equipment List
-                <div className="m-2 ">
-                  {/* Selected Customer Info */}
-                  <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <h3 className="font-semibold text-sm text-gray-900">
-                      {selectedCustomer?.customer?.customername || "Unknown"}
-                    </h3>
-                    <div className="flex items-center text-xs text-gray-600 mt-1">
-                      <span>
-                        📍 {selectedCustomer?.customer?.city || "N/A"}
-                      </span>
-                      <span className="ml-3">
-                        📞 {selectedCustomer?.customer?.telephone || "N/A"}
-                      </span>
-                    </div>
+
+                        <button className="w-full py-2 bg-blue-600 text-white text-sm rounded-md font-medium hover:bg-blue-700 transition-colors">
+                          Select Customer
+                        </button>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            ) : (
+              // Equipment List
+              <div className="p-2">
+                {/* Selected Customer Info */}
+                <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="font-semibold text-sm text-gray-900">
+                    {selectedCustomer?.customer?.customername || "Unknown"}
+                  </h3>
+                  <div className="flex items-center text-xs text-gray-600 mt-1">
+                    <span>
+                      📍 {selectedCustomer?.customer?.city || "N/A"}
+                    </span>
+                    <span className="ml-3">
+                      📞 {selectedCustomer?.customer?.telephone || "N/A"}
+                    </span>
                   </div>
+                </div>
 
-                  {/* Equipment Items */}
-                  <div className="space-y-3 ">
-                    {filteredEquipment.map((item) => {
-                      const { equipment, amcContract } = item;
-                      const selected = selectedItems.some(
-                        (i) => i.equipment._id === equipment._id
-                      );
-                      const warrantyEnd = new Date(
-                        equipment.custWarrantyenddate
-                      );
-                      const isWarrantyExpired = warrantyEnd < new Date();
+                {/* Equipment Items */}
+                <div className="space-y-3">
+                  {filteredEquipment.map((item) => {
+                    const { equipment, amcContract } = item;
+                    const selected = selectedItems.some(
+                      (i) => i.equipment._id === equipment._id
+                    );
+                    const warrantyEnd = new Date(
+                      equipment.custWarrantyenddate
+                    );
+                    const isWarrantyExpired = warrantyEnd < new Date();
 
-                      return (
-                        <div
-                          key={equipment._id}
-                          className={`bg-white rounded-lg  shadow p-3 border-2 cursor-pointer hover:shadow-md transition-all ${
-                            selected
-                              ? "border-blue-500 shadow-md"
-                              : "border-gray-200"
-                          }`}
-                          onClick={() => handleSelectEquipment(item)}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1 pr-2">
-                              <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">
-                                {equipment.materialdescription ||
-                                  "Unknown Equipment"}
-                              </h3>
-                              <p className="text-xs text-blue-600 mt-1">
-                                Serial: {equipment.serialnumber}
-                              </p>
-                            </div>
-                            <div
-                              className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                selected ? "bg-blue-500" : "bg-gray-300"
-                              }`}
-                            >
-                              {selected && (
-                                <svg
-                                  className="w-3 h-3 text-white"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
-                            </div>
+                    return (
+                      <div
+                        key={equipment._id}
+                        className={`bg-white rounded-lg shadow p-3 border-2 cursor-pointer hover:shadow-md transition-all ${
+                          selected
+                            ? "border-blue-500 shadow-md"
+                            : "border-gray-200"
+                        }`}
+                        onClick={() => handleSelectEquipment(item)}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 pr-2">
+                            <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">
+                              {equipment.materialdescription ||
+                                "Unknown Equipment"}
+                            </h3>
+                            <p className="text-xs text-blue-600 mt-1">
+                              Serial: {equipment.serialnumber}
+                            </p>
                           </div>
-
-                          <div className="space-y-1 mb-2">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-500">
-                                Material Code:
-                              </span>
-                              <span className="font-mono text-gray-700">
-                                {equipment.materialcode}
-                              </span>
-                            </div>
-
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-500">Status:</span>
-                              <span
-                                className={`px-1 py-0.5 rounded text-xs ${
-                                  equipment.status === "Active"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
-                              >
-                                {equipment.status || "Unknown"}
-                              </span>
-                            </div>
-
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-500">
-                                Customer Warranty End:
-                              </span>
-                              <span
-                                className={`px-1 py-0.5 rounded text-xs ${
-                                  isWarrantyExpired
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-green-100 text-green-700"
-                                }`}
-                              >
-                                {warrantyEnd.toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mb-2 p-2 bg-gray-50 rounded text-xs">
-                            {amcContract ? (
-                              <div>
-                                <span className="font-medium text-green-700">
-                                  AMC Active
-                                </span>
-                                <div className="text-gray-600">
-                                  Ends:{" "}
-                                  {new Date(
-                                    amcContract.enddate
-                                  ).toLocaleDateString()}
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <span className="font-medium text-orange-700">
-                                  No AMC
-                                </span>
-                                <div className="text-gray-600">
-                                  Eligible for contract
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <button
-                            className={`w-full py-2 text-sm rounded-md font-medium transition-colors ${
-                              selected
-                                ? "bg-red-500 text-white hover:bg-red-600"
-                                : "bg-blue-600 text-white hover:bg-blue-700"
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                              selected ? "bg-blue-500" : "bg-gray-300"
                             }`}
                           >
-                            {selected ? "Remove" : "Select"}
-                          </button>
+                            {selected && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
-              {/* No Results */}
-              {equipmentData.length === 0 && (
-                <div className="text-center py-8 m-2">
-                  <div className="text-gray-400 mb-2">
-                    <svg
-                      className="w-12 h-12 mx-auto"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467.881-6.127 2.325M12 3c2.485 0 4.751.848 6.523 2.27"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                    No Results
-                  </h3>
-                  <p className="text-xs text-gray-600 mb-3">
-                    Try different search terms
-                  </p>
-                  <button
-                    onClick={clearFilters}
-                    className="px-4 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                        <div className="space-y-1 mb-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">
+                              Material Code:
+                            </span>
+                            <span className="font-mono text-gray-700">
+                              {equipment.materialcode}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Status:</span>
+                            <span
+                              className={`px-1 py-0.5 rounded text-xs ${
+                                equipment.status === "Active"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {equipment.status || "Unknown"}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">
+                              Customer Warranty End:
+                            </span>
+                            <span
+                              className={`px-1 py-0.5 rounded text-xs ${
+                                isWarrantyExpired
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-green-100 text-green-700"
+                              }`}
+                            >
+                              {warrantyEnd.toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mb-2 p-2 bg-gray-50 rounded text-xs">
+                          {amcContract ? (
+                            <div>
+                              <span className="font-medium text-green-700">
+                                AMC Active
+                              </span>
+                              <div className="text-gray-600">
+                                Ends:{" "}
+                                {new Date(
+                                  amcContract.enddate
+                                ).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <span className="font-medium text-orange-700">
+                                No AMC
+                              </span>
+                              <div className="text-gray-600">
+                                Eligible for contract
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          className={`w-full py-2 text-sm rounded-md font-medium transition-colors ${
+                            selected
+                              ? "bg-red-500 text-white hover:bg-red-600"
+                              : "bg-blue-600 text-white hover:bg-blue-700"
+                          }`}
+                        >
+                          {selected ? "Remove" : "Select"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* No Results */}
+            {equipmentData.length === 0 && (
+              <div className="text-center py-8 p-2">
+                <div className="text-gray-400 mb-2">
+                  <svg
+                    className="w-12 h-12 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    Clear Filters
-                  </button>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467.881-6.127 2.325M12 3c2.485 0 4.751.848 6.523 2.27"
+                    />
+                  </svg>
                 </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Conditional Pagination - Only shows when needed */}
-        <Pagination />
-
-        {/* Fixed Bottom Button for Equipment Selection */}
-        {view === "equipment" && (
-          <div
-            className={`fixed ${
-              pagination.totalPages > 1 ? "bottom-16" : "bottom-0"
-            } left-0 right-0 mb-12 bg-white border-t p-3 z-30`}
-          >
-            <div className="max-w-md mx-auto ">
-              <button
-                onClick={handleNext}
-                disabled={selectedItems.length === 0}
-                className="w-full py-3 mb-2 bg-green-600 text-white text-sm rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Create Proposal ({selectedItems.length})
-              </button>
-            </div>
-          </div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                  No Results
+                </h3>
+                <p className="text-xs text-gray-600 mb-3">
+                  Try different search terms
+                </p>
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Conditional Pagination - Only shows when needed and keyboard not visible */}
+      <Pagination />
+
+      {/* Fixed Bottom Button for Equipment Selection - Above navigation bar */}
+      {view === "equipment" && selectedItems.length > 0 && !keyboardVisible && (
+        <div 
+          className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-30"
+          style={{ 
+            paddingBottom: `${
+              safeAreaInsets.bottom + 
+              (hasPagination ? 82 : 8)
+            }px` // Stack above pagination if it exists
+          }}
+        >
+          <div className="max-w-md mx-auto p-3">
+            <button
+              onClick={handleNext}
+              disabled={selectedItems.length === 0}
+              className="w-full py-3 bg-green-600 text-white text-sm rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Create Proposal ({selectedItems.length})
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -38,6 +38,7 @@ const CreateComplaint = () => {
   const [equipmentDetails, setEquipmentDetails] = useState(null);
   const [AmcDateDetails, setAmcDateDetails] = useState(null);
   const [CustomerDetails, setCustomerDetails] = useState(null);
+  const [otherSpareText, setOtherSpareText] = useState("");
 
   // Loading states
   const [loadingSerialNumbers, setLoadingSerialNumbers] = useState(false);
@@ -47,7 +48,7 @@ const CreateComplaint = () => {
   const [loadingProblemNames, setLoadingProblemNames] = useState(true);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  // Search functionality states (similar to EquipmentDetail)
+  // Search functionality states
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
 
@@ -63,7 +64,78 @@ const CreateComplaint = () => {
   // Modal state
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
 
+  // Keyboard and viewport handling
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+
+  // Safe area insets for mobile devices
+  const [safeAreaInsets, setSafeAreaInsets] = useState({
+    top: 0,
+    bottom: 20, // Default bottom padding for navigation
+  });
+
   const [userInfo, setUserInfo] = useState({});
+
+  // Handle keyboard visibility and viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const originalHeight = window.screen.height;
+
+      // If height reduced significantly, keyboard is likely open
+      if (currentHeight < originalHeight * 0.75) {
+        setKeyboardVisible(true);
+      } else {
+        setKeyboardVisible(false);
+      }
+      setViewportHeight(currentHeight);
+    };
+
+    // Detect safe area insets for mobile
+    const detectSafeArea = () => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      if (isIOS) {
+        // iOS safe area
+        setSafeAreaInsets({
+          top: 44, // Status bar
+          bottom: 34, // Home indicator
+        });
+      } else if (isAndroid) {
+        // Android navigation bar
+        setSafeAreaInsets({
+          top: 24, // Status bar
+          bottom: 48, // Navigation bar
+        });
+      } else {
+        // Desktop/Web
+        setSafeAreaInsets({
+          top: 0,
+          bottom: 20,
+        });
+      }
+    };
+
+    detectSafeArea();
+
+    // Listen for viewport changes
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    // For mobile browsers, also listen to visual viewport API if available
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const userDataString = localStorage.getItem("user");
@@ -103,8 +175,10 @@ const CreateComplaint = () => {
       }
     }
   }, []);
+
   console.log("manageremail", userInfo.manageremail);
-  // Enhanced fetch serial numbers with search and pagination (similar to EquipmentDetail)
+
+  // Enhanced fetch serial numbers with search and pagination
   const fetchSerialNumbers = async (search = "") => {
     setLoadingSerialNumbers(true);
     setError("");
@@ -137,7 +211,7 @@ const CreateComplaint = () => {
     fetchSerialNumbers();
   }, []);
 
-  // Debounced search effect - Only trigger after 5 characters (similar to EquipmentDetail)
+  // Debounced search effect - Only trigger after 5 characters
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchTerm.length >= 5 && searchTerm !== selectedSerialNumber) {
@@ -231,9 +305,10 @@ const CreateComplaint = () => {
           `${process.env.REACT_APP_BASE_URL}/collections/equipment-details/${selectedSerialNumber}`
         )
         .then((response) => {
-          setEquipmentDetails(response.data.equipment || null);
-          setAmcDateDetails(response.data.amcContract || null);
-          setCustomerDetails(response.data.customer || null);
+          // Updated to handle the new API response structure with nested data object
+          setEquipmentDetails(response.data?.data?.equipment || null);
+          setAmcDateDetails(response.data?.data?.amcContract || null);
+          setCustomerDetails(response.data?.data?.customer || null);
         })
         .catch((error) => {
           console.error("Error fetching equipment details:", error);
@@ -271,7 +346,7 @@ const CreateComplaint = () => {
     fetchProblemNames();
   }, []);
 
-  // Handle equipment selection (similar to EquipmentDetail)
+  // Handle equipment selection
   const handleEquipmentChange = (event, newValue) => {
     if (newValue) {
       setSelectedSerialNumber(newValue);
@@ -291,7 +366,7 @@ const CreateComplaint = () => {
     }
   };
 
-  // Handle input change for search (similar to EquipmentDetail)
+  // Handle input change for search
   const handleInputChange = (event, newInputValue) => {
     setSearchTerm(newInputValue);
   };
@@ -325,9 +400,11 @@ const CreateComplaint = () => {
       productgroup: selectedProductGroup,
       problemtype: selectedProblemType,
       problemname: selectedProblemName,
-      sparesrequested: selectedSpare
-        ? `${selectedSpare.PartNumber} - ${selectedSpare.Description}`
-        : "",
+     sparesrequested: selectedSpare
+  ? selectedSpare.PartNumber === "Others"
+    ? otherSpareText
+    : `${selectedSpare.PartNumber} - ${selectedSpare.Description}`
+  : "",
       breakdown: breakDown,
       remark: remarks,
       user: {
@@ -369,6 +446,7 @@ const CreateComplaint = () => {
     setSelectedSpare(null);
     setBreakDown(false);
     setRemarks("");
+    setOtherSpareText("");
     setEquipmentDetails(null);
     setSpareOptions([]);
     setAmcDateDetails(null);
@@ -384,9 +462,18 @@ const CreateComplaint = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Enhanced Header */}
-      <div className="fixed   left-0 right-0 z-50 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+    <div
+      className="flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50"
+      style={{
+        height: keyboardVisible ? `${viewportHeight}px` : "100vh",
+        maxHeight: keyboardVisible ? `${viewportHeight}px` : "100vh",
+      }}
+    >
+      {/* Enhanced Header - Keep original styling */}
+      <div
+        className="flex-shrink-0 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg"
+      // style={{ paddingTop: `${safeAreaInsets.top}px` }}
+      >
         <div className="flex items-center p-4 py-4 text-white">
           <button
             className="mr-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-300 group"
@@ -402,495 +489,498 @@ const CreateComplaint = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-3 py-20">
-        <form onSubmit={handleSubmit} className="space-y-3 pb-20">
-          {/* Enhanced Serial Number Selection Card with Search */}
-          <div className="bg-white rounded-xl  shadow-lg border border-gray-100 p-4  animate-fade-in-up">
-            <div className="flex items-center mb-4">
-              <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-              <h3 className="text-lg font-semibold text-gray-800">
-                Search Equipment
-              </h3>
-            </div>
-
-            <div className="relative">
-              <Autocomplete
-                options={serialNumbers}
-                getOptionLabel={(option) => option}
-                value={selectedSerialNumber || ""}
-                inputValue={searchTerm}
-                loading={loadingSerialNumbers}
-                onChange={handleEquipmentChange}
-                onInputChange={handleInputChange}
-                placeholder="Type at least 5 characters to search..."
-                noOptionsText={
-                  loadingSerialNumbers
-                    ? "Searching..."
-                    : searchTerm.length < 5
-                    ? "Type at least 5 characters to search"
-                    : "No equipment found"
-                }
-                filterOptions={(options) => options}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Search & Select Serial No"
-                    variant="outlined"
-                    error={errors.serialNumber}
-                    helperText={
-                      errors.serialNumber
-                        ? "This field is required"
-                        : searchTerm.length < 5 && searchTerm.length > 0
-                        ? `Type ${
-                            5 - searchTerm.length
-                          } more character(s) to search`
-                        : serialNumbers.length === 100
-                        ? "Showing first 100 results. Type to search for specific serial numbers."
-                        : `Found ${serialNumbers.length} equipment(s)`
-                    }
-                  />
-                )}
-              />
-            </div>
-
-            {error && (
-              <p className="text-red-500 text-sm mt-2 flex items-center">
-                <svg
-                  className="w-4 h-4 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                {error}
-              </p>
-            )}
-          </div>
-
-          {/* Equipment Details Card */}
-          {(equipmentDetails || AmcDateDetails || CustomerDetails) && (
-            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
-                <h3 className="text-lg font-semibold text-white">
-                  Equipment Summary
+      {/* Scrollable Content Area */}
+      <main
+        className="flex-1 overflow-y-auto"
+        style={{
+          paddingBottom: keyboardVisible
+            ? "10px"
+            : `${120 + safeAreaInsets.bottom}px`,
+        }}
+      >
+        <div className="max-w-4xl mx-auto p-3">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Enhanced Serial Number Selection Card with Search */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 animate-fade-in-up">
+              <div className="flex items-center mb-4">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Search Equipment
                 </h3>
               </div>
 
-              <div className="p-4 grid md:grid-cols-3 gap-4 text-sm text-gray-800">
-                {/* Equipment Details */}
-                {equipmentDetails && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-gray-600 mb-1">
-                      Equipment
-                    </h4>
-                    <div>
-                      <p className="text-gray-500 text-xs">Serial Number</p>
-                      <p>{equipmentDetails.serialnumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Part No</p>
-                      <p>{equipmentDetails.materialcode}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Description</p>
-                      <p>{equipmentDetails.materialdescription}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Current Customer</p>
-                      <p>{equipmentDetails.currentcustomer}</p>
-                    </div>
-                    {equipmentDetails.custWarrantystartdate && (
-                      <div>
-                        <p className="text-gray-500 text-xs">Warranty Start</p>
-                        <p>
-                          {new Date(
-                            equipmentDetails.custWarrantystartdate
-                          ).toLocaleDateString()}
-                        </p>
-                      </div>
-                    )}
-                    {equipmentDetails.custWarrantyenddate && (
-                      <div>
-                        <p className="text-gray-500 text-xs">Warranty End</p>
-                        <p>
-                          {new Date(
-                            equipmentDetails.custWarrantyenddate
-                          ).toLocaleDateString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* AMC Details */}
-                {AmcDateDetails && Object.keys(AmcDateDetails).length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-gray-600 mb-1">AMC</h4>
-                    {AmcDateDetails.startdate && (
-                      <div>
-                        <p className="text-gray-500 text-xs">Start Date</p>
-                        <p>
-                          {new Date(
-                            AmcDateDetails.startdate
-                          ).toLocaleDateString("en-GB")}
-                        </p>
-                      </div>
-                    )}
-                    {AmcDateDetails.enddate && (
-                      <div>
-                        <p className="text-gray-500 text-xs">End Date</p>
-                        <p>
-                          {new Date(AmcDateDetails.enddate).toLocaleDateString(
-                            "en-GB"
-                          )}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Customer Details */}
-                {CustomerDetails && Object.keys(CustomerDetails).length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-gray-600 mb-1">
-                      Customer
-                    </h4>
-                    {CustomerDetails.hospitalname && (
-                      <div>
-                        <p className="text-gray-500 text-xs">Hospital</p>
-                        <p>{CustomerDetails.hospitalname}</p>
-                      </div>
-                    )}
-                    {CustomerDetails.city && (
-                      <div>
-                        <p className="text-gray-500 text-xs">City</p>
-                        <p>{CustomerDetails.city}</p>
-                      </div>
-                    )}
-                    {CustomerDetails.email && (
-                      <div>
-                        <p className="text-gray-500 text-xs">Email</p>
-                        <p>
-                          {CustomerDetails.email.length > 25
-                            ? CustomerDetails.email.slice(0, 25) + "..."
-                            : CustomerDetails.email}
-                        </p>
-                      </div>
-                    )}
-                    {CustomerDetails.telephone && (
-                      <div>
-                        <p className="text-gray-500 text-xs">Phone</p>
-                        <p>{CustomerDetails.telephone}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Rest of the form remains the same... */}
-          {/* Complaint Details Card */}
-          <div className="bg-white rounded-lg shadow-lg pb-16 border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
-              <h3 className="text-lg font-semibold text-white">
-                Complaint Details
-              </h3>
-            </div>
-            <div className="p-3 space-y-6">
-              {/* Complaint Type */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Choose Complaint Type
-                </label>
-                {loadingComplaintTypes ? (
-                  <div className="flex items-center py-4">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
-                    <span className="ml-3 text-gray-600">
-                      Loading complaint types...
-                    </span>
-                  </div>
-                ) : (
-                  <select
-                    className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${
-                      errors.complaintType
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-purple-500"
-                    }`}
-                    onChange={(e) => {
-                      setSelectedComplaintType(e.target.value);
-                      setErrors({ ...errors, complaintType: false });
-                    }}
-                    value={selectedComplaintType}
-                  >
-                    <option value="">Please select...</option>
-                    {complaintTypes.map((type, index) => (
-                      <option key={index} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {errors.complaintType && (
-                  <p className="text-red-500 text-xs mt-1">
-                    This field is required
-                  </p>
-                )}
-              </div>
-
-              {/* Product Group */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Product Group
-                </label>
-                {loadingProductGroups ? (
-                  <div className="flex items-center py-4">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
-                    <span className="ml-3 text-gray-600">
-                      Loading product groups...
-                    </span>
-                  </div>
-                ) : (
-                  <select
-                    className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${
-                      errors.productGroup
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-purple-500"
-                    }`}
-                    onChange={(e) => {
-                      setSelectedProductGroup(e.target.value);
-                      setErrors({ ...errors, productGroup: false });
-                    }}
-                    value={selectedProductGroup}
-                  >
-                    <option value="">Please select...</option>
-                    {Array.isArray(productGroups) &&
-                      productGroups.map((group) => (
-                        <option key={group._id} value={group.name}>
-                          {group.name}
-                        </option>
-                      ))}
-                  </select>
-                )}
-                {errors.productGroup && (
-                  <p className="text-red-500 text-xs mt-1">
-                    This field is required
-                  </p>
-                )}
-              </div>
-
-              {/* Problem Type */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Problem Type
-                </label>
-                {loadingProblemTypes ? (
-                  <div className="flex items-center py-4">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
-                    <span className="ml-3 text-gray-600">
-                      Loading problem types...
-                    </span>
-                  </div>
-                ) : (
-                  <select
-                    className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${
-                      errors.problemType
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-purple-500"
-                    }`}
-                    onChange={(e) => {
-                      setSelectedProblemType(e.target.value);
-                      setErrors({ ...errors, problemType: false });
-                    }}
-                    value={selectedProblemType}
-                  >
-                    <option value="">Please select...</option>
-                    {problemTypes.map((type) => (
-                      <option key={type._id} value={type.name}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {errors.problemType && (
-                  <p className="text-red-500 text-xs mt-1">
-                    This field is required
-                  </p>
-                )}
-              </div>
-
-              {/* Problem Name */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Problem Name
-                </label>
-                {loadingProblemNames ? (
-                  <div className="flex items-center py-4">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
-                    <span className="ml-3 text-gray-600">
-                      Loading problem names...
-                    </span>
-                  </div>
-                ) : (
-                  <select
-                    className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${
-                      errors.problemName
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-purple-500"
-                    }`}
-                    onChange={(e) => {
-                      setSelectedProblemName(e.target.value);
-                      setErrors({ ...errors, problemName: false });
-                    }}
-                    value={selectedProblemName}
-                  >
-                    <option value="">Please select...</option>
-                    {problemNames.map((name) => (
-                      <option key={name._id} value={name.name}>
-                        {name.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {errors.problemName && (
-                  <p className="text-red-500 text-xs mt-1">
-                    This field is required
-                  </p>
-                )}
-              </div>
-
-              {/* Spare Parts */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Spares Requested
-                </label>
-                <p className="text-xs text-gray-500 mb-3">
-                  Search and select required spare parts
-                </p>
+              <div className="relative">
                 <Autocomplete
-                  id="spareRequested"
-                  options={spareOptions}
-                  getOptionLabel={(option) =>
-                    `${option.PartNumber} - ${option.Description}` || ""
+                  options={serialNumbers}
+                  getOptionLabel={(option) => option}
+                  value={selectedSerialNumber || ""}
+                  inputValue={searchTerm}
+                  loading={loadingSerialNumbers}
+                  onChange={handleEquipmentChange}
+                  onInputChange={handleInputChange}
+                  placeholder="Type at least 5 characters to search..."
+                  noOptionsText={
+                    loadingSerialNumbers
+                      ? "Searching..."
+                      : searchTerm.length < 5
+                        ? "Type at least 5 characters to search"
+                        : "No equipment found"
                   }
-                  onChange={(event, newValue) => setSelectedSpare(newValue)}
-                  value={selectedSpare}
+                  filterOptions={(options) => options}
                   renderInput={(params) => (
                     <TextField
                       {...params}
+                      label="Search & Select Serial No"
                       variant="outlined"
-                      className="mt-1 block w-full"
-                      label="Select Spare Part"
+                      error={errors.serialNumber}
+                      helperText={
+                        errors.serialNumber
+                          ? "This field is required"
+                          : searchTerm.length < 5 && searchTerm.length > 0
+                            ? `Type ${5 - searchTerm.length
+                            } more character(s) to search`
+                            : serialNumbers.length === 100
+                              ? "Showing first 100 results. Type to search for specific serial numbers."
+                              : `Found ${serialNumbers.length} equipment(s)`
+                      }
                     />
                   )}
                 />
               </div>
 
-              {/* Breakdown Checkbox */}
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
-                <Checkbox
-                  checked={breakDown}
-                  onChange={() => setBreakDown(!breakDown)}
-                />
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 cursor-pointer">
-                    Equipment Breakdown
-                  </label>
-                  <p className="text-xs text-gray-500">
-                    Check if this is a breakdown situation
-                  </p>
-                </div>
-              </div>
-
-              {/* Remarks */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Additional Remarks
-                </label>
-                <textarea
-                  value={remarks}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                    }
-                  }}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  maxLength={400}
-                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
-                  rows={4}
-                  placeholder="Provide additional details about the complaint..."
-                />
-                <div className="flex justify-between items-center">
-                  <p className="text-xs text-gray-500">
-                    Provide any additional information that might help resolve
-                    the issue
-                  </p>
-                  <p
-                    className={`text-xs font-medium ${
-                      remarks.length > 350 ? "text-red-500" : "text-gray-500"
-                    }`}
+              {error && (
+                <p className="text-red-500 text-sm mt-2 flex items-center">
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    {remarks.length}/400
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  {error}
+                </p>
+              )}
+            </div>
+
+            {/* Equipment Details Card */}
+            {(equipmentDetails ||
+              (AmcDateDetails && Object.keys(AmcDateDetails).length > 0) ||
+              (CustomerDetails && Object.keys(CustomerDetails).length > 0)) && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                  <h3 className="text-xs font-semibold text-gray-600 mb-3">
+                    Equipment Information
+                  </h3>
+
+                  <div className="space-y-3">
+                    {/* Equipment Details */}
+                    {equipmentDetails && (
+                      <div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-gray-400 text-[10px] mb-0.5">Serial Number</p>
+                            <p className="text-gray-800 font-medium">{equipmentDetails.serialnumber}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-[10px] mb-0.5">Part No</p>
+                            <p className="text-gray-800 font-medium">{equipmentDetails.materialcode}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-gray-400 text-[10px] mb-0.5">Description</p>
+                            <p className="text-gray-800 font-medium">{equipmentDetails.materialdescription}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-[10px] mb-0.5">Customer ID</p>
+                            <p className="text-gray-800 font-medium">{equipmentDetails.currentcustomer}</p>
+                          </div>
+                          {equipmentDetails.custWarrantystartdate && equipmentDetails.custWarrantyenddate && (
+                            <div>
+                              <p className="text-gray-400 text-[10px] mb-0.5">Warranty Period</p>
+                              <p className="text-gray-800 font-medium">
+                                {new Date(equipmentDetails.custWarrantystartdate).toLocaleDateString("en-GB")} - {new Date(equipmentDetails.custWarrantyenddate).toLocaleDateString("en-GB")}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* AMC & Customer inline */}
+                        {((AmcDateDetails && Object.keys(AmcDateDetails).length > 0) || (CustomerDetails && Object.keys(CustomerDetails).length > 0)) && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {/* AMC Details */}
+                              {AmcDateDetails && Object.keys(AmcDateDetails).length > 0 && AmcDateDetails.startdate && AmcDateDetails.enddate && (
+                                <div>
+                                  <p className="text-gray-400 text-[10px] mb-0.5">AMC Period</p>
+                                  <p className="text-gray-800 font-medium">
+                                    {new Date(AmcDateDetails.startdate).toLocaleDateString("en-GB")} - {new Date(AmcDateDetails.enddate).toLocaleDateString("en-GB")}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Customer Name */}
+                              {CustomerDetails && CustomerDetails.customername && (
+                                <div>
+                                  <p className="text-gray-400 text-[10px] mb-0.5">Customer</p>
+                                  <p className="text-gray-800 font-medium">{CustomerDetails.customername}</p>
+                                </div>
+                              )}
+
+                              {/* City */}
+                              {CustomerDetails && CustomerDetails.city && (
+                                <div>
+                                  <p className="text-gray-400 text-[10px] mb-0.5">City</p>
+                                  <p className="text-gray-800 font-medium">{CustomerDetails.city}</p>
+                                </div>
+                              )}
+
+                              {/* Phone */}
+                              {CustomerDetails && CustomerDetails.telephone && (
+                                <div>
+                                  <p className="text-gray-400 text-[10px] mb-0.5">Phone</p>
+                                  <p className="text-gray-800 font-medium">{CustomerDetails.telephone}</p>
+                                </div>
+                              )}
+
+                              {/* Email */}
+                              {CustomerDetails && CustomerDetails.email && (
+                                <div className="col-span-2">
+                                  <p className="text-gray-400 text-[10px] mb-0.5">Email</p>
+                                  <p className="text-gray-800 font-medium truncate" title={CustomerDetails.email}>
+                                    {CustomerDetails.email}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* Complaint Details Card */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
+                <h3 className="text-lg font-semibold text-white">
+                  Complaint Details
+                </h3>
+              </div>
+              <div className="p-3 space-y-6">
+                {/* Complaint Type */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Choose Complaint Type
+                  </label>
+                  {loadingComplaintTypes ? (
+                    <div className="flex items-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                      <span className="ml-3 text-gray-600">
+                        Loading complaint types...
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${errors.complaintType
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-purple-500"
+                        }`}
+                      onChange={(e) => {
+                        setSelectedComplaintType(e.target.value);
+                        setErrors({ ...errors, complaintType: false });
+                      }}
+                      value={selectedComplaintType}
+                    >
+                      <option value="">Please select...</option>
+                      {complaintTypes.map((type, index) => (
+                        <option key={index} value={type.name}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {errors.complaintType && (
+                    <p className="text-red-500 text-xs mt-1">
+                      This field is required
+                    </p>
+                  )}
+                </div>
+
+                {/* Product Group */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Product Group
+                  </label>
+                  {loadingProductGroups ? (
+                    <div className="flex items-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                      <span className="ml-3 text-gray-600">
+                        Loading product groups...
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${errors.productGroup
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-purple-500"
+                        }`}
+                      onChange={(e) => {
+                        setSelectedProductGroup(e.target.value);
+                        setErrors({ ...errors, productGroup: false });
+                      }}
+                      value={selectedProductGroup}
+                    >
+                      <option value="">Please select...</option>
+                      {Array.isArray(productGroups) &&
+                        productGroups.map((group) => (
+                          <option key={group._id} value={group.name}>
+                            {group.name}
+                          </option>
+                        ))}
+                    </select>
+                  )}
+                  {errors.productGroup && (
+                    <p className="text-red-500 text-xs mt-1">
+                      This field is required
+                    </p>
+                  )}
+                </div>
+
+                {/* Problem Type */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Problem Type
+                  </label>
+                  {loadingProblemTypes ? (
+                    <div className="flex items-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                      <span className="ml-3 text-gray-600">
+                        Loading problem types...
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${errors.problemType
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-purple-500"
+                        }`}
+                      onChange={(e) => {
+                        setSelectedProblemType(e.target.value);
+                        setErrors({ ...errors, problemType: false });
+                      }}
+                      value={selectedProblemType}
+                    >
+                      <option value="">Please select...</option>
+                      {problemTypes.map((type) => (
+                        <option key={type._id} value={type.name}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {errors.problemType && (
+                    <p className="text-red-500 text-xs mt-1">
+                      This field is required
+                    </p>
+                  )}
+                </div>
+
+                {/* Problem Name */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Problem Name
+                  </label>
+                  {loadingProblemNames ? (
+                    <div className="flex items-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                      <span className="ml-3 text-gray-600">
+                        Loading problem names...
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      className={`w-full px-4 py-3 bg-white border-2 rounded-xl focus:ring-4 focus:ring-purple-100 transition-all duration-200 ${errors.problemName
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:border-purple-500"
+                        }`}
+                      onChange={(e) => {
+                        setSelectedProblemName(e.target.value);
+                        setErrors({ ...errors, problemName: false });
+                      }}
+                      value={selectedProblemName}
+                    >
+                      <option value="">Please select...</option>
+                      {problemNames.map((name) => (
+                        <option key={name._id} value={name.name}>
+                          {name.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {errors.problemName && (
+                    <p className="text-red-500 text-xs mt-1">
+                      This field is required
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Spares Requested
+                  </label>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Search and select required spare parts or choose "Others" to enter manually
                   </p>
+                  <Autocomplete
+                    id="spareRequested"
+                    options={[...spareOptions, { PartNumber: 'Others', Description: 'Enter custom spare part' }]}
+                    getOptionLabel={(option) => {
+                      if (option.PartNumber === 'Others') return 'Others';
+                      return `${option.PartNumber} - ${option.Description}` || "";
+                    }}
+                    onChange={(event, newValue) => {
+                      setSelectedSpare(newValue);
+                      if (newValue?.PartNumber !== 'Others') {
+                        setOtherSpareText("");
+                      }
+                    }}
+                    value={selectedSpare}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="outlined"
+                        className="mt-1 block w-full"
+                        label="Select Spare Part"
+                      />
+                    )}
+                  />
+
+                  {/* Show text input when "Others" is selected */}
+                  {selectedSpare?.PartNumber === 'Others' && (
+                    <div className="mt-3 space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Enter Spare Part Details
+                      </label>
+                      <input
+                        type="text"
+                        value={otherSpareText}
+                        onChange={(e) => setOtherSpareText(e.target.value)}
+                        placeholder="Enter spare part number and description"
+                        className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200"
+                        maxLength={200}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Enter the spare part details (e.g., "ABC123 - Motor Assembly")
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Breakdown Checkbox */}
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
+                  <Checkbox
+                    checked={breakDown}
+                    onChange={() => setBreakDown(!breakDown)}
+                  />
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 cursor-pointer">
+                      Equipment Breakdown
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      Check if this is a breakdown situation
+                    </p>
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Additional Remarks
+                  </label>
+                  <textarea
+                    value={remarks}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    maxLength={400}
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
+                    rows={4}
+                    placeholder="Provide additional details about the complaint..."
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-500">
+                      Provide any additional information that might help resolve
+                      the issue
+                    </p>
+                    <p
+                      className={`text-xs font-medium ${remarks.length > 350 ? "text-red-500" : "text-gray-500"
+                        }`}
+                    >
+                      {remarks.length}/400
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </form>
+        </div>
+      </main>
 
-          {/* Submit Button */}
-          <div className="fixed bottom-0 pb-14 left-0 p-3 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-            <div className="flex justify-center w-full">
-              <button
-                type="submit"
-                className={`px-8 py-4 w-full bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white text-center font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
-                  loadingSubmit ? "cursor-wait opacity-75 transform-none" : ""
+      {/* Fixed Footer with Submit Button - Above navigation bar */}
+      {!keyboardVisible && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg"
+          style={{
+            paddingBottom: `${safeAreaInsets.bottom + 0}px`, // Add extra padding above navigation
+          }}
+        >
+          <div className="p-3 pb-0">
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              className={`px-8 py-4 w-full bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white text-center font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${loadingSubmit ? "cursor-wait opacity-75 transform-none" : ""
                 }`}
-                disabled={loadingSubmit}
-              >
-                {loadingSubmit ? (
-                  <div className="flex items-center space-x-3">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Submitting Complaint...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center space-x-2">
-                    <CheckCircle size={20} />
-                    <span>Submit Complaint</span>
-                  </div>
-                )}
-              </button>
-            </div>
+              disabled={loadingSubmit}
+            >
+              {loadingSubmit ? (
+                <div className="flex items-center space-x-3 justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Submitting Complaint...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle size={20} />
+                  <span>Submit Complaint</span>
+                </div>
+              )}
+            </button>
           </div>
-        </form>
-      </div>
+        </div>
+      )}
 
       {/* Enhanced Success Modal */}
+      {/* Success Modal */}
       {openSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-8 text-center">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-500" />
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Success!</h2>
-              <p className="text-green-100">
-                Your complaint has been submitted
-              </p>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-600 text-center mb-6 leading-relaxed">
-                Your complaint has been created successfully, and an email has
-                been sent to CIC. You will receive updates on the progress.
-                Thank you!
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">Success!</h2>
+              <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                Your complaint request has been created successfully. You will receive complaint number through email.
               </p>
               <button
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold py-3 rounded-xl hover:shadow-lg transition-all duration-200"
+                className="w-full bg-green-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-green-700 transition-colors duration-200"
                 onClick={handleCloseModal}
               >
                 Continue
@@ -900,7 +990,7 @@ const CreateComplaint = () => {
         </div>
       )}
 
-      {/* Add the same CSS animations from EquipmentDetail */}
+      {/* CSS animations */}
       <style jsx>{`
         @keyframes fadeInUp {
           from {

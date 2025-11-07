@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/joy": "^5.0.0-beta.51",
     "axios": "^1.7.9",
+    "capacitor-plugin-safe-area": "^4.0.0",
     "cra-template": "1.2.0",
     "file-saver": "^2.0.5",
     "html-docx-js": "^0.3.1",
